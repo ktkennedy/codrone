@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>드론 시뮬레이터 - 고학년</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <!-- 상단 바 -->
+    <div id="top-bar">
+        <a href="../index.html" class="back-btn">&#x2B05; 처음으로</a>
+        <span class="mode-label">&#x1F680; 고학년 모드</span>
+        <a href="blockly.html" class="back-btn" style="border-color:rgba(74,158,255,0.4);color:#4a9eff;">&#x1F9E9; 블록 코딩</a>
+    </div>
+
+    <!-- 튜토리얼 오버레이 -->
+    <div id="tutorial-overlay">
+        <div class="tutorial-box">
+            <h2>&#x1F680; 드론 조종사가 되어보세요!</h2>
+            <p>키보드로 드론을 자유롭게 조종할 수 있어요.</p>
+
+            <div class="keys-preview">
+                <div class="group">
+                    <span class="group-title">이동</span>
+                    <span><span class="key">W</span> 전진</span>
+                    <span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 좌/후/우</span>
+                </div>
+                <div class="group">
+                    <span class="group-title">고도</span>
+                    <span><span class="key">Space</span> 상승</span>
+                    <span><span class="key">Shift</span> 하강</span>
+                </div>
+                <div class="group">
+                    <span class="group-title">회전</span>
+                    <span><span class="key">Q</span> 좌회전</span>
+                    <span><span class="key">E</span> 우회전</span>
+                </div>
+            </div>
+
+            <p><span class="key">T</span> 이륙 &nbsp; <span class="key">L</span> 착륙 &nbsp; <span class="key">C</span> 카메라</p>
+
+            <button class="start-btn" id="btn-start" onclick="window._droneStarted=true;document.getElementById('tutorial-overlay').style.display='none';">시작하기!</button>
+        </div>
+    </div>
+
+    <!-- 버전 표시 (디버깅용) -->
+    <div style="position:fixed;bottom:2px;left:2px;color:rgba(255,255,255,0.3);font-size:9px;z-index:99999;pointer-events:none;font-family:monospace;">v5-high</div>
+
+    <!-- 에러 핸들러 -->
+    <script>
+    window.onerror = function(msg, url, line, col, error) {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:15px;z-index:99999;font-size:14px;font-family:monospace;white-space:pre-wrap;';
+        d.textContent = 'ERROR: ' + msg + '\nFile: ' + url.split('/').pop() + ':' + line;
+        document.body.appendChild(d);
+    };
+    </script>
+
+    <!-- Three.js -->
+    <script src="../shared/three.min.js?v=5"></script>
+
+    <!-- 공유 모듈 -->
+    <script src="../shared/drone-physics.js?v=5"></script>
+    <script src="../shared/drone-model.js?v=5"></script>
+    <script src="../shared/world.js?v=5"></script>
+    <script src="../shared/camera.js?v=5"></script>
+    <script src="../shared/ui-components.js?v=5"></script>
+
+    <!-- 미션 시스템 -->
+    <script src="../shared/mission-framework.js?v=5"></script>
+    <script src="js/missions-high.js?v=5"></script>
+
+    <!-- 고학년 전용 -->
+    <script src="js/controls.js?v=5"></script>
+    <script src="js/app.js?v=5"></script>
+</body>
+</html>

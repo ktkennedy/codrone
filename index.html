@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>드론 시뮬레이터</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0d2137 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .stars {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none; z-index: 0;
+        }
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+        @keyframes twinkle {
+            from { opacity: 0.3; }
+            to { opacity: 1; }
+        }
+
+        .main-container {
+            position: relative; z-index: 1;
+            text-align: center;
+            max-width: 800px; width: 90%;
+        }
+
+        .title {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #4a9eff, #44ffaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #88aacc;
+            margin-bottom: 50px;
+        }
+
+        .drone-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .mode-cards {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .mode-card {
+            background: rgba(255,255,255,0.08);
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 40px 30px;
+            width: 300px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #fff;
+            display: block;
+        }
+        .mode-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.4);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .mode-card .icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        .mode-card h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .mode-card .grade {
+            font-size: 14px;
+            color: #88aacc;
+            margin-bottom: 15px;
+        }
+        .mode-card .description {
+            font-size: 13px;
+            color: #aabbcc;
+            line-height: 1.6;
+        }
+
+        .mode-card.low { border-color: rgba(68, 255, 136, 0.3); }
+        .mode-card.low:hover { border-color: rgba(68, 255, 136, 0.6); }
+        .mode-card.low h2 { color: #44ff88; }
+
+        .mode-card.high { border-color: rgba(74, 158, 255, 0.3); }
+        .mode-card.high:hover { border-color: rgba(74, 158, 255, 0.6); }
+        .mode-card.high h2 { color: #4a9eff; }
+
+        .footer {
+            position: fixed;
+            bottom: 20px;
+            color: #556677;
+            font-size: 12px;
+            z-index: 1;
+        }
+
+        @media (max-width: 680px) {
+            .title { font-size: 32px; }
+            .mode-cards { flex-direction: column; align-items: center; }
+            .mode-card { width: 280px; padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+    <div class="main-container">
+        <div class="drone-icon">&#x1F681;</div>
+        <h1 class="title">드론 시뮬레이터</h1>
+        <p class="subtitle">드론 조종을 배워보세요!</p>
+
+        <div class="mode-cards">
+            <a href="elementary-low/index.html" class="mode-card low">
+                <div class="icon">&#x2B50;</div>
+                <h2>저학년 모드</h2>
+                <p class="grade">1 ~ 3학년</p>
+                <p class="description">
+                    큰 버튼으로 쉽게 조종!<br>
+                    터치로도 조작할 수 있어요.<br>
+                    드론이 스스로 균형을 잡아줘요.
+                </p>
+            </a>
+
+            <a href="elementary-high/index.html" class="mode-card high">
+                <div class="icon">&#x1F680;</div>
+                <h2>고학년 모드</h2>
+                <p class="grade">4 ~ 6학년</p>
+                <p class="description">
+                    키보드로 자유롭게 조종!<br>
+                    블록 코딩으로 자동 비행 프로그래밍.<br>
+                    다양한 미션에 도전해보세요.
+                </p>
+            </a>
+        </div>
+    </div>
+
+    <div class="footer">
+        드론 시뮬레이터 v1.0 | 초등학생 코딩 교육용
+    </div>
+
+    <script>
+        // 별 배경 효과
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 80; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 3 + 1;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 2 + 's';
+            star.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+            starsContainer.appendChild(star);
+        }
+    </script>
+</body>
+</html>

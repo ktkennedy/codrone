@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>드론 시뮬레이터 - 텍스트 코딩</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            overflow: hidden; background: #0d1117;
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        #toolbar {
+            height: 50px; background: #161b22;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 15px; border-bottom: 1px solid #30363d;
+            flex-shrink: 0;
+        }
+        #toolbar .left { display: flex; align-items: center; gap: 10px; }
+        #toolbar .center { display: flex; gap: 8px; }
+        #toolbar .right { display: flex; align-items: center; gap: 10px; }
+
+        .back-link {
+            color: #88aacc; text-decoration: none; font-size: 13px;
+            padding: 6px 12px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .back-link:hover { background: rgba(255,255,255,0.05); }
+        .toolbar-title { color: #ff7b72; font-size: 16px; font-weight: bold; }
+
+        .tool-btn {
+            padding: 8px 20px; border: none; border-radius: 6px;
+            font-size: 13px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s; font-family: inherit;
+        }
+        .tool-btn.run { background: #238636; color: #fff; }
+        .tool-btn.run:hover { background: #2ea043; }
+        .tool-btn.stop { background: #da3633; color: #fff; }
+        .tool-btn.reset { background: #30363d; color: #c9d1d9; border: 1px solid #444; }
+        .demo-btn {
+            padding: 6px 14px; border-radius: 6px; font-size: 12px;
+            border: 1px solid #444; background: #21262d; color: #c9d1d9;
+            cursor: pointer; font-family: inherit;
+        }
+        .demo-btn:hover { background: #30363d; }
+
+        #main-container { flex: 1; display: flex; overflow: hidden; }
+
+        /* 코드 에디터 */
+        #editor-panel {
+            width: 55%; display: flex; flex-direction: column;
+            border-right: 1px solid #30363d;
+        }
+        #editor-header {
+            padding: 8px 15px; background: #161b22;
+            border-bottom: 1px solid #30363d;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        #editor-header .tab {
+            color: #c9d1d9; font-size: 13px;
+            padding: 4px 12px; border-radius: 4px;
+            background: #0d1117; border: 1px solid #30363d;
+        }
+        #editor-header .api-hint {
+            color: #8b949e; font-size: 11px;
+        }
+        #code-editor {
+            flex: 1; width: 100%; padding: 15px;
+            background: #0d1117; color: #c9d1d9; border: none;
+            font-family: 'Courier New', 'Menlo', monospace;
+            font-size: 14px; line-height: 1.7;
+            resize: none; outline: none;
+            tab-size: 2;
+        }
+        /* 출력 콘솔 */
+        #console-panel {
+            height: 120px; background: #010409;
+            border-top: 1px solid #30363d;
+            flex-shrink: 0; overflow-y: auto;
+        }
+        #console-header {
+            padding: 4px 15px; background: #0d1117;
+            color: #8b949e; font-size: 11px;
+            border-bottom: 1px solid #21262d;
+        }
+        #console-output {
+            padding: 8px 15px; color: #8b949e;
+            font-family: 'Courier New', monospace;
+            font-size: 12px; white-space: pre-wrap;
+        }
+        .console-log { color: #c9d1d9; }
+        .console-success { color: #3fb950; }
+        .console-error { color: #f85149; }
+        .console-info { color: #58a6ff; }
+
+        /* 오른쪽: 3D 뷰 */
+        #right-panel { width: 45%; display: flex; flex-direction: column; }
+        #sim-container { flex: 1; position: relative; background: #000; }
+        #sim-container canvas { width: 100%; height: 100%; display: block; }
+
+        #exec-status {
+            position: absolute; top: 10px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); color: #58a6ff;
+            padding: 6px 16px; border-radius: 15px;
+            font-size: 12px; z-index: 10; display: none;
+        }
+        #exec-status.active { display: block; }
+
+        /* API 레퍼런스 */
+        #api-panel {
+            height: 200px; background: #0d1117;
+            border-top: 1px solid #30363d;
+            overflow-y: auto; flex-shrink: 0; padding: 10px 15px;
+            color: #8b949e; font-size: 12px; line-height: 1.8;
+        }
+        #api-panel h4 { color: #58a6ff; margin-bottom: 5px; font-size: 13px; }
+        #api-panel code {
+            background: #161b22; padding: 1px 5px;
+            border-radius: 3px; color: #ff7b72; font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <div class="left">
+            <a href="blockly.html" class="back-link">&#x2B05; 블록 코딩</a>
+            <span class="toolbar-title">&#x1F4BB; 텍스트 코딩</span>
+        </div>
+        <div class="center">
+            <button class="tool-btn run" id="btn-run">&#x25B6; 실행</button>
+            <button class="tool-btn stop" id="btn-stop">&#x23F9; 정지</button>
+            <button class="tool-btn reset" id="btn-reset">&#x21BA; 리셋</button>
+        </div>
+        <div class="right">
+            <button class="demo-btn" id="demo-square">사각형 비행</button>
+            <button class="demo-btn" id="demo-flyto">좌표 비행</button>
+            <button class="demo-btn" id="demo-patrol">순찰 비행</button>
+            <button class="demo-btn" id="demo-path">경로 탐색</button>
+        </div>
+    </div>
+
+    <div id="main-container">
+        <div id="editor-panel">
+            <div id="editor-header">
+                <span class="tab">main.js</span>
+                <span class="api-hint">drone.함수명() 으로 드론을 조종하세요</span>
+            </div>
+            <textarea id="code-editor" spellcheck="false">// 드론 텍스트 코딩
+// 아래 코드를 수정해서 드론을 조종해보세요!
+
+await drone.takeoff();
+await drone.moveForward(5);
+await drone.turnRight(90);
+await drone.moveForward(3);
+await drone.hover(2);
+await drone.land();
+</textarea>
+            <div id="console-panel">
+                <div id="console-header">콘솔 출력</div>
+                <div id="console-output"></div>
+            </div>
+        </div>
+
+        <div id="right-panel">
+            <div id="sim-container">
+                <div id="exec-status">대기 중</div>
+            </div>
+            <div id="api-panel">
+                <h4>드론 API 레퍼런스</h4>
+                <b style="color:#4a9eff;">기본 조작</b><br>
+                <code>await drone.takeoff()</code> - 이륙<br>
+                <code>await drone.land()</code> - 착륙<br>
+                <code>await drone.moveForward(거리)</code> - 앞으로 이동 (m)<br>
+                <code>await drone.moveBackward(거리)</code> - 뒤로 이동<br>
+                <code>await drone.moveLeft(거리)</code> - 왼쪽 이동<br>
+                <code>await drone.moveRight(거리)</code> - 오른쪽 이동<br>
+                <code>await drone.moveUp(높이)</code> - 위로 이동<br>
+                <code>await drone.moveDown(높이)</code> - 아래로 이동<br>
+                <code>await drone.turnLeft(각도)</code> - 왼쪽 회전 (도)<br>
+                <code>await drone.turnRight(각도)</code> - 오른쪽 회전 (도)<br>
+                <code>await drone.hover(초)</code> - 호버링<br>
+                <code>await drone.wait(초)</code> - 대기<br>
+                <br><b style="color:#ff8844;">자율비행</b><br>
+                <code>await drone.flyTo(x, y, z)</code> - 좌표로 자동 비행<br>
+                <code>await drone.returnHome()</code> - 홈으로 귀환<br>
+                <code>await drone.followPath([{x,y,z}, ...])</code> - 경로 비행<br>
+                <code>drone.setSpeed(속도)</code> - 비행 속도 설정 (1~10)<br>
+                <br><b style="color:#bb44aa;">센서</b><br>
+                <code>drone.getAltitude()</code> - 현재 높이<br>
+                <code>drone.getSpeed()</code> - 현재 속도<br>
+                <code>drone.getBattery()</code> - 배터리 잔량<br>
+                <code>drone.getPositionX()</code> - X 좌표<br>
+                <code>drone.getPositionZ()</code> - Z 좌표<br>
+                <code>drone.getDistanceTo(x, z)</code> - 목표까지 거리<br>
+                <code>console.log(값)</code> - 콘솔 출력
+            </div>
+        </div>
+    </div>
+
+    <!-- 에러 핸들러 -->
+    <script>
+    window.onerror = function(msg, url, line, col, error) {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:15px;z-index:99999;font-size:14px;font-family:monospace;white-space:pre-wrap;';
+        d.textContent = 'ERROR: ' + msg + '\nFile: ' + url.split('/').pop() + ':' + line;
+        document.body.appendChild(d);
+    };
+    </script>
+
+    <!-- Libraries -->
+    <script src="../shared/three.min.js?v=5"></script>
+
+    <!-- Shared -->
+    <script src="../shared/drone-physics.js?v=5"></script>
+    <script src="../shared/drone-model.js?v=5"></script>
+    <script src="../shared/world.js?v=5"></script>
+    <script src="../shared/camera.js?v=5"></script>
+    <script src="../shared/ui-components.js?v=5"></script>
+    <script src="../shared/sensors.js?v=5"></script>
+    <script src="../shared/autopilot.js?v=5"></script>
+    <script src="js/blockly-bridge.js?v=5"></script>
+
+    <script>
+    (function () {
+        'use strict';
+
+        var DroneSim = window.DroneSim;
+        var scene, renderer, camera, clock;
+        var physics, droneModel, world, cameraSystem, sensors;
+        var droneAPI;
+        var isRunning = false;
+
+        // 데모 코드
+        var DEMOS = {
+            square: '// 사각형 비행\n// 4번 반복하여 사각형을 그립니다\n\nawait drone.takeoff();\n\nfor (let i = 0; i < 4; i++) {\n    await drone.moveForward(5);\n    await drone.turnRight(90);\n    console.log("변 " + (i+1) + " 완료!");\n}\n\nconsole.log("사각형 완성!");\nawait drone.land();\n',
+            flyto: '// 좌표 비행 (자율비행)\n// flyTo()로 원하는 좌표로 자동 비행합니다\n\nawait drone.takeoff();\nconsole.log("현재 위치: X=" + drone.getPositionX() + " Z=" + drone.getPositionZ());\n\n// 첫 번째 지점으로 비행\nconsole.log(">> 지점 A (10, 3, 0) 으로 비행!");\nawait drone.flyTo(10, 3, 0);\nconsole.log("지점 A 도착! 거리: " + drone.getDistanceTo(0, 0) + "m");\n\n// 두 번째 지점으로 비행\nconsole.log(">> 지점 B (10, 5, 10) 으로 비행!");\nawait drone.flyTo(10, 5, 10);\nconsole.log("지점 B 도착!");\n\n// 홈으로 귀환\nconsole.log(">> 홈으로 귀환!");\nawait drone.returnHome();\nconsole.log("귀환 완료!");\n\nawait drone.land();\n',
+            patrol: '// 순찰 비행 (자율비행)\n// 여러 웨이포인트를 순서대로 방문합니다\n\nawait drone.takeoff();\ndrone.setSpeed(4); // 속도 4m/s\n\n// 순찰 경로 정의\nconst route = [\n    {x: 8, y: 3, z: 0},   // 동쪽\n    {x: 8, y: 4, z: -8},  // 북동쪽 (높이 올림)\n    {x: 0, y: 4, z: -8},  // 북쪽\n    {x: -8, y: 3, z: -8}, // 북서쪽\n    {x: -8, y: 3, z: 0},  // 서쪽\n    {x: 0, y: 3, z: 0}    // 출발점\n];\n\nconsole.log("순찰 시작! (" + route.length + "개 지점)");\n\n// followPath로 경로 자동 비행\nawait drone.followPath(route);\n\nconsole.log("순찰 완료!");\nconsole.log("최종 위치: X=" + drone.getPositionX() + " Z=" + drone.getPositionZ());\nawait drone.land();\n',
+            path: '// 지능형 경로 탐색\n// 센서로 위치를 확인하며 목표를 찾아갑니다\n\nawait drone.takeoff();\ndrone.setSpeed(3);\n\n// 탐색할 목표 지점들\nconst targets = [\n    {x: 5, z: 5, name: "기지 A"},\n    {x: -5, z: 10, name: "기지 B"},\n    {x: -10, z: -5, name: "기지 C"}\n];\n\nfor (let i = 0; i < targets.length; i++) {\n    const t = targets[i];\n    let dist = drone.getDistanceTo(t.x, t.z);\n    console.log(">> " + t.name + " 탐색 중... (거리: " + dist + "m)");\n    \n    await drone.flyTo(t.x, 3, t.z);\n    \n    dist = drone.getDistanceTo(t.x, t.z);\n    console.log("도착! " + t.name + " (오차: " + dist + "m)");\n    await drone.hover(1);\n}\n\nconsole.log("모든 기지 탐색 완료! 귀환합니다.");\nawait drone.returnHome();\nawait drone.land();\n'
+        };
+
+        function initSimulator() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x87ceeb, 80, 200);
+
+            var container = document.getElementById('sim-container');
+            var w = container.clientWidth;
+            var h = container.clientHeight;
+
+            camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 500);
+            camera.position.set(0, 5, 8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x87ceeb);
+            if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+            container.appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+
+            world = new DroneSim.World(scene);
+            world.create();
+
+            physics = new DroneSim.DronePhysics({
+                maxSpeed: 10, speedLimit: 10,
+                autoStabilize: true, stabilizeRate: 4.0,
+                batteryDrainRate: 0, dragCoefficient: 0.4
+            });
+
+            droneModel = new DroneSim.DroneModel();
+            scene.add(droneModel.getModel());
+
+            cameraSystem = new DroneSim.CameraSystem(camera);
+            cameraSystem.setTarget(droneModel.getModel());
+
+            sensors = new DroneSim.DroneSensors(scene, physics);
+            var autopilot = new DroneSim.Autopilot(physics);
+            autopilot.setHome();
+
+            droneAPI = new DroneSim.DroneAPI(physics);
+            droneAPI.setAutopilot(autopilot);
+            droneAPI.setSensors(sensors);
+
+            droneAPI.onAction = function (action) {
+                var status = document.getElementById('exec-status');
+                status.textContent = action;
+                status.classList.add('active');
+            };
+
+            window.addEventListener('resize', function () {
+                var w = container.clientWidth;
+                var h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        }
+
+        function logToConsole(text, type) {
+            var output = document.getElementById('console-output');
+            var line = document.createElement('div');
+            line.className = type ? 'console-' + type : 'console-log';
+            line.textContent = text;
+            output.appendChild(line);
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '';
+        }
+
+        async function runCode() {
+            if (isRunning) return;
+            isRunning = true;
+            clearConsole();
+            physics.reset();
+            droneAPI.reset();
+
+            document.getElementById('btn-run').textContent = '실행 중...';
+            document.getElementById('exec-status').classList.add('active');
+
+            var code = document.getElementById('code-editor').value;
+            logToConsole('프로그램 실행 시작...', 'info');
+
+            // console.log 오버라이드
+            var origLog = console.log;
+            console.log = function () {
+                var msg = Array.from(arguments).join(' ');
+                logToConsole(msg, 'log');
+                origLog.apply(console, arguments);
+            };
+
+            try {
+                var drone = droneAPI;
+                var asyncFn = new Function('drone', 'console',
+                    'return (async function() {\n' + code + '\n})();'
+                );
+                await asyncFn(drone, console);
+                logToConsole('프로그램 실행 완료!', 'success');
+            } catch (e) {
+                logToConsole('오류: ' + e.message, 'error');
+            }
+
+            console.log = origLog;
+            isRunning = false;
+            document.getElementById('btn-run').textContent = '▶ 실행';
+            setTimeout(function () {
+                document.getElementById('exec-status').classList.remove('active');
+            }, 1500);
+        }
+
+        function stopCode() {
+            droneAPI.cancel();
+            physics.velocity = { x: 0, y: 0, z: 0 };
+            isRunning = false;
+            document.getElementById('btn-run').textContent = '▶ 실행';
+            document.getElementById('exec-status').classList.remove('active');
+            logToConsole('실행이 중지되었습니다.', 'error');
+        }
+
+        function resetAll() {
+            stopCode();
+            physics.reset();
+            droneModel.updateFromPhysics(physics.getState());
+            clearConsole();
+            logToConsole('리셋 완료', 'info');
+        }
+
+        function bindButtons() {
+            document.getElementById('btn-run').addEventListener('click', runCode);
+            document.getElementById('btn-stop').addEventListener('click', stopCode);
+            document.getElementById('btn-reset').addEventListener('click', resetAll);
+
+            // 데모 코드 버튼
+            document.getElementById('demo-square').addEventListener('click', function () {
+                document.getElementById('code-editor').value = DEMOS.square;
+            });
+            document.getElementById('demo-flyto').addEventListener('click', function () {
+                document.getElementById('code-editor').value = DEMOS.flyto;
+            });
+            document.getElementById('demo-patrol').addEventListener('click', function () {
+                document.getElementById('code-editor').value = DEMOS.patrol;
+            });
+            document.getElementById('demo-path').addEventListener('click', function () {
+                document.getElementById('code-editor').value = DEMOS.path;
+            });
+
+            // Tab 키 지원 (에디터에서 인덴트)
+            document.getElementById('code-editor').addEventListener('keydown', function (e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    var start = this.selectionStart;
+                    var end = this.selectionEnd;
+                    this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+                    this.selectionStart = this.selectionEnd = start + 2;
+                }
+                // Ctrl+Enter로 실행
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    runCode();
+                }
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            var dt = Math.min(clock.getDelta(), 0.05);
+
+            // 자율비행 입력 또는 호버링
+            var ap = droneAPI._autopilot;
+            var autoInput = ap ? ap.update(dt) : null;
+            if (autoInput && physics.isFlying && !physics.isLanding) {
+                autoInput.throttle += 0.52;
+                physics.update(dt, autoInput);
+            } else if (physics.isFlying && !physics.isLanding) {
+                physics.update(dt, { throttle: 0.52 });
+            } else {
+                physics.update(dt, {});
+            }
+
+            var state = physics.getState();
+            droneModel.updateFromPhysics(state);
+            droneModel.updatePropellers(dt, physics.isFlying ? 0.5 : 0);
+            cameraSystem.update(dt);
+
+            renderer.render(scene, camera);
+        }
+
+        initSimulator();
+        bindButtons();
+        animate();
+    })();
+    </script>
+</body>
+</html>

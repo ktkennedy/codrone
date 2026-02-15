@@ -1,0 +1,6 @@
+.claude/
+.omc/
+server.py
+__pycache__/
+.DS_Store
+*.pyc

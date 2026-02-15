@@ -1,0 +1,108 @@
+<xml xmlns="https://developers.google.com/blockly/xml" id="toolbox" style="display: none">
+  <category name="기본 동작" colour="#4a9eff">
+    <block type="drone_takeoff"></block>
+    <block type="drone_land"></block>
+    <block type="drone_hover">
+      <value name="SECONDS">
+        <shadow type="math_number"><field name="NUM">3</field></shadow>
+      </value>
+    </block>
+    <block type="drone_wait">
+      <value name="SECONDS">
+        <shadow type="math_number"><field name="NUM">1</field></shadow>
+      </value>
+    </block>
+  </category>
+
+  <category name="이동" colour="#44bb77">
+    <block type="drone_move_forward">
+      <value name="DISTANCE">
+        <shadow type="math_number"><field name="NUM">3</field></shadow>
+      </value>
+    </block>
+    <block type="drone_move_backward">
+      <value name="DISTANCE">
+        <shadow type="math_number"><field name="NUM">3</field></shadow>
+      </value>
+    </block>
+    <block type="drone_move_left">
+      <value name="DISTANCE">
+        <shadow type="math_number"><field name="NUM">3</field></shadow>
+      </value>
+    </block>
+    <block type="drone_move_right">
+      <value name="DISTANCE">
+        <shadow type="math_number"><field name="NUM">3</field></shadow>
+      </value>
+    </block>
+    <block type="drone_move_up">
+      <value name="DISTANCE">
+        <shadow type="math_number"><field name="NUM">2</field></shadow>
+      </value>
+    </block>
+    <block type="drone_move_down">
+      <value name="DISTANCE">
+        <shadow type="math_number"><field name="NUM">2</field></shadow>
+      </value>
+    </block>
+  </category>
+
+  <category name="회전" colour="#44bb77">
+    <block type="drone_turn_left">
+      <value name="ANGLE">
+        <shadow type="math_number"><field name="NUM">90</field></shadow>
+      </value>
+    </block>
+    <block type="drone_turn_right">
+      <value name="ANGLE">
+        <shadow type="math_number"><field name="NUM">90</field></shadow>
+      </value>
+    </block>
+  </category>
+
+  <category name="센서" colour="#bb44aa">
+    <block type="drone_get_altitude"></block>
+    <block type="drone_get_speed"></block>
+    <block type="drone_get_battery"></block>
+    <block type="drone_get_front_distance"></block>
+    <block type="drone_get_ground_color"></block>
+  </category>
+
+  <sep></sep>
+
+  <category name="논리" colour="#5b80a5">
+    <block type="controls_if"></block>
+    <block type="controls_ifelse"></block>
+    <block type="logic_compare"></block>
+    <block type="logic_operation"></block>
+    <block type="logic_negate"></block>
+    <block type="logic_boolean"></block>
+  </category>
+
+  <category name="반복" colour="#5ba55b">
+    <block type="controls_repeat_ext">
+      <value name="TIMES">
+        <shadow type="math_number"><field name="NUM">4</field></shadow>
+      </value>
+    </block>
+    <block type="controls_whileUntil"></block>
+    <block type="controls_for">
+      <value name="FROM"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+      <value name="TO"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+      <value name="BY"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+    </block>
+  </category>
+
+  <category name="숫자" colour="#5b67a5">
+    <block type="math_number"><field name="NUM">0</field></block>
+    <block type="math_arithmetic"></block>
+    <block type="math_round"></block>
+    <block type="math_random_int">
+      <value name="FROM"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+      <value name="TO"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+    </block>
+  </category>
+
+  <category name="변수" colour="#a55b80" custom="VARIABLE"></category>
+  <category name="함수" colour="#995ba5" custom="PROCEDURE"></category>
+</xml>

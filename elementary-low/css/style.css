@@ -1,0 +1,260 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    overflow: hidden;
+    background: #000;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#canvas-container,
+#controls-panel,
+.control-group {
+    touch-action: none;
+}
+
+#canvas-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* 조작 버튼 패널 */
+#controls-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 15px 20px;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.control-group {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 방향 버튼 (D-pad 스타일) */
+.dpad {
+    display: grid;
+    grid-template-columns: 60px 60px 60px;
+    grid-template-rows: 60px 60px 60px;
+    gap: 4px;
+}
+
+.dpad-btn {
+    width: 60px;
+    height: 60px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.dpad-btn:active, .dpad-btn.pressed {
+    background: rgba(68, 255, 136, 0.4);
+    transform: scale(0.92);
+}
+
+.dpad-btn.empty {
+    background: transparent;
+    pointer-events: none;
+}
+
+/* 상승/하강 버튼 */
+.vertical-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vert-btn {
+    width: 70px;
+    height: 55px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.1s;
+    backdrop-filter: blur(5px);
+}
+
+.vert-btn:active, .vert-btn.pressed {
+    background: rgba(74, 158, 255, 0.4);
+    transform: scale(0.92);
+}
+
+/* 이착륙 버튼 */
+.action-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.action-btn {
+    width: 90px;
+    height: 90px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    backdrop-filter: blur(5px);
+}
+
+.action-btn .icon {
+    font-size: 28px;
+}
+
+.action-btn.takeoff {
+    background: rgba(68, 255, 136, 0.2);
+    border-color: rgba(68, 255, 136, 0.5);
+    color: #44ff88;
+}
+.action-btn.takeoff:active {
+    background: rgba(68, 255, 136, 0.5);
+}
+
+.action-btn.land {
+    background: rgba(255, 170, 68, 0.2);
+    border-color: rgba(255, 170, 68, 0.5);
+    color: #ffaa44;
+}
+.action-btn.land:active {
+    background: rgba(255, 170, 68, 0.5);
+}
+
+/* 상단 메뉴 바 */
+#top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    z-index: 50;
+    pointer-events: none;
+}
+
+#top-bar > * {
+    pointer-events: auto;
+}
+
+.back-btn {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.back-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.mode-label {
+    background: rgba(68, 255, 136, 0.15);
+    border: 1px solid rgba(68, 255, 136, 0.3);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: #44ff88;
+}
+
+/* 안내 오버레이 */
+#tutorial-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.tutorial-box {
+    background: rgba(20, 40, 60, 0.95);
+    border: 2px solid rgba(68, 255, 136, 0.3);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 500px;
+    text-align: center;
+    color: #fff;
+}
+
+.tutorial-box h2 {
+    font-size: 28px;
+    color: #44ff88;
+    margin-bottom: 20px;
+}
+
+.tutorial-box p {
+    font-size: 16px;
+    line-height: 1.8;
+    color: #aabbcc;
+    margin-bottom: 15px;
+}
+
+.tutorial-box .start-btn {
+    margin-top: 20px;
+    padding: 15px 40px;
+    background: rgba(68, 255, 136, 0.3);
+    border: 2px solid #44ff88;
+    border-radius: 12px;
+    color: #44ff88;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.tutorial-box .start-btn:hover {
+    background: rgba(68, 255, 136, 0.5);
+}
+
+/* 반응형 */
+@media (max-width: 600px) {
+    .dpad-btn { width: 50px; height: 50px; font-size: 20px; }
+    .dpad { grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px 50px; }
+    .vert-btn { width: 55px; height: 45px; font-size: 13px; }
+    .action-btn { width: 75px; height: 75px; font-size: 12px; }
+    .action-btn .icon { font-size: 22px; }
+}
