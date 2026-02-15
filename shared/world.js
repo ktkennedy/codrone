@@ -6,6 +6,10 @@ class World {
     constructor(scene) {
         this.scene = scene;
         this.objects = [];
+        this.obstacles = [];
+        this.rings = [];
+        this.landingPads = [];
+        this.waypoints = [];
     }
 
     /**
@@ -17,8 +21,9 @@ class World {
         this.createLighting();
         this.createBuildings();
         this.createTrees();
-        this.createLandingPad();
-        this.createBoundaryMarkers();
+        this.createRingGates();
+        this.createLandingPads();
+        this.createBoundaryWalls();
     }
 
     createSky() {
@@ -125,6 +130,9 @@ class World {
             { x: -15, z: -20, w: 3, h: 10, d: 5, color: 0x8899aa },
             { x: 30, z: 25, w: 4, h: 15, d: 4, color: 0x6677aa },
             { x: -30, z: -10, w: 6, h: 5, d: 4, color: 0xaabbcc },
+            { x: -5, z: -30, w: 3, h: 7, d: 3, color: 0x99aacc },
+            { x: 35, z: 10, w: 4, h: 9, d: 4, color: 0x7799bb },
+            { x: 10, z: -25, w: 5, h: 4, d: 3, color: 0x88aacc },
         ];
 
         buildingData.forEach(b => {
@@ -132,8 +140,13 @@ class World {
             const mat = new THREE.MeshPhongMaterial({ color: b.color });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(b.x, b.h / 2, b.z);
+
+            // Mark as obstacle for sensor system
+            mesh.userData.isObstacle = true;
+
             this.scene.add(mesh);
             this.objects.push(mesh);
+            this.obstacles.push(mesh);
 
             // 창문 효과
             this._addWindows(mesh, b);
@@ -219,53 +232,110 @@ class World {
         return group;
     }
 
-    createLandingPad() {
-        // 착륙 패드 (원형)
+    createLandingPads() {
+        // Multiple landing pads at different locations
+        const padData = [
+            { x: 0, z: 0, color: 0xff6600, label: 'H' },      // Orange center pad
+            { x: -35, z: 30, color: 0x00ff00, label: 'A' },   // Green pad
+            { x: 35, z: -30, color: 0x0088ff, label: 'B' },   // Blue pad
+            { x: 40, z: 35, color: 0xffff00, label: 'C' },    // Yellow pad
+        ];
+
+        padData.forEach(data => {
+            this._createSingleLandingPad(data.x, data.z, data.color, data.label);
+        });
+    }
+
+    _createSingleLandingPad(x, z, color, label) {
+        // Landing pad cylinder
         const padGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.05, 32);
         const padMat = new THREE.MeshPhongMaterial({ color: 0xcccccc });
         const pad = new THREE.Mesh(padGeo, padMat);
-        pad.position.set(0, 0.025, 0);
+        pad.position.set(x, 0.025, z);
+        pad.userData.isLandingPad = true;
+        pad.userData.padLabel = label;
         this.scene.add(pad);
+        this.landingPads.push(pad);
 
-        // H 마크
-        const hMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+        // Label mark
+        const labelMat = new THREE.MeshBasicMaterial({ color: color });
 
-        // H의 세로선 2개
-        const vBarGeo = new THREE.PlaneGeometry(0.15, 0.8);
-        [-0.25, 0.25].forEach(x => {
-            const bar = new THREE.Mesh(vBarGeo, hMat);
-            bar.rotation.x = -Math.PI / 2;
-            bar.position.set(x, 0.06, 0);
-            this.scene.add(bar);
-        });
+        if (label === 'H') {
+            // H의 세로선 2개
+            const vBarGeo = new THREE.PlaneGeometry(0.15, 0.8);
+            [-0.25, 0.25].forEach(xOffset => {
+                const bar = new THREE.Mesh(vBarGeo, labelMat);
+                bar.rotation.x = -Math.PI / 2;
+                bar.position.set(x + xOffset, 0.06, z);
+                this.scene.add(bar);
+            });
 
-        // H의 가로선
-        const hBarGeo = new THREE.PlaneGeometry(0.5, 0.15);
-        const hBar = new THREE.Mesh(hBarGeo, hMat);
-        hBar.rotation.x = -Math.PI / 2;
-        hBar.position.set(0, 0.06, 0);
-        this.scene.add(hBar);
+            // H의 가로선
+            const hBarGeo = new THREE.PlaneGeometry(0.5, 0.15);
+            const hBar = new THREE.Mesh(hBarGeo, labelMat);
+            hBar.rotation.x = -Math.PI / 2;
+            hBar.position.set(x, 0.06, z);
+            this.scene.add(hBar);
+        } else {
+            // Simple circle marker for other pads
+            const markerGeo = new THREE.CircleGeometry(0.5, 32);
+            const marker = new THREE.Mesh(markerGeo, labelMat);
+            marker.rotation.x = -Math.PI / 2;
+            marker.position.set(x, 0.06, z);
+            this.scene.add(marker);
+        }
 
-        // 테두리 링
+        // Border ring
         const ringGeo = new THREE.RingGeometry(1.4, 1.5, 32);
         const ringMat = new THREE.MeshBasicMaterial({
-            color: 0xff6600,
+            color: color,
             side: THREE.DoubleSide
         });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.rotation.x = -Math.PI / 2;
-        ring.position.y = 0.06;
+        ring.position.set(x, 0.06, z);
         this.scene.add(ring);
-
-        this.landingPad = pad;
     }
 
-    createBoundaryMarkers() {
-        // 비행 영역 경계 표시 (코너에 폴)
+    createBoundaryWalls() {
+        // Visible boundary walls so students know the flight area
+        const boundary = 50;
+        const wallHeight = 0.5;
+        const wallThickness = 0.2;
+
+        // Semi-transparent red material for walls
+        const wallMat = new THREE.MeshPhongMaterial({
+            color: 0xff4444,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+
+        // Four walls (North, South, East, West)
+        const walls = [
+            // North wall
+            { w: boundary * 2, h: wallHeight, d: wallThickness, x: 0, z: boundary },
+            // South wall
+            { w: boundary * 2, h: wallHeight, d: wallThickness, x: 0, z: -boundary },
+            // East wall
+            { w: wallThickness, h: wallHeight, d: boundary * 2, x: boundary, z: 0 },
+            // West wall
+            { w: wallThickness, h: wallHeight, d: boundary * 2, x: -boundary, z: 0 }
+        ];
+
+        walls.forEach(wall => {
+            const geo = new THREE.BoxGeometry(wall.w, wall.h, wall.d);
+            const mesh = new THREE.Mesh(geo, wallMat);
+            mesh.position.set(wall.x, wall.h / 2, wall.z);
+            mesh.userData.isObstacle = true;
+            this.scene.add(mesh);
+            this.obstacles.push(mesh);
+        });
+
+        // Corner poles with flags
         const poleMat = new THREE.MeshPhongMaterial({ color: 0xff4444 });
         const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 5, 6);
 
-        const boundary = 50;
         [
             { x: boundary, z: boundary },
             { x: -boundary, z: boundary },
@@ -276,7 +346,7 @@ class World {
             pole.position.set(pos.x, 2.5, pos.z);
             this.scene.add(pole);
 
-            // 깃발
+            // Flag
             const flagGeo = new THREE.PlaneGeometry(1.5, 0.8);
             const flagMat = new THREE.MeshBasicMaterial({
                 color: 0xff4444,
@@ -290,11 +360,101 @@ class World {
         });
     }
 
+    createRingGates() {
+        // Floating ring gates for waypoint missions
+        const ringData = [
+            { x: 10, y: 5, z: -10, color: 0xff00ff, id: 1, rotation: 0 },           // Magenta
+            { x: -15, y: 7, z: 20, color: 0x00ffff, id: 2, rotation: Math.PI / 4 }, // Cyan
+            { x: 20, y: 4, z: 20, color: 0xffff00, id: 3, rotation: 0 },            // Yellow
+            { x: -25, y: 6, z: -15, color: 0xff6600, id: 4, rotation: -Math.PI / 6 }, // Orange
+            { x: 30, y: 8, z: 0, color: 0x00ff00, id: 5, rotation: Math.PI / 2 },   // Green
+        ];
+
+        ringData.forEach(data => {
+            const ringGeo = new THREE.TorusGeometry(2, 0.15, 16, 32);
+            const ringMat = new THREE.MeshPhongMaterial({
+                color: data.color,
+                emissive: data.color,
+                emissiveIntensity: 0.3
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.set(data.x, data.y, data.z);
+            ring.rotation.y = data.rotation;
+
+            // Mark as ring for mission system
+            ring.userData.isRing = true;
+            ring.userData.ringId = data.id;
+
+            this.scene.add(ring);
+            this.rings.push(ring);
+
+            // Add support pole
+            const poleGeo = new THREE.CylinderGeometry(0.08, 0.08, data.y, 8);
+            const poleMat = new THREE.MeshPhongMaterial({ color: 0x888888 });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.set(data.x, data.y / 2, data.z);
+            this.scene.add(pole);
+        });
+    }
+
     /**
      * 장애물 목록 (충돌 감지용)
      */
     getObstacles() {
-        return this.objects;
+        return this.obstacles;
+    }
+
+    /**
+     * Get all ring gates
+     */
+    getRings() {
+        return this.rings;
+    }
+
+    /**
+     * Dynamically place a waypoint marker in the scene
+     */
+    placeWaypoint(x, y, z, color = 0xff0000) {
+        const waypointGroup = new THREE.Group();
+
+        // Sphere marker
+        const sphereGeo = new THREE.SphereGeometry(0.3, 16, 16);
+        const sphereMat = new THREE.MeshPhongMaterial({
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.4
+        });
+        const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+        waypointGroup.add(sphere);
+
+        // Vertical line indicator
+        const lineGeo = new THREE.CylinderGeometry(0.05, 0.05, y > 0 ? y : 0.1, 8);
+        const lineMat = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.5
+        });
+        const line = new THREE.Mesh(lineGeo, lineMat);
+        line.position.y = -(y > 0 ? y / 2 : 0.05);
+        waypointGroup.add(line);
+
+        waypointGroup.position.set(x, y, z);
+        waypointGroup.userData.isWaypoint = true;
+
+        this.scene.add(waypointGroup);
+        this.waypoints.push(waypointGroup);
+
+        return waypointGroup;
+    }
+
+    /**
+     * Remove all dynamic waypoints from the scene
+     */
+    clearWaypoints() {
+        this.waypoints.forEach(waypoint => {
+            this.scene.remove(waypoint);
+        });
+        this.waypoints = [];
     }
 }
 

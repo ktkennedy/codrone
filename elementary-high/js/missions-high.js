@@ -1,5 +1,5 @@
 /**
- * 고학년 미션 정의 (6개)
+ * 고학년 미션 정의 (10개)
  * 더 복잡하고 도전적인 미션으로 드론 조종 실력을 키웁니다.
  */
 (function () {
@@ -7,47 +7,80 @@
 
     function createHighMissions() {
         return [
-            // 미션 1: 정밀 비행
+            // 미션 1: 이륙과 착륙
+            {
+                name: '이륙과 착륙',
+                description: '드론의 기본! 안전하게 이륙하고 착륙하세요.',
+                timeLimit: 60,
+                objectives: [
+                    {
+                        description: '5m 높이까지 이륙',
+                        check: function (state) { return state.altitude > 5; }
+                    },
+                    {
+                        description: '10초 동안 호버링',
+                        _hoverStart: null,
+                        check: function (state, time) {
+                            if (state.altitude > 4 && state.altitude < 6) {
+                                if (!this._hoverStart) this._hoverStart = time;
+                                return time - this._hoverStart > 10;
+                            }
+                            this._hoverStart = null;
+                            return false;
+                        }
+                    },
+                    {
+                        description: '부드럽게 착륙 (1.5m 이내)',
+                        check: function (state) {
+                            var dist = Math.sqrt(state.position.x * state.position.x + state.position.z * state.position.z);
+                            return !state.isFlying && state.altitude < 0.3 && dist < 1.5;
+                        }
+                    }
+                ],
+                starCriteria: {
+                    twoStar: function (time) { return time < 35; },
+                    threeStar: function (time) { return time < 20; }
+                }
+            },
+
+            // 미션 2: 정밀 비행
             {
                 name: '정밀 비행',
-                description: '체크포인트 4개를 순서대로 통과하세요.',
+                description: '정확한 좌표로 이동하는 능력을 키워요.',
                 timeLimit: 90,
                 collectibles: [],
-                _currentCheckpoint: 0,
+                _currentTarget: 0,
                 setup: function (scene) {
                     this.collectibles = [];
-                    this._currentCheckpoint = 0;
-                    var positions = [
-                        { x: 8, y: 5, z: 0 },
-                        { x: 8, y: 10, z: 8 },
-                        { x: -5, y: 7, z: 10 },
-                        { x: -5, y: 4, z: 0 }
+                    this._currentTarget = 0;
+                    var targets = [
+                        { x: 10, y: 5, z: 0 },
+                        { x: 10, y: 10, z: 10 },
+                        { x: 0, y: 8, z: 10 },
+                        { x: -10, y: 6, z: 0 },
+                        { x: 0, y: 4, z: -10 }
                     ];
                     var self = this;
-                    positions.forEach(function (pos, i) {
-                        var geo = new THREE.TorusGeometry(1, 0.12, 8, 24);
+                    targets.forEach(function (pos, i) {
+                        // 타겟 구
+                        var geo = new THREE.SphereGeometry(0.4, 16, 16);
                         var mat = new THREE.MeshBasicMaterial({
                             color: 0x00aaff,
                             transparent: true,
                             opacity: i === 0 ? 1 : 0.25
                         });
-                        var ring = new THREE.Mesh(geo, mat);
-                        ring.position.set(pos.x, pos.y, pos.z);
+                        var target = new THREE.Mesh(geo, mat);
+                        target.position.set(pos.x, pos.y, pos.z);
+                        scene.add(target);
+                        self.collectibles.push(target);
 
-                        // 다음 체크포인트를 향하도록 회전
-                        var next = positions[(i + 1) % positions.length];
-                        ring.lookAt(next.x, next.y, next.z);
-
-                        scene.add(ring);
-                        self.collectibles.push(ring);
-
-                        // 번호 표시 (간단한 스프라이트 대신 작은 구)
-                        var numGeo = new THREE.SphereGeometry(0.2, 8, 8);
-                        var numMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                        var numMesh = new THREE.Mesh(numGeo, numMat);
-                        numMesh.position.set(pos.x, pos.y + 1.5, pos.z);
-                        scene.add(numMesh);
-                        self.collectibles.push(numMesh);
+                        // 기둥
+                        var poleGeo = new THREE.CylinderGeometry(0.03, 0.03, pos.y, 8);
+                        var poleMat = new THREE.MeshPhongMaterial({ color: 0x00aaff });
+                        var pole = new THREE.Mesh(poleGeo, poleMat);
+                        pole.position.set(pos.x, pos.y / 2, pos.z);
+                        scene.add(pole);
+                        self.collectibles.push(pole);
                     });
                 },
                 cleanup: function (scene) {
@@ -55,41 +88,187 @@
                     this.collectibles = [];
                 },
                 frameUpdate: function (state) {
-                    if (this._currentCheckpoint >= 4) return;
-                    var ring = this.collectibles[this._currentCheckpoint * 2]; // 링은 짝수 인덱스
-                    var dx = state.position.x - ring.position.x;
-                    var dy = state.position.y - ring.position.y;
-                    var dz = state.position.z - ring.position.z;
+                    if (this._currentTarget >= 5) return;
+                    var target = this.collectibles[this._currentTarget * 2];
+                    var dx = state.position.x - target.position.x;
+                    var dy = state.position.y - target.position.y;
+                    var dz = state.position.z - target.position.z;
                     var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    if (dist < 2) {
-                        ring.material.opacity = 0.1;
-                        this._currentCheckpoint++;
-                        if (this._currentCheckpoint < 4) {
-                            this.collectibles[this._currentCheckpoint * 2].material.opacity = 1;
+                    if (dist < 1.5) {
+                        target.material.opacity = 0.1;
+                        this._currentTarget++;
+                        if (this._currentTarget < 5) {
+                            this.collectibles[this._currentTarget * 2].material.opacity = 1;
                         }
                     }
                 },
                 objectives: [
                     {
-                        description: '체크포인트 1 통과',
-                        check: function (s, t, m) { return m._currentCheckpoint >= 1; }
+                        description: '첫 번째, 두 번째 좌표 방문',
+                        check: function (s, t, m) { return m._currentTarget >= 2; }
                     },
                     {
-                        description: '체크포인트 2, 3 통과',
-                        check: function (s, t, m) { return m._currentCheckpoint >= 3; }
+                        description: '세 번째, 네 번째 좌표 방문',
+                        check: function (s, t, m) { return m._currentTarget >= 4; }
                     },
                     {
-                        description: '모든 체크포인트 통과!',
-                        check: function (s, t, m) { return m._currentCheckpoint >= 4; }
+                        description: '모든 좌표 방문 완료!',
+                        check: function (s, t, m) { return m._currentTarget >= 5; }
                     }
                 ],
                 starCriteria: {
-                    twoStar: function (time) { return time < 50; },
-                    threeStar: function (time) { return time < 30; }
+                    twoStar: function (time) { return time < 55; },
+                    threeStar: function (time) { return time < 35; }
                 }
             },
 
-            // 미션 2: 장애물 코스
+            // 미션 3: 고도 유지
+            {
+                name: '고도 유지',
+                description: '일정한 높이를 유지하며 이동하세요.',
+                timeLimit: 90,
+                collectibles: [],
+                _passedCheckpoints: 0,
+                setup: function (scene) {
+                    this.collectibles = [];
+                    this._passedCheckpoints = 0;
+                    var checkpoints = [
+                        { x: 0, z: 0 },
+                        { x: 15, z: 0 },
+                        { x: 15, z: 15 },
+                        { x: 0, z: 15 }
+                    ];
+                    var self = this;
+                    checkpoints.forEach(function (pos, i) {
+                        // 체크포인트 링 (높이 8m)
+                        var geo = new THREE.TorusGeometry(1.5, 0.1, 8, 24);
+                        var mat = new THREE.MeshBasicMaterial({
+                            color: 0xffaa00,
+                            transparent: true,
+                            opacity: 0.6
+                        });
+                        var ring = new THREE.Mesh(geo, mat);
+                        ring.position.set(pos.x, 8, pos.z);
+                        ring.rotation.x = Math.PI / 2;
+                        ring.userData.passed = false;
+                        scene.add(ring);
+                        self.collectibles.push(ring);
+                    });
+                },
+                cleanup: function (scene) {
+                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles = [];
+                },
+                frameUpdate: function (state) {
+                    var self = this;
+                    this.collectibles.forEach(function (ring) {
+                        if (ring.userData.passed) return;
+                        var dx = state.position.x - ring.position.x;
+                        var dy = state.position.y - ring.position.y;
+                        var dz = state.position.z - ring.position.z;
+                        var dist = Math.sqrt(dx * dx + dz * dz);
+                        if (dist < 2 && Math.abs(dy) < 1.5) {
+                            ring.userData.passed = true;
+                            ring.material.opacity = 0.15;
+                            self._passedCheckpoints++;
+                        }
+                    });
+                },
+                objectives: [
+                    {
+                        description: '8m 고도로 이륙',
+                        check: function (state) { return state.altitude > 7.5 && state.altitude < 8.5; }
+                    },
+                    {
+                        description: '첫 번째, 두 번째 체크포인트 통과',
+                        check: function (s, t, m) { return m._passedCheckpoints >= 2; }
+                    },
+                    {
+                        description: '모든 체크포인트 통과!',
+                        check: function (s, t, m) { return m._passedCheckpoints >= 4; }
+                    }
+                ],
+                starCriteria: {
+                    twoStar: function (time) { return time < 55; },
+                    threeStar: function (time) { return time < 35; }
+                }
+            },
+
+            // 미션 4: 8자 비행
+            {
+                name: '8자 비행',
+                description: '8자 모양으로 비행하며 모든 체크포인트를 통과하세요!',
+                timeLimit: 120,
+                collectibles: [],
+                _currentCheckpoint: 0,
+                setup: function (scene) {
+                    this.collectibles = [];
+                    this._currentCheckpoint = 0;
+                    // 8자 패턴 포인트
+                    var points = [
+                        { x: 0, y: 5, z: 0 },
+                        { x: 5, y: 6, z: 5 },
+                        { x: 7, y: 7, z: 0 },
+                        { x: 5, y: 6, z: -5 },
+                        { x: 0, y: 5, z: 0 },
+                        { x: -5, y: 6, z: 5 },
+                        { x: -7, y: 7, z: 0 },
+                        { x: -5, y: 6, z: -5 }
+                    ];
+                    var self = this;
+                    points.forEach(function (pos, i) {
+                        var geo = new THREE.SphereGeometry(0.5, 16, 16);
+                        var mat = new THREE.MeshBasicMaterial({
+                            color: 0xff00ff,
+                            transparent: true,
+                            opacity: i === 0 ? 1 : 0.3
+                        });
+                        var marker = new THREE.Mesh(geo, mat);
+                        marker.position.set(pos.x, pos.y, pos.z);
+                        scene.add(marker);
+                        self.collectibles.push(marker);
+                    });
+                },
+                cleanup: function (scene) {
+                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles = [];
+                },
+                frameUpdate: function (state) {
+                    if (this._currentCheckpoint >= 8) return;
+                    var marker = this.collectibles[this._currentCheckpoint];
+                    var dx = state.position.x - marker.position.x;
+                    var dy = state.position.y - marker.position.y;
+                    var dz = state.position.z - marker.position.z;
+                    var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    if (dist < 2) {
+                        marker.material.opacity = 0.1;
+                        this._currentCheckpoint++;
+                        if (this._currentCheckpoint < 8) {
+                            this.collectibles[this._currentCheckpoint].material.opacity = 1;
+                        }
+                    }
+                },
+                objectives: [
+                    {
+                        description: '첫 번째 원 완성 (4개 포인트)',
+                        check: function (s, t, m) { return m._currentCheckpoint >= 4; }
+                    },
+                    {
+                        description: '두 번째 원 절반 (6개 포인트)',
+                        check: function (s, t, m) { return m._currentCheckpoint >= 6; }
+                    },
+                    {
+                        description: '8자 패턴 완성!',
+                        check: function (s, t, m) { return m._currentCheckpoint >= 8; }
+                    }
+                ],
+                starCriteria: {
+                    twoStar: function (time) { return time < 70; },
+                    threeStar: function (time) { return time < 45; }
+                }
+            },
+
+            // 미션 5: 장애물 코스
             {
                 name: '장애물 코스',
                 description: '장애물을 피해 골에 도착하세요! 장애물 충돌 시 실패!',
@@ -153,9 +332,9 @@
                     });
                     // 골 체크
                     var goalDist = Math.sqrt(
-                        (state.position.x - 28) ** 2 +
-                        (state.position.y - 6) ** 2 +
-                        state.position.z ** 2
+                        (state.position.x - 28) * (state.position.x - 28) +
+                        (state.position.y - 6) * (state.position.y - 6) +
+                        state.position.z * state.position.z
                     );
                     if (goalDist < 2.5) this._reachedGoal = true;
                 },
@@ -183,31 +362,36 @@
                 }
             },
 
-            // 미션 3: 시간 도전
+            // 미션 6: 링 레이스
             {
-                name: '시간 도전',
-                description: '3개의 링을 40초 안에 통과하세요!',
-                timeLimit: 40,
+                name: '링 레이스',
+                description: '모든 링을 빠르게 통과하세요! 시간이 촉박해요!',
+                timeLimit: 50,
                 collectibles: [],
                 _passed: 0,
                 setup: function (scene) {
                     this.collectibles = [];
                     this._passed = 0;
                     var positions = [
-                        { x: 10, y: 5, z: 5 },
-                        { x: -5, y: 8, z: -8 },
-                        { x: 12, y: 3, z: -10 }
+                        { x: 8, y: 5, z: 0, rx: 0, ry: Math.PI / 2 },
+                        { x: 15, y: 7, z: 8, rx: 0, ry: 0 },
+                        { x: 8, y: 9, z: 15, rx: 0, ry: -Math.PI / 4 },
+                        { x: -5, y: 6, z: 15, rx: 0, ry: Math.PI / 2 },
+                        { x: -10, y: 8, z: 5, rx: 0, ry: Math.PI / 4 },
+                        { x: 0, y: 4, z: 0, rx: Math.PI / 2, ry: 0 }
                     ];
                     var self = this;
                     positions.forEach(function (pos, i) {
-                        var geo = new THREE.TorusGeometry(1.2, 0.1, 8, 24);
+                        var geo = new THREE.TorusGeometry(1.5, 0.12, 8, 24);
                         var mat = new THREE.MeshBasicMaterial({
-                            color: 0xff4444,
+                            color: 0xff0088,
                             transparent: true,
                             opacity: i === 0 ? 1 : 0.3
                         });
                         var ring = new THREE.Mesh(geo, mat);
                         ring.position.set(pos.x, pos.y, pos.z);
+                        ring.rotation.x = pos.rx;
+                        ring.rotation.y = pos.ry;
                         scene.add(ring);
                         self.collectibles.push(ring);
                     });
@@ -220,9 +404,9 @@
                     if (this._passed >= this.collectibles.length) return;
                     var ring = this.collectibles[this._passed];
                     var dist = Math.sqrt(
-                        (state.position.x - ring.position.x) ** 2 +
-                        (state.position.y - ring.position.y) ** 2 +
-                        (state.position.z - ring.position.z) ** 2
+                        (state.position.x - ring.position.x) * (state.position.x - ring.position.x) +
+                        (state.position.y - ring.position.y) * (state.position.y - ring.position.y) +
+                        (state.position.z - ring.position.z) * (state.position.z - ring.position.z)
                     );
                     if (dist < 2) {
                         ring.material.opacity = 0.1;
@@ -234,27 +418,27 @@
                 },
                 objectives: [
                     {
-                        description: '링 1 통과',
-                        check: function (s, t, m) { return m._passed >= 1; }
-                    },
-                    {
-                        description: '링 2 통과',
+                        description: '링 1, 2 통과',
                         check: function (s, t, m) { return m._passed >= 2; }
                     },
                     {
-                        description: '링 3 통과 - 완주!',
-                        check: function (s, t, m) { return m._passed >= 3; }
+                        description: '링 3, 4, 5 통과',
+                        check: function (s, t, m) { return m._passed >= 5; }
+                    },
+                    {
+                        description: '모든 링 통과 - 완주!',
+                        check: function (s, t, m) { return m._passed >= 6; }
                     }
                 ],
                 starCriteria: {
-                    twoStar: function (time) { return time < 30; },
-                    threeStar: function (time) { return time < 20; }
+                    twoStar: function (time) { return time < 35; },
+                    threeStar: function (time) { return time < 25; }
                 }
             },
 
-            // 미션 4: 배달 미션
+            // 미션 7: 택배 배달
             {
-                name: '배달 미션',
+                name: '택배 배달',
                 description: 'A지점에서 화물을 싣고 B지점으로 배달하세요.',
                 timeLimit: 90,
                 collectibles: [],
@@ -268,15 +452,15 @@
                     var boxGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
                     var boxMat = new THREE.MeshPhongMaterial({ color: 0xff8844 });
                     var box = new THREE.Mesh(boxGeo, boxMat);
-                    box.position.set(10, 0.4, 10);
+                    box.position.set(15, 0.4, 15);
                     scene.add(box);
                     this.collectibles.push(box);
                     this._cargo = box;
                     // A 지점 마커
-                    var markerA = this._createMarker(scene, 10, 10, 0x44ff88, 'A');
+                    var markerA = this._createMarker(scene, 15, 15, 0x44ff88, 'A');
                     this.collectibles.push(markerA);
                     // B 지점 마커
-                    var markerB = this._createMarker(scene, -15, -10, 0xff4444, 'B');
+                    var markerB = this._createMarker(scene, -20, -15, 0xff4444, 'B');
                     this.collectibles.push(markerB);
                 },
                 _createMarker: function (scene, x, z, color, label) {
@@ -303,9 +487,9 @@
                     // 화물 픽업
                     if (!this._pickedUp) {
                         var dist = Math.sqrt(
-                            (state.position.x - 10) ** 2 +
-                            (state.position.y - 2) ** 2 +
-                            (state.position.z - 10) ** 2
+                            (state.position.x - 15) * (state.position.x - 15) +
+                            (state.position.y - 2) * (state.position.y - 2) +
+                            (state.position.z - 15) * (state.position.z - 15)
                         );
                         if (dist < 2) {
                             this._pickedUp = true;
@@ -322,13 +506,13 @@
                     // 배달
                     if (this._pickedUp && !this._delivered) {
                         var dist2 = Math.sqrt(
-                            (state.position.x + 15) ** 2 +
-                            (state.position.z + 10) ** 2
+                            (state.position.x + 20) * (state.position.x + 20) +
+                            (state.position.z + 15) * (state.position.z + 15)
                         );
                         if (dist2 < 3 && state.altitude < 3) {
                             this._delivered = true;
                             if (this._cargo) {
-                                this._cargo.position.set(-15, 0.4, -10);
+                                this._cargo.position.set(-20, 0.4, -15);
                             }
                         }
                     }
@@ -342,7 +526,8 @@
                         description: 'B 지점으로 이동',
                         check: function (state, t, m) {
                             return m._pickedUp && Math.sqrt(
-                                (state.position.x + 15) ** 2 + (state.position.z + 10) ** 2
+                                (state.position.x + 20) * (state.position.x + 20) +
+                                (state.position.z + 15) * (state.position.z + 15)
                             ) < 10;
                         }
                     },
@@ -357,101 +542,46 @@
                 }
             },
 
-            // 미션 5: 비상 착륙
+            // 미션 8: 정찰 비행
             {
-                name: '비상 착륙',
-                description: '바람이 불어요! 흔들리는 드론을 안정시키고 착륙하세요.',
-                timeLimit: 45,
-                _windForce: { x: 0, z: 0 },
-                _windTimer: 0,
-                setup: function () {
-                    this._windForce = { x: 0, z: 0 };
-                    this._windTimer = 0;
-                },
-                cleanup: function () {},
-                frameUpdate: function (state, physics, dt) {
-                    // 바람 효과 (랜덤 변화)
-                    this._windTimer += dt || 0.016;
-                    if (this._windTimer > 0.5) {
-                        this._windTimer = 0;
-                        this._windForce.x = (Math.random() - 0.5) * 3;
-                        this._windForce.z = (Math.random() - 0.5) * 3;
-                    }
-                    if (physics && state.isFlying) {
-                        physics.velocity.x += this._windForce.x * (dt || 0.016);
-                        physics.velocity.z += this._windForce.z * (dt || 0.016);
-                    }
-                },
-                objectives: [
-                    {
-                        description: '이륙하기',
-                        check: function (state) { return state.altitude > 3; }
-                    },
-                    {
-                        description: '바람 속에서 호버링 유지 (5초)',
-                        _stableTime: 0,
-                        _lastPos: null,
-                        check: function (state, time) {
-                            if (state.altitude < 2) { this._stableTime = 0; return false; }
-                            if (!this._lastPos) { this._lastPos = { ...state.position }; return false; }
-                            var drift = Math.sqrt(
-                                (state.position.x - this._lastPos.x) ** 2 +
-                                (state.position.z - this._lastPos.z) ** 2
-                            );
-                            this._lastPos = { ...state.position };
-                            if (drift < 0.3) this._stableTime += 0.016;
-                            else this._stableTime = Math.max(0, this._stableTime - 0.01);
-                            return this._stableTime > 5;
-                        }
-                    },
-                    {
-                        description: '착륙 패드에 안전하게 착륙 (2m 이내)',
-                        check: function (state) {
-                            var dist = Math.sqrt(state.position.x ** 2 + state.position.z ** 2);
-                            return !state.isFlying && state.altitude < 0.3 && dist < 2;
-                        }
-                    }
-                ],
-                starCriteria: {
-                    twoStar: function (time) { return time < 30; },
-                    threeStar: function (time) { return time < 20; }
-                }
-            },
-
-            // 미션 6: 자유 탐험
-            {
-                name: '자유 탐험',
-                description: '넓은 맵에서 숨겨진 보석 5개를 찾아보세요!',
-                timeLimit: 180,
+                name: '정찰 비행',
+                description: '모든 정찰 포인트를 방문하고 출발 지점으로 돌아오세요.',
+                timeLimit: 120,
                 collectibles: [],
-                _found: 0,
+                _visitedCount: 0,
+                _returnedHome: false,
                 setup: function (scene) {
                     this.collectibles = [];
-                    this._found = 0;
-                    var gemPositions = [
-                        { x: 25, y: 3, z: 25 },
-                        { x: -30, y: 12, z: -5 },
-                        { x: 15, y: 8, z: -25 },
-                        { x: -20, y: 5, z: 20 },
-                        { x: 0, y: 15, z: 0 }
+                    this._visitedCount = 0;
+                    this._returnedHome = false;
+                    var scoutPoints = [
+                        { x: 20, y: 6, z: 20, color: 0xff4444 },
+                        { x: -20, y: 8, z: 20, color: 0x44ff44 },
+                        { x: -20, y: 7, z: -20, color: 0x4444ff },
+                        { x: 20, y: 5, z: -20, color: 0xffff44 }
                     ];
-                    var colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff];
                     var self = this;
-                    gemPositions.forEach(function (pos, i) {
-                        var geo = new THREE.OctahedronGeometry(0.35, 0);
-                        var mat = new THREE.MeshBasicMaterial({ color: colors[i] });
-                        var gem = new THREE.Mesh(geo, mat);
-                        gem.position.set(pos.x, pos.y, pos.z);
-                        gem.userData.found = false;
-                        // 빛나는 효과
-                        var glowGeo = new THREE.SphereGeometry(0.6, 8, 8);
-                        var glowMat = new THREE.MeshBasicMaterial({
-                            color: colors[i], transparent: true, opacity: 0.2
+                    scoutPoints.forEach(function (point, i) {
+                        // 정찰 포인트
+                        var geo = new THREE.ConeGeometry(0.5, 1.5, 8);
+                        var mat = new THREE.MeshBasicMaterial({
+                            color: point.color,
+                            transparent: true,
+                            opacity: 0.8
                         });
-                        var glow = new THREE.Mesh(glowGeo, glowMat);
-                        gem.add(glow);
-                        scene.add(gem);
-                        self.collectibles.push(gem);
+                        var cone = new THREE.Mesh(geo, mat);
+                        cone.position.set(point.x, point.y, point.z);
+                        cone.userData.visited = false;
+                        scene.add(cone);
+                        self.collectibles.push(cone);
+
+                        // 기둥
+                        var poleGeo = new THREE.CylinderGeometry(0.05, 0.05, point.y, 8);
+                        var poleMat = new THREE.MeshPhongMaterial({ color: point.color });
+                        var pole = new THREE.Mesh(poleGeo, poleMat);
+                        pole.position.set(point.x, point.y / 2, point.z);
+                        scene.add(pole);
+                        self.collectibles.push(pole);
                     });
                 },
                 cleanup: function (scene) {
@@ -460,35 +590,254 @@
                 },
                 frameUpdate: function (state) {
                     var self = this;
-                    this.collectibles.forEach(function (gem) {
-                        if (gem.userData.found) return;
-                        gem.rotation.y += 0.03;
-                        var dx = state.position.x - gem.position.x;
-                        var dy = state.position.y - gem.position.y;
-                        var dz = state.position.z - gem.position.z;
-                        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 2) {
-                            gem.userData.found = true;
-                            gem.visible = false;
-                            self._found++;
+                    // 정찰 포인트 체크
+                    for (var i = 0; i < 4; i++) {
+                        var cone = this.collectibles[i * 2];
+                        if (cone.userData.visited) continue;
+                        var dx = state.position.x - cone.position.x;
+                        var dy = state.position.y - cone.position.y;
+                        var dz = state.position.z - cone.position.z;
+                        var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        if (dist < 2.5) {
+                            cone.userData.visited = true;
+                            cone.material.opacity = 0.2;
+                            this._visitedCount++;
+                        }
+                    }
+                    // 귀환 체크
+                    if (this._visitedCount >= 4) {
+                        var homeDist = Math.sqrt(
+                            state.position.x * state.position.x +
+                            state.position.z * state.position.z
+                        );
+                        if (homeDist < 3) {
+                            this._returnedHome = true;
+                        }
+                    }
+                },
+                objectives: [
+                    {
+                        description: '정찰 포인트 2개 방문',
+                        check: function (s, t, m) { return m._visitedCount >= 2; }
+                    },
+                    {
+                        description: '모든 정찰 포인트 방문',
+                        check: function (s, t, m) { return m._visitedCount >= 4; }
+                    },
+                    {
+                        description: '출발 지점으로 귀환!',
+                        check: function (s, t, m) { return m._returnedHome; }
+                    }
+                ],
+                starCriteria: {
+                    twoStar: function (time) { return time < 70; },
+                    threeStar: function (time) { return time < 45; }
+                }
+            },
+
+            // 미션 9: 긴급 착륙
+            {
+                name: '긴급 착륙',
+                description: '가장 가까운 착륙 패드를 찾아 안전하게 착륙하세요!',
+                timeLimit: 60,
+                collectibles: [],
+                _landedCorrectly: false,
+                setup: function (scene) {
+                    this.collectibles = [];
+                    this._landedCorrectly = false;
+                    // 여러 착륙 패드
+                    var pads = [
+                        { x: 25, z: 25, color: 0xff4444 },
+                        { x: -25, z: 25, color: 0x44ff44 },
+                        { x: 25, z: -25, color: 0x4444ff },
+                        { x: -25, z: -25, color: 0xffff44 }
+                    ];
+                    var self = this;
+                    pads.forEach(function (pad) {
+                        var padGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.1, 32);
+                        var padMat = new THREE.MeshPhongMaterial({ color: pad.color });
+                        var mesh = new THREE.Mesh(padGeo, padMat);
+                        mesh.position.set(pad.x, 0.05, pad.z);
+                        mesh.userData.isPad = true;
+                        scene.add(mesh);
+                        self.collectibles.push(mesh);
+                    });
+                },
+                cleanup: function (scene) {
+                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles = [];
+                },
+                frameUpdate: function (state) {
+                    if (this._landedCorrectly) return;
+                    if (!state.isFlying && state.altitude < 0.3) {
+                        var self = this;
+                        this.collectibles.forEach(function (pad) {
+                            if (!pad.userData.isPad) return;
+                            var dx = state.position.x - pad.position.x;
+                            var dz = state.position.z - pad.position.z;
+                            var dist = Math.sqrt(dx * dx + dz * dz);
+                            if (dist < 2.5) {
+                                self._landedCorrectly = true;
+                            }
+                        });
+                    }
+                },
+                objectives: [
+                    {
+                        description: '15m 높이까지 이륙',
+                        check: function (state) { return state.altitude > 15; }
+                    },
+                    {
+                        description: '착륙 패드 찾기',
+                        _foundPad: false,
+                        check: function (state, t, mission) {
+                            for (var i = 0; i < mission.collectibles.length; i++) {
+                                var pad = mission.collectibles[i];
+                                if (!pad.userData.isPad) continue;
+                                var dx = state.position.x - pad.position.x;
+                                var dz = state.position.z - pad.position.z;
+                                var dist = Math.sqrt(dx * dx + dz * dz);
+                                if (dist < 5 && state.altitude < 10) {
+                                    this._foundPad = true;
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                    },
+                    {
+                        description: '착륙 패드에 안전하게 착륙!',
+                        check: function (s, t, m) { return m._landedCorrectly; }
+                    }
+                ],
+                starCriteria: {
+                    twoStar: function (time) { return time < 40; },
+                    threeStar: function (time) { return time < 25; }
+                }
+            },
+
+            // 미션 10: 자율비행 과제
+            {
+                name: '자율비행 과제',
+                description: '복잡한 코스를 완주하세요! 모든 기술을 활용해야 합니다.',
+                timeLimit: 150,
+                collectibles: [],
+                _checkpointsPassed: 0,
+                _ringsPass: 0,
+                _landed: false,
+                setup: function (scene) {
+                    this.collectibles = [];
+                    this._checkpointsPassed = 0;
+                    this._ringsPassed = 0;
+                    this._landed = false;
+
+                    // 체크포인트
+                    var checkpoints = [
+                        { x: 10, y: 5, z: 0, color: 0xff4444 },
+                        { x: 15, y: 10, z: 10, color: 0x44ff44 },
+                        { x: 0, y: 12, z: 20, color: 0x4444ff }
+                    ];
+                    var self = this;
+                    checkpoints.forEach(function (cp, i) {
+                        var geo = new THREE.SphereGeometry(0.6, 16, 16);
+                        var mat = new THREE.MeshBasicMaterial({
+                            color: cp.color,
+                            transparent: true,
+                            opacity: 0.8
+                        });
+                        var marker = new THREE.Mesh(geo, mat);
+                        marker.position.set(cp.x, cp.y, cp.z);
+                        marker.userData.passed = false;
+                        marker.userData.isCheckpoint = true;
+                        scene.add(marker);
+                        self.collectibles.push(marker);
+                    });
+
+                    // 링
+                    var rings = [
+                        { x: -10, y: 8, z: 20, ry: Math.PI / 2 },
+                        { x: -15, y: 6, z: 10, ry: 0 }
+                    ];
+                    rings.forEach(function (ring) {
+                        var geo = new THREE.TorusGeometry(1.8, 0.15, 8, 24);
+                        var mat = new THREE.MeshBasicMaterial({
+                            color: 0xff00ff,
+                            transparent: true,
+                            opacity: 0.7
+                        });
+                        var mesh = new THREE.Mesh(geo, mat);
+                        mesh.position.set(ring.x, ring.y, ring.z);
+                        mesh.rotation.y = ring.ry;
+                        mesh.userData.passed = false;
+                        mesh.userData.isRing = true;
+                        scene.add(mesh);
+                        self.collectibles.push(mesh);
+                    });
+
+                    // 최종 착륙 패드
+                    var padGeo = new THREE.CylinderGeometry(3, 3, 0.1, 32);
+                    var padMat = new THREE.MeshPhongMaterial({ color: 0xffd700 });
+                    var pad = new THREE.Mesh(padGeo, padMat);
+                    pad.position.set(-5, 0.05, 0);
+                    pad.userData.isLandingPad = true;
+                    scene.add(pad);
+                    this.collectibles.push(pad);
+                },
+                cleanup: function (scene) {
+                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles = [];
+                },
+                frameUpdate: function (state) {
+                    var self = this;
+                    this.collectibles.forEach(function (obj) {
+                        if (obj.userData.isCheckpoint && !obj.userData.passed) {
+                            var dx = state.position.x - obj.position.x;
+                            var dy = state.position.y - obj.position.y;
+                            var dz = state.position.z - obj.position.z;
+                            var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                            if (dist < 2) {
+                                obj.userData.passed = true;
+                                obj.material.opacity = 0.2;
+                                self._checkpointsPassed++;
+                            }
+                        }
+                        if (obj.userData.isRing && !obj.userData.passed) {
+                            var dx = state.position.x - obj.position.x;
+                            var dy = state.position.y - obj.position.y;
+                            var dz = state.position.z - obj.position.z;
+                            var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                            if (dist < 2.5) {
+                                obj.userData.passed = true;
+                                obj.material.opacity = 0.2;
+                                self._ringsPassed++;
+                            }
+                        }
+                        if (obj.userData.isLandingPad && !self._landed) {
+                            var dx = state.position.x - obj.position.x;
+                            var dz = state.position.z - obj.position.z;
+                            var dist = Math.sqrt(dx * dx + dz * dz);
+                            if (!state.isFlying && state.altitude < 0.3 && dist < 3) {
+                                self._landed = true;
+                            }
                         }
                     });
                 },
                 objectives: [
                     {
-                        description: '보석 2개 찾기',
-                        check: function (s, t, m) { return m._found >= 2; }
+                        description: '모든 체크포인트 통과 (3개)',
+                        check: function (s, t, m) { return m._checkpointsPassed >= 3; }
                     },
                     {
-                        description: '보석 4개 찾기',
-                        check: function (s, t, m) { return m._found >= 4; }
+                        description: '모든 링 통과 (2개)',
+                        check: function (s, t, m) { return m._ringsPassed >= 2; }
                     },
                     {
-                        description: '보석 5개 모두 찾기!',
-                        check: function (s, t, m) { return m._found >= 5; }
+                        description: '골든 착륙 패드에 착륙!',
+                        check: function (s, t, m) { return m._landed; }
                     }
                 ],
                 starCriteria: {
-                    twoStar: function (time) { return time < 120; },
+                    twoStar: function (time) { return time < 90; },
                     threeStar: function (time) { return time < 60; }
                 }
             }
