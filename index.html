@@ -119,6 +119,51 @@
         .mode-card.high:hover { border-color: rgba(74, 158, 255, 0.6); }
         .mode-card.high h2 { color: #4a9eff; }
 
+        .curriculum-info {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .curriculum-info h3 {
+            color: #88aacc;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(74,158,255,0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(74,158,255,0.2);
+        }
+        .step-num {
+            background: #4a9eff;
+            color: #fff;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: bold;
+        }
+        .step-text {
+            color: #ccddeeff;
+            font-size: 13px;
+        }
+        .step-arrow {
+            color: #556677;
+            font-size: 18px;
+        }
+
         .footer {
             position: fixed;
             bottom: 20px;
@@ -150,7 +195,7 @@
                 <p class="description">
                     큰 버튼으로 쉽게 조종!<br>
                     터치로도 조작할 수 있어요.<br>
-                    드론이 스스로 균형을 잡아줘요.
+                    8가지 미션에 도전해보세요.
                 </p>
             </a>
 
@@ -160,15 +205,40 @@
                 <p class="grade">4 ~ 6학년</p>
                 <p class="description">
                     키보드로 자유롭게 조종!<br>
-                    블록 코딩으로 자동 비행 프로그래밍.<br>
-                    다양한 미션에 도전해보세요.
+                    블록 코딩 &amp; 텍스트 코딩.<br>
+                    10가지 미션 + 자율비행 과제.
                 </p>
             </a>
+        </div>
+
+        <div class="curriculum-info">
+            <h3>학습 단계</h3>
+            <div class="steps">
+                <div class="step">
+                    <span class="step-num">1</span>
+                    <span class="step-text">드론 조종 익히기</span>
+                </div>
+                <div class="step-arrow">&rarr;</div>
+                <div class="step">
+                    <span class="step-num">2</span>
+                    <span class="step-text">미션 수행하기</span>
+                </div>
+                <div class="step-arrow">&rarr;</div>
+                <div class="step">
+                    <span class="step-num">3</span>
+                    <span class="step-text">블록 코딩</span>
+                </div>
+                <div class="step-arrow">&rarr;</div>
+                <div class="step">
+                    <span class="step-num">4</span>
+                    <span class="step-text">텍스트 코딩</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="footer">
-        드론 시뮬레이터 v1.0 | 초등학생 코딩 교육용
+        드론 시뮬레이터 v2.0 | 초등학생 코딩 교육용
     </div>
 
     <script>
