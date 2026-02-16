@@ -8,6 +8,31 @@ class DroneSensors {
         this.physics = physics;
         this.raycaster = new THREE.Raycaster();
         this._groundColors = {};
+        this._obstacleCache = null;
+        this._rayOrigin = new THREE.Vector3();
+        this._rayDirection = new THREE.Vector3();
+    }
+
+    /**
+     * 장애물 캐시 가져오기 (첫 호출 시 생성)
+     */
+    _getObstacles() {
+        if (this._obstacleCache === null) {
+            this._obstacleCache = [];
+            this.scene.traverse(function (child) {
+                if (child.isMesh && child.userData.isObstacle) {
+                    this._obstacleCache.push(child);
+                }
+            }.bind(this));
+        }
+        return this._obstacleCache;
+    }
+
+    /**
+     * 장애물 캐시 무효화 (동적 장애물용)
+     */
+    invalidateCache() {
+        this._obstacleCache = null;
     }
 
     /**
@@ -17,18 +42,13 @@ class DroneSensors {
         var pos = this.physics.position;
         var yaw = this.physics.rotation.yaw;
 
-        var origin = new THREE.Vector3(pos.x, pos.y, pos.z);
-        var direction = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+        this._rayOrigin.set(pos.x, pos.y, pos.z);
+        this._rayDirection.set(-Math.sin(yaw), 0, -Math.cos(yaw));
 
-        this.raycaster.set(origin, direction);
+        this.raycaster.set(this._rayOrigin, this._rayDirection);
         this.raycaster.far = 50;
 
-        var meshes = [];
-        this.scene.traverse(function (child) {
-            if (child.isMesh && child.userData.isObstacle) {
-                meshes.push(child);
-            }
-        });
+        var meshes = this._getObstacles();
 
         var intersects = this.raycaster.intersectObjects(meshes);
         if (intersects.length > 0) {

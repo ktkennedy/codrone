@@ -144,7 +144,17 @@
                     });
                 },
                 cleanup: function (scene) {
-                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles.forEach(function (obj) {
+                        scene.remove(obj);
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(function (m) { m.dispose(); });
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
                     this.collectibles = [];
                 },
                 frameUpdate: function (state) {
@@ -212,7 +222,17 @@
                     this.collectibles.push(glow);
                 },
                 cleanup: function (scene) {
-                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles.forEach(function (obj) {
+                        scene.remove(obj);
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(function (m) { m.dispose(); });
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
                     this.collectibles = [];
                 },
                 objectives: [
@@ -281,7 +301,17 @@
                     });
                 },
                 cleanup: function (scene) {
-                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles.forEach(function (obj) {
+                        scene.remove(obj);
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(function (m) { m.dispose(); });
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
                     this.collectibles = [];
                 },
                 frameUpdate: function (state) {
@@ -353,7 +383,17 @@
                     this.collectibles.push(hBar);
                 },
                 cleanup: function (scene) {
-                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles.forEach(function (obj) {
+                        scene.remove(obj);
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(function (m) { m.dispose(); });
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
                     this.collectibles = [];
                 },
                 objectives: [
@@ -433,7 +473,17 @@
                     });
                 },
                 cleanup: function (scene) {
-                    this.collectibles.forEach(function (obj) { scene.remove(obj); });
+                    this.collectibles.forEach(function (obj) {
+                        scene.remove(obj);
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(function (m) { m.dispose(); });
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
                     this.collectibles = [];
                 },
                 frameUpdate: function (state) {

@@ -111,8 +111,8 @@ class KeyboardControls {
         if (this.keys['d'] || this.keys['arrowright']) this.input.roll = -strength;
 
         // 회전 (요)
-        if (this.keys['q']) this.input.yaw = -strength;
-        if (this.keys['e']) this.input.yaw = strength;
+        if (this.keys['q']) this.input.yaw = strength;
+        if (this.keys['e']) this.input.yaw = -strength;
 
         return this.input;
     }

@@ -10,6 +10,7 @@
             this.physics = physics;
             this._running = false;
             this._cancelled = false;
+            this._activeTimers = []; // 모든 활성 타이머 추적
             this.onAction = null; // 액션 콜백 (시각적 피드백)
         }
 
@@ -20,16 +21,25 @@
         _sleep(ms) {
             var self = this;
             return new Promise(function (resolve) {
+                var resolved = false;
                 var check = setInterval(function () {
                     if (self._cancelled) {
                         clearInterval(check);
-                        resolve();
+                        clearTimeout(timeout);
+                        if (!resolved) {
+                            resolved = true;
+                            resolve();
+                        }
                     }
                 }, 100);
-                setTimeout(function () {
+                var timeout = setTimeout(function () {
                     clearInterval(check);
-                    resolve();
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
                 }, ms);
+                self._activeTimers.push(check, timeout);
             });
         }
 
@@ -80,10 +90,12 @@
                     self.physics.velocity.x = worldX * speed;
                     self.physics.velocity.z = worldZ * speed;
                 }, 50);
+                self._activeTimers.push(interval);
             });
         }
 
         async moveForward(distance) {
+            distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('앞으로 ' + distance + 'm');
             await this._moveDirection(0, -1, distance);
             this.physics.velocity.x = 0;
@@ -91,6 +103,7 @@
         }
 
         async moveBackward(distance) {
+            distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('뒤로 ' + distance + 'm');
             await this._moveDirection(0, 1, distance);
             this.physics.velocity.x = 0;
@@ -98,6 +111,7 @@
         }
 
         async moveLeft(distance) {
+            distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('왼쪽 ' + distance + 'm');
             await this._moveDirection(-1, 0, distance);
             this.physics.velocity.x = 0;
@@ -105,6 +119,7 @@
         }
 
         async moveRight(distance) {
+            distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('오른쪽 ' + distance + 'm');
             await this._moveDirection(1, 0, distance);
             this.physics.velocity.x = 0;
@@ -112,6 +127,7 @@
         }
 
         async moveUp(distance) {
+            distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('위로 ' + distance + 'm');
             var speed = 2;
             var duration = distance / speed;
@@ -125,11 +141,13 @@
                     }
                     self.physics.velocity.y = speed;
                 }, 50);
+                self._activeTimers.push(interval);
             });
             this.physics.velocity.y = 0;
         }
 
         async moveDown(distance) {
+            distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('아래로 ' + distance + 'm');
             var speed = 2;
             var duration = distance / speed;
@@ -143,11 +161,13 @@
                     }
                     self.physics.velocity.y = -speed;
                 }, 50);
+                self._activeTimers.push(interval);
             });
             this.physics.velocity.y = 0;
         }
 
         async turnLeft(angle) {
+            angle = Math.max(0, Math.min(360, Number(angle) || 0));
             this._notify('왼쪽 회전 ' + angle + '도');
             var radians = angle * Math.PI / 180;
             var speed = Math.PI / 2; // 90도/초
@@ -162,10 +182,12 @@
                     }
                     self.physics.rotation.yaw -= speed * 0.05;
                 }, 50);
+                self._activeTimers.push(interval);
             });
         }
 
         async turnRight(angle) {
+            angle = Math.max(0, Math.min(360, Number(angle) || 0));
             this._notify('오른쪽 회전 ' + angle + '도');
             var radians = angle * Math.PI / 180;
             var speed = Math.PI / 2;
@@ -180,6 +202,7 @@
                     }
                     self.physics.rotation.yaw += speed * 0.05;
                 }, 50);
+                self._activeTimers.push(interval);
             });
         }
 
@@ -208,6 +231,7 @@
                         resolve();
                     }
                 }, 100);
+                self._activeTimers.push(check);
             });
         }
 
@@ -228,6 +252,7 @@
                             resolve();
                         }
                     }, 100);
+                    self._activeTimers.push(check);
                 });
             } else {
                 await this._simpleFlyTo(0, 3, 0);
@@ -265,6 +290,7 @@
                         resolve();
                     }
                 }, 100);
+                self._activeTimers.push(check);
             });
         }
 
@@ -302,6 +328,7 @@
                     self.physics.velocity.y = dy * scale;
                     self.physics.velocity.z = dz * scale;
                 }, 50);
+                self._activeTimers.push(interval);
             });
         }
 
@@ -343,10 +370,19 @@
             this._sensors = sensors;
         }
 
-        cancel() { this._cancelled = true; }
+        cancel() {
+            this._cancelled = true;
+            // Clear all active timers
+            for (var i = 0; i < this._activeTimers.length; i++) {
+                clearInterval(this._activeTimers[i]);
+                clearTimeout(this._activeTimers[i]);
+            }
+            this._activeTimers = [];
+        }
         reset() {
             this._cancelled = false;
             this._flightSpeed = 3;
+            this._activeTimers = [];
         }
     }
 
@@ -395,10 +431,10 @@
 
             try {
                 var drone = this.drone;
-                var asyncFn = new Function('drone', 'highlightBlock',
+                var asyncFn = new Function('drone', 'highlightBlock', 'window', 'document', 'localStorage', 'fetch',
                     'return (async function() {\n' + code + '\n})();'
                 );
-                await asyncFn(drone, highlightBlock);
+                await asyncFn(drone, highlightBlock, undefined, undefined, undefined, undefined);
 
                 if (this._highlightedBlock) {
                     this.workspace.highlightBlock(this._highlightedBlock, false);

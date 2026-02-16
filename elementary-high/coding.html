@@ -335,10 +335,10 @@ await drone.land();
 
             try {
                 var drone = droneAPI;
-                var asyncFn = new Function('drone', 'console',
+                var asyncFn = new Function('drone', 'console', 'window', 'document', 'localStorage', 'fetch',
                     'return (async function() {\n' + code + '\n})();'
                 );
-                await asyncFn(drone, console);
+                await asyncFn(drone, console, undefined, undefined, undefined, undefined);
                 logToConsole('프로그램 실행 완료!', 'success');
             } catch (e) {
                 logToConsole('오류: ' + e.message, 'error');
