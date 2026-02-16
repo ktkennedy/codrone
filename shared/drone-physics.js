@@ -89,8 +89,10 @@ class DronePhysics {
             }
         }
         else {
-            // 수직 추력 (스로틀)
-            const thrustForce = (throttle * this.maxThrust);
+            // 수직 추력 (스로틀) - 호버링 보정 포함
+            // 스로틀 0일 때 중력과 양력이 균형 → 호버링
+            const hoverThrust = this.gravity;
+            const thrustForce = hoverThrust + (throttle * this.maxThrust * 0.5);
             const gravityForce = -this.gravity;
             this.velocity.y += (thrustForce + gravityForce) * dt;
 
