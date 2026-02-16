@@ -113,10 +113,10 @@
                     this.collectibles = [];
                     this._currentWaypoint = 0;
                     var waypoints = [
-                        { x: 8, y: 5, z: 0 },
-                        { x: 8, y: 5, z: 8 },
-                        { x: 0, y: 5, z: 8 },
-                        { x: 0, y: 5, z: 0 }
+                        { x: 8, y: 3, z: 0 },
+                        { x: 8, y: 3, z: 8 },
+                        { x: 0, y: 3, z: 8 },
+                        { x: 0, y: 3, z: 0 }
                     ];
                     var colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44];
                     var self = this;
@@ -164,7 +164,7 @@
                     var dy = state.position.y - waypoint.position.y;
                     var dz = state.position.z - waypoint.position.z;
                     var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    if (dist < 2) {
+                    if (dist < 3.5) {
                         waypoint.material.opacity = 0.15;
                         this._currentWaypoint++;
                         if (this._currentWaypoint < 4) {
