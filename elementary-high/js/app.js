@@ -325,12 +325,12 @@
             // 미션 업데이트
             if (missionManager && missionManager.isRunning && currentMissionDef) {
                 if (currentMissionDef._origMission && currentMissionDef._origMission.frameUpdate) {
-                    currentMissionDef._origMission.frameUpdate(state, physics, dt);
+                    currentMissionDef._origMission.frameUpdate(state, missionManager.missionTime, dt);
                     // frameUpdate 후 미션 상태 동기화 (origMission → currentMission)
                     // startMission의 shallow copy로 인해 원본 상태가 복사본에 반영 안 되는 문제 해결
                     var origM_ = currentMissionDef._origMission;
                     for (var k in origM_) {
-                        if (k.charAt(0) === '_' && origM_.hasOwnProperty(k)) {
+                        if ((k.charAt(0) === '_' || k === 'collectibles') && origM_.hasOwnProperty(k)) {
                             currentMissionDef[k] = origM_[k];
                         }
                     }
