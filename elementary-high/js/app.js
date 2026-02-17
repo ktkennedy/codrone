@@ -206,10 +206,10 @@
         // 웨이포인트 방향 안내 HUD
         var wpGuide = document.createElement('div');
         wpGuide.id = 'wp-guide';
-        wpGuide.style.cssText = 'position:fixed;top:90px;left:50%;transform:translateX(-50%);z-index:50;' +
-            'background:rgba(0,0,0,0.7);color:#fff;padding:8px 20px;border-radius:12px;' +
-            'font-size:13px;font-family:inherit;display:none;text-align:center;' +
-            'border:1px solid rgba(255,255,255,0.15);pointer-events:none;min-width:200px;';
+        wpGuide.style.cssText = 'position:fixed;top:70px;right:15px;z-index:50;' +
+            'background:rgba(0,0,0,0.75);color:#fff;padding:8px 16px;border-radius:10px;' +
+            'font-size:12px;font-family:inherit;display:none;text-align:left;' +
+            'border:1px solid rgba(255,255,255,0.15);pointer-events:none;';
         document.body.appendChild(wpGuide);
     }
 
@@ -342,7 +342,12 @@
                 // 웨이포인트 방향 안내
                 var origM = currentMissionDef._origMission;
                 var wpGuideEl = document.getElementById('wp-guide');
-                var wpIdx = origM ? (origM._currentTarget || origM._currentCheckpoint || 0) : 0;
+                var wpIdx = 0;
+                if (origM) {
+                    if (origM._currentTarget !== undefined) wpIdx = origM._currentTarget;
+                    else if (origM._currentCheckpoint !== undefined) wpIdx = origM._currentCheckpoint;
+                    else if (origM._nearestUnpassed !== undefined) wpIdx = origM._nearestUnpassed;
+                }
                 var wpTargets = origM ? (origM._targets || null) : null;
 
                 // _targets 배열이 없으면 collectibles에서 추출

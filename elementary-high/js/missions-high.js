@@ -227,64 +227,120 @@
             // 미션 3: 고도 유지
             {
                 name: '고도 유지',
-                description: '일정한 높이를 유지하며 이동하세요.',
+                description: '8m 고도를 유지하며 4개 체크포인트를 통과하세요!',
                 timeLimit: 90,
                 collectibles: [],
+                _extraVisuals: [],
                 _passedCheckpoints: 0,
+                _targets: [
+                    { x: 0, y: 8, z: 0 },
+                    { x: 15, y: 8, z: 0 },
+                    { x: 15, y: 8, z: 15 },
+                    { x: 0, y: 8, z: 15 }
+                ],
+                _nearestUnpassed: 0,
                 setup: function (scene) {
                     this.collectibles = [];
+                    this._extraVisuals = [];
                     this._passedCheckpoints = 0;
-                    var checkpoints = [
-                        { x: 0, z: 0 },
-                        { x: 15, z: 0 },
-                        { x: 15, z: 15 },
-                        { x: 0, z: 15 }
-                    ];
+                    this._nearestUnpassed = 0;
                     var self = this;
-                    checkpoints.forEach(function (pos, i) {
-                        // 체크포인트 링 (높이 8m)
-                        var geo = new THREE.TorusGeometry(1.5, 0.1, 8, 24);
+                    var colors = [0xff4444, 0xff8800, 0x44ff44, 0x4488ff];
+
+                    this._targets.forEach(function (pos, i) {
+                        // 체크포인트 링 (크고 두꺼움)
+                        var geo = new THREE.TorusGeometry(2.0, 0.15, 12, 32);
                         var mat = new THREE.MeshBasicMaterial({
-                            color: 0xffaa00,
-                            transparent: true,
-                            opacity: 0.6
+                            color: colors[i], transparent: true, opacity: 0.7
                         });
                         var ring = new THREE.Mesh(geo, mat);
-                        ring.position.set(pos.x, 8, pos.z);
+                        ring.position.set(pos.x, pos.y, pos.z);
                         ring.rotation.x = Math.PI / 2;
                         ring.userData.passed = false;
                         scene.add(ring);
                         self.collectibles.push(ring);
                     });
+
+                    // 수직 빔 + 번호 라벨 + 지면 마커
+                    this._targets.forEach(function (pos, i) {
+                        // 수직 빔
+                        var beamGeo = new THREE.CylinderGeometry(0.04, 0.04, pos.y, 8);
+                        var beamMat = new THREE.MeshBasicMaterial({
+                            color: colors[i], transparent: true, opacity: 0.3
+                        });
+                        var beam = new THREE.Mesh(beamGeo, beamMat);
+                        beam.position.set(pos.x, pos.y / 2, pos.z);
+                        scene.add(beam);
+                        self._extraVisuals.push(beam);
+
+                        // 번호 라벨
+                        var canvas = document.createElement('canvas');
+                        canvas.width = 64; canvas.height = 64;
+                        var ctx = canvas.getContext('2d');
+                        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                        ctx.beginPath(); ctx.arc(32, 32, 28, 0, Math.PI * 2); ctx.fill();
+                        var hex = '#' + ('000000' + colors[i].toString(16)).slice(-6);
+                        ctx.strokeStyle = hex; ctx.lineWidth = 3;
+                        ctx.beginPath(); ctx.arc(32, 32, 28, 0, Math.PI * 2); ctx.stroke();
+                        ctx.fillStyle = hex;
+                        ctx.font = 'bold 34px sans-serif';
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText(String(i + 1), 32, 34);
+                        var texture = new THREE.CanvasTexture(canvas);
+                        var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+                        var sprite = new THREE.Sprite(spriteMat);
+                        sprite.position.set(pos.x, pos.y + 2.5, pos.z);
+                        sprite.scale.set(2, 2, 1);
+                        scene.add(sprite);
+                        self._extraVisuals.push(sprite);
+
+                        // 지면 마커
+                        var ringGeo = new THREE.RingGeometry(0.8, 1.2, 32);
+                        var ringMat = new THREE.MeshBasicMaterial({
+                            color: colors[i], side: THREE.DoubleSide, transparent: true, opacity: 0.4
+                        });
+                        var gRing = new THREE.Mesh(ringGeo, ringMat);
+                        gRing.position.set(pos.x, 0.02, pos.z);
+                        gRing.rotation.x = -Math.PI / 2;
+                        scene.add(gRing);
+                        self._extraVisuals.push(gRing);
+                    });
+
+                    // 경로 연결선
+                    var linePoints = this._targets.map(function (t) { return new THREE.Vector3(t.x, t.y, t.z); });
+                    linePoints.push(new THREE.Vector3(this._targets[0].x, this._targets[0].y, this._targets[0].z)); // 닫힌 경로
+                    var lineGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
+                    var lineMat = new THREE.LineBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.4 });
+                    var line = new THREE.Line(lineGeo, lineMat);
+                    scene.add(line);
+                    self._extraVisuals.push(line);
                 },
                 cleanup: function (scene) {
-                    this.collectibles.forEach(function (obj) {
-                        scene.remove(obj);
-                        if (obj.geometry) obj.geometry.dispose();
-                        if (obj.material) {
-                            if (Array.isArray(obj.material)) {
-                                obj.material.forEach(function (m) { m.dispose(); });
-                            } else {
-                                obj.material.dispose();
-                            }
-                        }
-                    });
+                    cleanupVisuals(scene, this.collectibles);
+                    cleanupVisuals(scene, this._extraVisuals);
                     this.collectibles = [];
+                    this._extraVisuals = [];
                 },
                 frameUpdate: function (state) {
                     var self = this;
-                    this.collectibles.forEach(function (ring) {
+                    var nearestDist = Infinity;
+                    var nearestIdx = -1;
+                    this.collectibles.forEach(function (ring, i) {
                         if (ring.userData.passed) return;
                         var dx = state.position.x - ring.position.x;
                         var dy = state.position.y - ring.position.y;
                         var dz = state.position.z - ring.position.z;
                         var dist = Math.sqrt(dx * dx + dz * dz);
+                        // 가장 가까운 미통과 체크포인트 추적
+                        var dist3d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        if (dist3d < nearestDist) { nearestDist = dist3d; nearestIdx = i; }
                         if (dist < 2 && Math.abs(dy) < 1.5) {
                             ring.userData.passed = true;
                             ring.material.opacity = 0.15;
                             self._passedCheckpoints++;
                         }
                     });
+                    this._nearestUnpassed = nearestIdx >= 0 ? nearestIdx : this._targets.length;
                 },
                 objectives: [
                     {
