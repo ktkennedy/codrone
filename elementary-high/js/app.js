@@ -18,11 +18,14 @@
     var MissionManager = DS.MissionManager;
     var MissionSelectUI = DS.MissionSelectUI;
     var createHighMissions = DS.createHighMissions;
+    var PathOverlay = DS.PathOverlay;
+    var Autopilot = DS.Autopilot;
 
     var scene, renderer, camera;
     var physics, droneModel, world, cameraSystem;
-    var hud, messageDisplay, minimap, controls;
+    var hud, messageDisplay, minimap, controls, pathOverlay;
     var missionManager, missionUI;
+    var autopilot;
     var clock;
     var isStarted = false;
     var currentMissionDef = null;
@@ -110,6 +113,10 @@
         messageDisplay = new MessageDisplay();
         minimap = new Minimap(null, 70);
 
+        // 경로 오버레이 + 자율비행 시스템
+        if (PathOverlay) pathOverlay = new PathOverlay();
+        if (Autopilot) autopilot = new Autopilot(physics);
+
         controls = new KeyboardControls(physics);
         controls.onCameraSwitch = function () {
             cameraSystem.nextMode();
@@ -125,6 +132,9 @@
             if (e.key === 'Escape' && !isStarted) startSimulation();
             if (e.key === 'm' || e.key === 'M') {
                 if (isStarted) showMissionSelect();
+            }
+            if ((e.key === 'p' || e.key === 'P') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                if (pathOverlay) pathOverlay.toggle();
             }
         });
     }
@@ -145,12 +155,16 @@
             physics.reset();
             if (messageDisplay) messageDisplay.show(mission.name + ' 시작!', 'info', 2000);
             missionUI.showMissionHUD(mission);
+
+            // 경로 정보 추출 및 설정
+            setupPathForMission(origMission);
         };
 
         missionManager.onMissionComplete = function (result) {
             if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
                 currentMissionDef._origMission.cleanup(scene);
             }
+            clearPathInfo();
             missionUI.hideMissionHUD();
             missionUI.showResult(result,
                 function () { startMission(result.mission.index); },
@@ -163,6 +177,7 @@
             if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
                 currentMissionDef._origMission.cleanup(scene);
             }
+            clearPathInfo();
             missionUI.hideMissionHUD();
             missionUI.showResult(result,
                 function () { startMission(result.mission.index); },
@@ -198,8 +213,66 @@
                 currentMissionDef._origMission.cleanup(scene);
             }
         }
+        clearPathInfo();
         physics.reset();
         missionUI.show();
+    }
+
+    /**
+     * 미션에서 웨이포인트를 추출하고 경로 정보를 설정
+     */
+    function setupPathForMission(origMission) {
+        // 미션의 setup 함수 내 targets 배열을 추출하기 위해
+        // collectibles에서 좌표 추출 (짝수 인덱스가 타겟 구체)
+        var waypoints = [];
+        if (origMission.collectibles && origMission.collectibles.length > 0) {
+            for (var i = 0; i < origMission.collectibles.length; i += 2) {
+                var obj = origMission.collectibles[i];
+                if (obj && obj.position) {
+                    waypoints.push({
+                        x: obj.position.x,
+                        y: obj.position.y,
+                        z: obj.position.z
+                    });
+                }
+            }
+        }
+
+        // 웨이포인트가 있는 미션에서만 경로 정보 표시
+        if (waypoints.length > 1) {
+            // 물리 기반 시간 추정
+            var estimate = { totalTime: 0, segmentTimes: [] };
+            if (autopilot) {
+                estimate = autopilot.estimatePathTime(waypoints);
+            }
+
+            // 미니맵에 경로 표시
+            if (minimap) {
+                minimap.setWaypoints(waypoints);
+                minimap.setCurrentWaypointIndex(0);
+            }
+
+            // PathOverlay에 경로 정보 설정
+            if (pathOverlay) {
+                pathOverlay.setPath(waypoints, estimate.segmentTimes, estimate.totalTime);
+                pathOverlay.show();
+            }
+
+            // 미션에 경로 정보 저장 (프레임 업데이트용)
+            currentMissionDef._pathWaypoints = waypoints;
+            currentMissionDef._pathEstimate = estimate;
+        }
+    }
+
+    /**
+     * 경로 정보 초기화
+     */
+    function clearPathInfo() {
+        if (minimap) minimap.clearWaypoints();
+        if (pathOverlay) {
+            pathOverlay.clear();
+            pathOverlay.hide();
+        }
     }
 
     function startMission(index) {
@@ -254,6 +327,38 @@
                 }
                 missionManager.update(dt, state);
                 if (missionUI) missionUI.updateMissionHUD(currentMissionDef, missionManager.missionTime);
+
+                // 경로 진행 상황 업데이트
+                if (currentMissionDef._pathWaypoints && currentMissionDef._origMission) {
+                    var wpIdx = currentMissionDef._origMission._currentTarget || 0;
+                    var wps = currentMissionDef._pathWaypoints;
+
+                    // 미니맵 현재 웨이포인트 인덱스 업데이트
+                    if (minimap) minimap.setCurrentWaypointIndex(wpIdx);
+
+                    // 다음 웨이포인트까지 거리
+                    var distToNext = 0;
+                    if (wpIdx < wps.length) {
+                        var dx = wps[wpIdx].x - state.position.x;
+                        var dy = wps[wpIdx].y - state.position.y;
+                        var dz = wps[wpIdx].z - state.position.z;
+                        distToNext = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    }
+
+                    // 남은 예상 시간
+                    var remTime = 0;
+                    if (currentMissionDef._pathEstimate && currentMissionDef._pathEstimate.segmentTimes) {
+                        var segTimes = currentMissionDef._pathEstimate.segmentTimes;
+                        for (var si = wpIdx; si < segTimes.length; si++) {
+                            remTime += segTimes[si];
+                        }
+                    }
+
+                    // PathOverlay 업데이트
+                    if (pathOverlay) {
+                        pathOverlay.updateProgress(wpIdx, distToNext, remTime, state.position);
+                    }
+                }
             }
 
             var dist = Math.sqrt(state.position.x ** 2 + state.position.z ** 2);

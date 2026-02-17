@@ -240,6 +240,71 @@
             }
         }
 
+        /**
+         * 경로 전체의 물리 기반 예상 비행 시간 계산
+         * @param {Array} waypoints - [{x, y, z}, ...] 배열
+         * @returns {Object} { totalTime, segmentTimes: [sec, ...] }
+         */
+        estimatePathTime(waypoints) {
+            var totalTime = 0;
+            var times = [];
+            for (var i = 0; i < waypoints.length - 1; i++) {
+                var segTime = this._estimateSegmentTime(waypoints[i], waypoints[i + 1]);
+                times.push(segTime);
+                totalTime += segTime;
+            }
+            return { totalTime: totalTime, segmentTimes: times };
+        }
+
+        /**
+         * 두 지점 간 물리 기반 예상 비행 시간 (사다리꼴 속도 프로파일)
+         */
+        _estimateSegmentTime(from, to) {
+            // 수평 거리
+            var dx = to.x - from.x;
+            var dz = to.z - from.z;
+            var hDist = Math.sqrt(dx * dx + dz * dz);
+
+            // 수직 거리
+            var vDist = Math.abs(to.y - from.y);
+
+            // 물리 기반 파라미터
+            var maxHSpeed = this.physics.speedLimit || 15;
+            var maxVSpeed = this.physics.speedLimit || 15;
+            var maxHAccel = Math.tan(this.physics.maxTiltAngle || Math.PI / 5) * 9.81;
+            var maxVAccel = this.physics.maxExtraAccel || 6.0;
+
+            var hTime = this._trapezoidalTime(hDist, maxHSpeed, maxHAccel);
+            var vTime = this._trapezoidalTime(vDist, maxVSpeed, maxVAccel);
+
+            // 요(방향전환) 시간
+            var yawAngle = Math.abs(Math.atan2(dx, dz));
+            var maxYawRate = this.physics.maxYawRate || 3.0;
+            var yawTime = yawAngle / maxYawRate;
+
+            return Math.max(hTime, vTime) + yawTime * 0.3; // yaw는 이동과 부분 병렬
+        }
+
+        /**
+         * 사다리꼴 속도 프로파일 기반 소요 시간 계산
+         * 가속 -> 순항 -> 감속 (또는 삼각형 프로파일)
+         */
+        _trapezoidalTime(dist, maxSpeed, maxAccel) {
+            if (dist < 0.001) return 0;
+            var accelTime = maxSpeed / maxAccel;
+            var accelDist = 0.5 * maxAccel * accelTime * accelTime;
+
+            if (2 * accelDist >= dist) {
+                // 최대 속도 도달 못함 - 삼각형 프로파일
+                return 2 * Math.sqrt(dist / maxAccel);
+            } else {
+                // 사다리꼴 프로파일
+                var cruiseDist = dist - 2 * accelDist;
+                var cruiseTime = cruiseDist / maxSpeed;
+                return 2 * accelTime + cruiseTime;
+            }
+        }
+
         _resetPIDs() {
             this.pidX.reset();
             this.pidY.reset();

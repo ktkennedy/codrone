@@ -90,6 +90,41 @@ canvas {
     gap: 10px;
 }
 
+/* 좌회전/우회전 버튼 */
+.turn-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.turn-btn {
+    width: 70px;
+    height: 48px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(180, 100, 255, 0.2);
+    border: 2px solid rgba(180, 100, 255, 0.4);
+    color: #cc88ff;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.1s;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+}
+
+.turn-btn:active, .turn-btn.pressed {
+    background: rgba(180, 100, 255, 0.5);
+    transform: scale(0.92);
+    color: #fff;
+}
+
 .vert-btn {
     width: 70px;
     height: 55px;
@@ -255,6 +290,7 @@ canvas {
     .dpad-btn { width: 50px; height: 50px; font-size: 20px; }
     .dpad { grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px 50px; }
     .vert-btn { width: 55px; height: 45px; font-size: 13px; }
+    .turn-btn { width: 55px; height: 40px; font-size: 11px; }
     .action-btn { width: 75px; height: 75px; font-size: 12px; }
     .action-btn .icon { font-size: 22px; }
 }

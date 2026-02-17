@@ -224,22 +224,77 @@ class Minimap {
         this.canvas.width = this.size;
         this.canvas.height = this.size;
         this.canvas.id = 'minimap';
+        this._hidden = false;
 
         var style = document.createElement('style');
         style.textContent = `
             #minimap {
                 position: fixed;
-                top: 50px; right: 8px;
+                bottom: 15px; left: 10px;
                 border: 1px solid rgba(255,255,255,0.15);
                 border-radius: 6px;
                 background: rgba(0,0,0,0.3);
                 z-index: 30;
-                opacity: 0.5;
+                opacity: 0.35;
+                transition: opacity 0.3s, transform 0.3s;
+                cursor: pointer;
+                transform-origin: bottom left;
+            }
+            #minimap:hover {
+                opacity: 0.8;
+                transform: scale(1.3);
+            }
+            #minimap.hidden {
+                opacity: 0;
+                pointer-events: none;
             }
         `;
         document.head.appendChild(style);
         (container || document.body).appendChild(this.canvas);
         this.ctx = this.canvas.getContext('2d');
+
+        // 클릭으로 토글
+        var self = this;
+        this.canvas.addEventListener('click', function () { self.toggle(); });
+
+        // N키로 토글
+        document.addEventListener('keydown', function (e) {
+            if (e.code === 'KeyN' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                self.toggle();
+            }
+        });
+    }
+
+    toggle() {
+        this._hidden = !this._hidden;
+        if (this._hidden) {
+            this.canvas.classList.add('hidden');
+        } else {
+            this.canvas.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * 웨이포인트 경로 설정
+     * @param {Array} waypoints - [{x, y, z}, ...] 배열
+     */
+    setWaypoints(waypoints) {
+        this._waypoints = waypoints || [];
+    }
+
+    /**
+     * 현재 목표 웨이포인트 인덱스 설정
+     */
+    setCurrentWaypointIndex(index) {
+        this._currentWpIndex = index;
+    }
+
+    /**
+     * 웨이포인트 경로 초기화
+     */
+    clearWaypoints() {
+        this._waypoints = [];
+        this._currentWpIndex = 0;
     }
 
     update(droneState, objects) {
@@ -289,6 +344,63 @@ class Minimap {
         ctx.fill();
         ctx.restore();
 
+        // 웨이포인트 경로 렌더링
+        if (this._waypoints && this._waypoints.length > 0) {
+            var wps = this._waypoints;
+            var curIdx = this._currentWpIndex || 0;
+
+            // 웨이포인트 사이 경로선
+            ctx.strokeStyle = 'rgba(74, 158, 255, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 2]);
+            ctx.beginPath();
+            for (var wi = 0; wi < wps.length; wi++) {
+                var wp = toScreen(wps[wi].x, wps[wi].z);
+                if (wi === 0) ctx.moveTo(wp.x, wp.y);
+                else ctx.lineTo(wp.x, wp.y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 각 웨이포인트 마커
+            for (var wi = 0; wi < wps.length; wi++) {
+                var wp = toScreen(wps[wi].x, wps[wi].z);
+                var isCurrent = (wi === curIdx);
+
+                // 원
+                ctx.beginPath();
+                ctx.arc(wp.x, wp.y, isCurrent ? 4 : 3, 0, Math.PI * 2);
+                if (wi < curIdx) {
+                    // 완료된 웨이포인트
+                    ctx.fillStyle = 'rgba(68, 255, 136, 0.7)';
+                } else if (isCurrent) {
+                    // 현재 목표
+                    ctx.fillStyle = 'rgba(255, 220, 68, 0.9)';
+                } else {
+                    // 미래 웨이포인트
+                    ctx.fillStyle = 'rgba(74, 158, 255, 0.7)';
+                }
+                ctx.fill();
+
+                // 번호
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 6px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('' + (wi + 1), wp.x, wp.y);
+
+                // 좌표 표시 (현재 목표만)
+                if (isCurrent) {
+                    ctx.fillStyle = 'rgba(255, 220, 68, 0.8)';
+                    ctx.font = '5px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(Math.round(wps[wi].x) + ',' + Math.round(wps[wi].z), wp.x + 5, wp.y - 2);
+                }
+            }
+            ctx.textBaseline = 'alphabetic';
+        }
+
         // 방위
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
         ctx.font = '8px sans-serif';
@@ -297,7 +409,268 @@ class Minimap {
     }
 }
 
+// ===== 경로 좌표 오버레이 =====
+class PathOverlay {
+    constructor(container) {
+        this.container = container || document.body;
+        this._waypoints = [];
+        this._segmentTimes = [];
+        this._totalTime = 0;
+        this._currentIndex = 0;
+        this._distanceToNext = 0;
+        this._estimatedTime = 0;
+        this._dronePos = { x: 0, y: 0, z: 0 };
+        this._visible = false;
+        this._completedIndices = {};
+
+        this._create();
+    }
+
+    _create() {
+        this.element = document.createElement('div');
+        this.element.id = 'path-overlay';
+
+        var style = document.createElement('style');
+        style.textContent = `
+            #path-overlay {
+                position: fixed;
+                top: 80px; left: 10px;
+                z-index: 40;
+                background: rgba(0, 0, 0, 0.65);
+                border: 1px solid rgba(74, 158, 255, 0.3);
+                border-radius: 8px;
+                padding: 10px 12px;
+                color: #ddeeff;
+                font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+                font-size: 11px;
+                min-width: 260px;
+                max-height: 50vh;
+                overflow-y: auto;
+                pointer-events: auto;
+                opacity: 0;
+                transform: translateX(-10px);
+                transition: opacity 0.3s, transform 0.3s;
+                display: none;
+            }
+            #path-overlay.visible {
+                display: block;
+                opacity: 1;
+                transform: translateX(0);
+            }
+            #path-overlay .po-title {
+                font-size: 12px;
+                font-weight: bold;
+                color: #4a9eff;
+                margin-bottom: 6px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            #path-overlay .po-drone-pos {
+                font-size: 10px;
+                color: #88bbdd;
+                margin-bottom: 6px;
+                font-family: 'Courier New', monospace;
+            }
+            #path-overlay table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 10px;
+                font-family: 'Courier New', monospace;
+            }
+            #path-overlay th {
+                text-align: center;
+                color: #6699bb;
+                border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+                padding: 2px 4px;
+                font-weight: normal;
+            }
+            #path-overlay td {
+                text-align: center;
+                padding: 2px 4px;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+            }
+            #path-overlay tr.wp-done td {
+                color: #66aa77;
+            }
+            #path-overlay tr.wp-current td {
+                color: #ffdd44;
+                font-weight: bold;
+            }
+            #path-overlay tr.wp-future td {
+                color: #8899aa;
+            }
+            #path-overlay .po-summary {
+                margin-top: 6px;
+                font-size: 10px;
+                color: #88bbdd;
+                text-align: right;
+            }
+            #path-overlay .po-check {
+                color: #44ff88;
+            }
+            #path-overlay .po-arrow {
+                color: #ffdd44;
+            }
+            #path-overlay .po-hint {
+                font-size: 9px;
+                color: #556677;
+                text-align: center;
+                margin-top: 4px;
+            }
+        `;
+        document.head.appendChild(style);
+        this.container.appendChild(this.element);
+    }
+
+    /**
+     * 경로 설정 및 표시
+     * @param {Array} waypoints - [{x, y, z}, ...]
+     * @param {Array} segmentTimes - 각 세그먼트 예상 시간 [sec, ...]
+     * @param {number} totalTime - 총 예상 시간
+     */
+    setPath(waypoints, segmentTimes, totalTime) {
+        this._waypoints = waypoints || [];
+        this._segmentTimes = segmentTimes || [];
+        this._totalTime = totalTime || 0;
+        this._currentIndex = 0;
+        this._completedIndices = {};
+        this._render();
+    }
+
+    /**
+     * 현재 진행 상황 업데이트
+     */
+    updateProgress(currentWaypointIndex, distanceToNext, estimatedTime, dronePos) {
+        // 이전 인덱스들 완료 처리
+        for (var i = 0; i < currentWaypointIndex; i++) {
+            this._completedIndices[i] = true;
+        }
+        this._currentIndex = currentWaypointIndex;
+        this._distanceToNext = distanceToNext || 0;
+        this._estimatedTime = estimatedTime || 0;
+        if (dronePos) {
+            this._dronePos = dronePos;
+        }
+        this._render();
+    }
+
+    /**
+     * 경로 정보 테이블 렌더링
+     */
+    _render() {
+        if (!this._waypoints || this._waypoints.length === 0) {
+            this.element.innerHTML = '<div class="po-title">경로 정보</div><div style="color:#556677;font-size:10px;">경로가 설정되지 않았습니다.</div><div class="po-hint">[P] 토글</div>';
+            return;
+        }
+
+        var html = '<div class="po-title"><span>경로 정보</span><span style="font-size:9px;color:#6699bb;">' + this._waypoints.length + '개 지점</span></div>';
+
+        // 드론 현재 위치
+        html += '<div class="po-drone-pos">드론: (' +
+            this._dronePos.x.toFixed(1) + ', ' +
+            this._dronePos.y.toFixed(1) + ', ' +
+            this._dronePos.z.toFixed(1) + ')</div>';
+
+        // 테이블
+        html += '<table><tr><th></th><th>#</th><th>X</th><th>Y</th><th>Z</th><th>거리</th><th>시간</th></tr>';
+
+        var prevWp = null;
+        for (var i = 0; i < this._waypoints.length; i++) {
+            var wp = this._waypoints[i];
+            var isDone = !!this._completedIndices[i];
+            var isCurrent = (i === this._currentIndex);
+            var rowClass = isDone ? 'wp-done' : (isCurrent ? 'wp-current' : 'wp-future');
+
+            // 거리 계산 (이전 웨이포인트로부터)
+            var dist = '';
+            if (i > 0 && prevWp) {
+                var dx = wp.x - prevWp.x;
+                var dy = wp.y - prevWp.y;
+                var dz = wp.z - prevWp.z;
+                dist = Math.sqrt(dx * dx + dy * dy + dz * dz).toFixed(1) + 'm';
+            }
+
+            // 세그먼트 시간
+            var segTime = '';
+            if (i > 0 && this._segmentTimes[i - 1] !== undefined) {
+                segTime = this._segmentTimes[i - 1].toFixed(1) + 's';
+            }
+
+            // 상태 아이콘
+            var icon = '';
+            if (isDone) icon = '<span class="po-check">V</span>';
+            else if (isCurrent) icon = '<span class="po-arrow">></span>';
+
+            html += '<tr class="' + rowClass + '">';
+            html += '<td>' + icon + '</td>';
+            html += '<td>' + (i + 1) + '</td>';
+            html += '<td>' + Math.round(wp.x) + '</td>';
+            html += '<td>' + Math.round(wp.y) + '</td>';
+            html += '<td>' + Math.round(wp.z) + '</td>';
+            html += '<td>' + dist + '</td>';
+            html += '<td>' + segTime + '</td>';
+            html += '</tr>';
+
+            prevWp = wp;
+        }
+        html += '</table>';
+
+        // 요약
+        html += '<div class="po-summary">';
+        if (this._distanceToNext > 0) {
+            html += '다음까지: ' + this._distanceToNext.toFixed(1) + 'm | ';
+        }
+        html += '총 예상: ' + this._totalTime.toFixed(1) + 's';
+        html += '</div>';
+        html += '<div class="po-hint">[P] 토글</div>';
+
+        this.element.innerHTML = html;
+    }
+
+    /**
+     * 토글 표시/숨기기
+     */
+    toggle() {
+        this._visible = !this._visible;
+        if (this._visible) {
+            this.element.classList.add('visible');
+        } else {
+            this.element.classList.remove('visible');
+        }
+    }
+
+    /**
+     * 표시
+     */
+    show() {
+        this._visible = true;
+        this.element.classList.add('visible');
+    }
+
+    /**
+     * 숨기기
+     */
+    hide() {
+        this._visible = false;
+        this.element.classList.remove('visible');
+    }
+
+    /**
+     * 경로 초기화
+     */
+    clear() {
+        this._waypoints = [];
+        this._segmentTimes = [];
+        this._totalTime = 0;
+        this._currentIndex = 0;
+        this._completedIndices = {};
+        this._render();
+    }
+}
+
 window.DroneSim = window.DroneSim || {};
 window.DroneSim.HUD = HUD;
 window.DroneSim.MessageDisplay = MessageDisplay;
 window.DroneSim.Minimap = Minimap;
+window.DroneSim.PathOverlay = PathOverlay;
