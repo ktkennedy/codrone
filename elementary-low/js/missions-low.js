@@ -369,11 +369,13 @@
                     // H 마크
                     var hMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                     var vBarGeo = new THREE.PlaneGeometry(0.2, 1.2);
+                    var self = this;
                     [-0.4, 0.4].forEach(function (x) {
                         var bar = new THREE.Mesh(vBarGeo, hMat);
                         bar.rotation.x = -Math.PI / 2;
                         bar.position.set(15 + x, 0.12, 15);
                         scene.add(bar);
+                        self.collectibles.push(bar);
                     });
                     var hBarGeo = new THREE.PlaneGeometry(0.8, 0.2);
                     var hBar = new THREE.Mesh(hBarGeo, hMat);
@@ -904,11 +906,13 @@
                     // H 마크
                     var hMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                     var vBarGeo = new THREE.PlaneGeometry(0.3, 1.5);
+                    var self = this;
                     [-0.5, 0.5].forEach(function (x) {
                         var bar = new THREE.Mesh(vBarGeo, hMat);
                         bar.rotation.x = -Math.PI / 2;
                         bar.position.set(20 + x, 0.12, 20);
                         scene.add(bar);
+                        self.collectibles.push(bar);
                     });
                     var hBarGeo = new THREE.PlaneGeometry(1, 0.3);
                     var hBar = new THREE.Mesh(hBarGeo, hMat);
@@ -1113,11 +1117,13 @@
                     // H 마크
                     var hMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                     var vBarGeo = new THREE.PlaneGeometry(0.2, 1.2);
+                    var self = this;
                     [-0.4, 0.4].forEach(function (x) {
                         var bar = new THREE.Mesh(vBarGeo, hMat);
                         bar.rotation.x = -Math.PI / 2;
                         bar.position.set(25 + x, 0.12, 0);
                         scene.add(bar);
+                        self.collectibles.push(bar);
                     });
                     var hBarGeo = new THREE.PlaneGeometry(0.8, 0.2);
                     var hBar = new THREE.Mesh(hBarGeo, hMat);

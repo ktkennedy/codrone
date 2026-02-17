@@ -951,7 +951,7 @@
                 timeLimit: 150,
                 collectibles: [],
                 _checkpointsPassed: 0,
-                _ringsPass: 0,
+                _ringsPassed: 0,
                 _landed: false,
                 setup: function (scene) {
                     this.collectibles = [];
