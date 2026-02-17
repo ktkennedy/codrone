@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수업자료 - 드론 시뮬레이터</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0d2137 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none; z-index: 0;
+        }
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+        @keyframes twinkle {
+            from { opacity: 0.3; }
+            to { opacity: 1; }
+        }
+
+        .main-container {
+            position: relative; z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #88aacc;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 30px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .page-header .icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+        .page-header h1 {
+            font-size: 40px;
+            font-weight: 900;
+            background: linear-gradient(to right, #ff9944, #ffcc44);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        .page-header p {
+            color: #88aacc;
+            font-size: 16px;
+        }
+
+        .phase-card {
+            background: rgba(255,255,255,0.06);
+            border: 2px solid rgba(255, 153, 68, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        .phase-card:hover {
+            background: rgba(255,255,255,0.09);
+            border-color: rgba(255, 153, 68, 0.4);
+        }
+
+        .phase-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .phase-number {
+            background: linear-gradient(135deg, #ff9944, #ff6622);
+            color: #fff;
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: 900;
+            flex-shrink: 0;
+        }
+        .phase-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ff9944;
+        }
+        .phase-weeks {
+            font-size: 13px;
+            color: #88aacc;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .week-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .week-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.2s ease;
+        }
+        .week-item:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255, 153, 68, 0.3);
+        }
+
+        .week-num {
+            background: rgba(255, 153, 68, 0.15);
+            color: #ff9944;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .week-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .week-topic {
+            font-size: 15px;
+            font-weight: 600;
+            color: #ddeeff;
+            margin-bottom: 3px;
+        }
+        .week-desc {
+            font-size: 12px;
+            color: #8899aa;
+            line-height: 1.4;
+        }
+
+        .week-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .ppt-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .ppt-btn.view {
+            background: rgba(255, 153, 68, 0.2);
+            color: #ff9944;
+            border: 1px solid rgba(255, 153, 68, 0.3);
+        }
+        .ppt-btn.view:hover {
+            background: rgba(255, 153, 68, 0.35);
+        }
+
+        .ppt-btn.download {
+            background: rgba(74, 158, 255, 0.15);
+            color: #4a9eff;
+            border: 1px solid rgba(74, 158, 255, 0.25);
+        }
+        .ppt-btn.download:hover {
+            background: rgba(74, 158, 255, 0.3);
+        }
+
+        .ppt-btn.preparing {
+            background: rgba(255,255,255,0.05);
+            color: #556677;
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #556677;
+            font-size: 12px;
+        }
+
+        @media (max-width: 680px) {
+            .page-header h1 { font-size: 28px; }
+            .phase-header { flex-wrap: wrap; }
+            .phase-weeks { margin-left: 0; margin-top: 5px; width: 100%; }
+            .week-item { flex-wrap: wrap; }
+            .week-actions { width: 100%; margin-top: 8px; }
+            .ppt-btn { flex: 1; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+    <div class="main-container">
+        <a href="index.html" class="back-btn">&larr; 메인으로 돌아가기</a>
+
+        <div class="page-header">
+            <div class="icon">&#x1F4DA;</div>
+            <h1>수업자료</h1>
+            <p>6개월(24주) 드론 코딩 커리큘럼</p>
+        </div>
+
+        <!-- Phase 1 -->
+        <div class="phase-card">
+            <div class="phase-header">
+                <div class="phase-number">1</div>
+                <div class="phase-title">드론 기초</div>
+                <div class="phase-weeks">1 ~ 4주</div>
+            </div>
+            <div class="week-list">
+                <div class="week-item" data-week="1">
+                    <div class="week-num">1주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">드론이란?</div>
+                        <div class="week-desc">드론의 정의, 종류, 활용 분야, 안전 규칙</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="2">
+                    <div class="week-num">2주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">드론의 구조</div>
+                        <div class="week-desc">프로펠러, 모터, 프레임, 배터리, FC 구성요소</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="3">
+                    <div class="week-num">3주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">비행의 원리</div>
+                        <div class="week-desc">양력, 추력, 4개 로터의 역할, 호버링 원리</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="4">
+                    <div class="week-num">4주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">좌표와 방향</div>
+                        <div class="week-desc">X/Y/Z 축, 피치/롤/요, 3D 공간 이해</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="phase-card">
+            <div class="phase-header">
+                <div class="phase-number">2</div>
+                <div class="phase-title">시뮬레이터 조종</div>
+                <div class="phase-weeks">5 ~ 8주</div>
+            </div>
+            <div class="week-list">
+                <div class="week-item" data-week="5">
+                    <div class="week-num">5주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">첫 비행</div>
+                        <div class="week-desc">시뮬레이터 사용법, 이륙/착륙 연습</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="6">
+                    <div class="week-num">6주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">상승/하강</div>
+                        <div class="week-desc">스로틀 제어, 고도 유지 연습</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="7">
+                    <div class="week-num">7주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">전후좌우 이동</div>
+                        <div class="week-desc">피치/롤 조종, 직선 비행</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="8">
+                    <div class="week-num">8주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">회전과 방향</div>
+                        <div class="week-desc">요(Yaw) 조종, 목표 방향 맞추기</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="phase-card">
+            <div class="phase-header">
+                <div class="phase-number">3</div>
+                <div class="phase-title">미션 수행</div>
+                <div class="phase-weeks">9 ~ 12주</div>
+            </div>
+            <div class="week-list">
+                <div class="week-item" data-week="9">
+                    <div class="week-num">9주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">기초 미션</div>
+                        <div class="week-desc">미션 1~3 (이륙, 착륙, 고도유지)</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="10">
+                    <div class="week-num">10주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">이동 미션</div>
+                        <div class="week-desc">미션 4~6 (전진, 링 통과, 웨이포인트)</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="11">
+                    <div class="week-num">11주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">복합 미션</div>
+                        <div class="week-desc">미션 7~10 (정밀 착륙, 장애물 회피)</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="12">
+                    <div class="week-num">12주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">도전 미션</div>
+                        <div class="week-desc">미션 11~15 (타임어택, 자유비행 과제)</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="phase-card">
+            <div class="phase-header">
+                <div class="phase-number">4</div>
+                <div class="phase-title">블록 코딩</div>
+                <div class="phase-weeks">13 ~ 17주</div>
+            </div>
+            <div class="week-list">
+                <div class="week-item" data-week="13">
+                    <div class="week-num">13주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">블록 코딩 입문</div>
+                        <div class="week-desc">블록 에디터 사용법, 이륙/착륙 블록</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="14">
+                    <div class="week-num">14주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">순차 실행</div>
+                        <div class="week-desc">이동 블록 조합, 사각형 비행 만들기</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="15">
+                    <div class="week-num">15주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">반복문</div>
+                        <div class="week-desc">반복 블록으로 원형 비행, 패턴 비행</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="16">
+                    <div class="week-num">16주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">조건문</div>
+                        <div class="week-desc">센서 값 읽기, 조건에 따른 동작 분기</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="17">
+                    <div class="week-num">17주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">블록 코딩 프로젝트</div>
+                        <div class="week-desc">자율비행 경로 설계, 미션 자동화</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 5 -->
+        <div class="phase-card">
+            <div class="phase-header">
+                <div class="phase-number">5</div>
+                <div class="phase-title">텍스트 코딩</div>
+                <div class="phase-weeks">18 ~ 21주</div>
+            </div>
+            <div class="week-list">
+                <div class="week-item" data-week="18">
+                    <div class="week-num">18주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">JavaScript 기초</div>
+                        <div class="week-desc">변수, 함수, drone API 소개</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="19">
+                    <div class="week-num">19주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">비행 프로그래밍</div>
+                        <div class="week-desc">flyTo(), 좌표 기반 비행 코드 작성</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="20">
+                    <div class="week-num">20주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">반복과 조건</div>
+                        <div class="week-desc">for/while 루프, if 조건, 센서 활용</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="21">
+                    <div class="week-num">21주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">자율비행 코딩</div>
+                        <div class="week-desc">웨이포인트 순찰, 경로 탐색 알고리즘</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 6 -->
+        <div class="phase-card">
+            <div class="phase-header">
+                <div class="phase-number">6</div>
+                <div class="phase-title">프로젝트 & 발표</div>
+                <div class="phase-weeks">22 ~ 24주</div>
+            </div>
+            <div class="week-list">
+                <div class="week-item" data-week="22">
+                    <div class="week-num">22주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">프로젝트 기획</div>
+                        <div class="week-desc">팀 프로젝트 주제 선정, 설계</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="23">
+                    <div class="week-num">23주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">프로젝트 개발</div>
+                        <div class="week-desc">코딩 구현, 테스트, 디버깅</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+                <div class="week-item" data-week="24">
+                    <div class="week-num">24주차</div>
+                    <div class="week-info">
+                        <div class="week-topic">발표 & 시연</div>
+                        <div class="week-desc">결과 발표, 시연, 상호 평가</div>
+                    </div>
+                    <div class="week-actions"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        드론 시뮬레이터 v2.0 | 초등학생 코딩 교육용
+    </div>
+
+    <script>
+        // 별 배경 효과
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 80; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 3 + 1;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 2 + 's';
+            star.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+            starsContainer.appendChild(star);
+        }
+
+        // PPT 파일 존재 여부 확인 후 버튼 생성
+        const BASE_URL = 'https://ktkennedy.github.io/codrone/materials/';
+        const VIEWER_URL = 'https://view.officeapps.live.com/op/embed.aspx?src=';
+
+        document.querySelectorAll('.week-item').forEach(item => {
+            const week = parseInt(item.dataset.week);
+            const weekStr = String(week).padStart(2, '0');
+            const fileName = `week${weekStr}.pptx`;
+            const fileUrl = BASE_URL + fileName;
+            const actionsDiv = item.querySelector('.week-actions');
+
+            fetch(fileUrl, { method: 'HEAD' })
+                .then(res => {
+                    if (res.ok) {
+                        actionsDiv.innerHTML = `
+                            <a href="${VIEWER_URL}${encodeURIComponent(fileUrl)}" target="_blank" class="ppt-btn view">&#x1F4C4; 보기</a>
+                            <a href="${fileUrl}" download class="ppt-btn download">&#x2B07; 다운로드</a>
+                        `;
+                    } else {
+                        actionsDiv.innerHTML = '<span class="ppt-btn preparing">준비중</span>';
+                    }
+                })
+                .catch(() => {
+                    actionsDiv.innerHTML = '<span class="ppt-btn preparing">준비중</span>';
+                });
+        });
+    </script>
+</body>
+</html>
