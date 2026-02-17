@@ -452,9 +452,12 @@
             requestAnimationFrame(animate);
             var dt = Math.min(clock.getDelta(), 0.05);
 
-            // 자율비행 입력 또는 호버링
+            // 코딩 입력 > 자율비행 > 호버링 우선순위
+            var overrideInput = bridge.drone.getInputOverride ? bridge.drone.getInputOverride() : null;
             var autoInput = autopilot.update(dt);
-            if (autoInput && physics.isFlying && !physics.isLanding) {
+            if (overrideInput && physics.isFlying && !physics.isLanding) {
+                physics.update(dt, overrideInput);
+            } else if (autoInput && physics.isFlying && !physics.isLanding) {
                 physics.update(dt, autoInput);
             } else {
                 physics.update(dt, {});

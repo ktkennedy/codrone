@@ -11,11 +11,16 @@
             this._running = false;
             this._cancelled = false;
             this._activeTimers = []; // 모든 활성 타이머 추적
+            this._inputOverride = null; // {throttle, pitch, roll, yaw} or null — used by animate loop
             this.onAction = null; // 액션 콜백 (시각적 피드백)
         }
 
         _notify(action) {
             if (this.onAction) this.onAction(action);
+        }
+
+        getInputOverride() {
+            return this._inputOverride;
         }
 
         _sleep(ms) {
@@ -67,142 +72,162 @@
 
         async _moveDirection(dirX, dirZ, distance) {
             var self = this;
-            var speed = 3; // m/s
-            var duration = distance / speed;
             var yaw = this.physics.rotation.yaw;
             var cos = Math.cos(yaw);
             var sin = Math.sin(yaw);
 
-            // 로컬 방향을 월드 좌표로 변환
-            var worldX = dirX * cos - dirZ * sin;
-            var worldZ = dirX * sin + dirZ * cos;
+            // Local direction -> world coordinates
+            var worldDx = dirX * cos - dirZ * sin;
+            var worldDz = dirX * sin + dirZ * cos;
 
-            var startTime = Date.now();
-            return new Promise(function (resolve) {
-                var interval = setInterval(function () {
-                    if (self._cancelled) { clearInterval(interval); resolve(); return; }
-                    var elapsed = (Date.now() - startTime) / 1000;
-                    if (elapsed >= duration) {
-                        clearInterval(interval);
-                        resolve();
-                        return;
-                    }
-                    self.physics.velocity.x = worldX * speed;
-                    self.physics.velocity.z = worldZ * speed;
-                }, 50);
-                self._activeTimers.push(interval);
-            });
+            // Target position
+            var targetX = this.physics.position.x + worldDx * distance;
+            var targetY = this.physics.position.y;
+            var targetZ = this.physics.position.z + worldDz * distance;
+
+            var autopilot = this._getAutopilot();
+            if (autopilot) {
+                var prevThreshold = autopilot.arrivalThreshold;
+                autopilot.arrivalThreshold = 0.3;
+                autopilot.flyTo(targetX, targetY, targetZ);
+                await new Promise(function (resolve) {
+                    var check = setInterval(function () {
+                        if (self._cancelled || !autopilot.isNavigating) {
+                            clearInterval(check);
+                            autopilot.stop();
+                            autopilot.arrivalThreshold = prevThreshold;
+                            resolve();
+                        }
+                    }, 100);
+                    self._activeTimers.push(check);
+                });
+            }
         }
 
         async moveForward(distance) {
             distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('앞으로 ' + distance + 'm');
             await this._moveDirection(0, -1, distance);
-            this.physics.velocity.x = 0;
-            this.physics.velocity.z = 0;
         }
 
         async moveBackward(distance) {
             distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('뒤로 ' + distance + 'm');
             await this._moveDirection(0, 1, distance);
-            this.physics.velocity.x = 0;
-            this.physics.velocity.z = 0;
         }
 
         async moveLeft(distance) {
             distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('왼쪽 ' + distance + 'm');
             await this._moveDirection(-1, 0, distance);
-            this.physics.velocity.x = 0;
-            this.physics.velocity.z = 0;
         }
 
         async moveRight(distance) {
             distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('오른쪽 ' + distance + 'm');
             await this._moveDirection(1, 0, distance);
-            this.physics.velocity.x = 0;
-            this.physics.velocity.z = 0;
         }
 
         async moveUp(distance) {
             distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('위로 ' + distance + 'm');
-            var speed = 2;
-            var duration = distance / speed;
+            var targetX = this.physics.position.x;
+            var targetY = this.physics.position.y + distance;
+            var targetZ = this.physics.position.z;
             var self = this;
-            var startTime = Date.now();
-            await new Promise(function (resolve) {
-                var interval = setInterval(function () {
-                    if (self._cancelled) { clearInterval(interval); resolve(); return; }
-                    if ((Date.now() - startTime) / 1000 >= duration) {
-                        clearInterval(interval); resolve(); return;
-                    }
-                    self.physics.velocity.y = speed;
-                }, 50);
-                self._activeTimers.push(interval);
-            });
-            this.physics.velocity.y = 0;
+
+            var autopilot = this._getAutopilot();
+            if (autopilot) {
+                var prevThreshold = autopilot.arrivalThreshold;
+                autopilot.arrivalThreshold = 0.3;
+                autopilot.flyTo(targetX, targetY, targetZ);
+                await new Promise(function (resolve) {
+                    var check = setInterval(function () {
+                        if (self._cancelled || !autopilot.isNavigating) {
+                            clearInterval(check);
+                            autopilot.stop();
+                            autopilot.arrivalThreshold = prevThreshold;
+                            resolve();
+                        }
+                    }, 100);
+                    self._activeTimers.push(check);
+                });
+            }
         }
 
         async moveDown(distance) {
             distance = Math.max(0, Math.min(100, Number(distance) || 0));
             this._notify('아래로 ' + distance + 'm');
-            var speed = 2;
-            var duration = distance / speed;
+            var targetX = this.physics.position.x;
+            var targetY = Math.max(0.5, this.physics.position.y - distance);
+            var targetZ = this.physics.position.z;
             var self = this;
-            var startTime = Date.now();
-            await new Promise(function (resolve) {
-                var interval = setInterval(function () {
-                    if (self._cancelled) { clearInterval(interval); resolve(); return; }
-                    if ((Date.now() - startTime) / 1000 >= duration) {
-                        clearInterval(interval); resolve(); return;
-                    }
-                    self.physics.velocity.y = -speed;
-                }, 50);
-                self._activeTimers.push(interval);
-            });
-            this.physics.velocity.y = 0;
+
+            var autopilot = this._getAutopilot();
+            if (autopilot) {
+                var prevThreshold = autopilot.arrivalThreshold;
+                autopilot.arrivalThreshold = 0.3;
+                autopilot.flyTo(targetX, targetY, targetZ);
+                await new Promise(function (resolve) {
+                    var check = setInterval(function () {
+                        if (self._cancelled || !autopilot.isNavigating) {
+                            clearInterval(check);
+                            autopilot.stop();
+                            autopilot.arrivalThreshold = prevThreshold;
+                            resolve();
+                        }
+                    }, 100);
+                    self._activeTimers.push(check);
+                });
+            }
         }
 
         async turnLeft(angle) {
             angle = Math.max(0, Math.min(360, Number(angle) || 0));
+            if (angle < 1) return;
             this._notify('왼쪽 회전 ' + angle + '도');
-            var radians = angle * Math.PI / 180;
-            var speed = Math.PI / 2; // 90도/초
-            var duration = radians / speed;
-            var self = this;
-            var startTime = Date.now();
-            await new Promise(function (resolve) {
-                var interval = setInterval(function () {
-                    if (self._cancelled) { clearInterval(interval); resolve(); return; }
-                    if ((Date.now() - startTime) / 1000 >= duration) {
-                        clearInterval(interval); resolve(); return;
-                    }
-                    self.physics.rotation.yaw -= speed * 0.05;
-                }, 50);
-                self._activeTimers.push(interval);
-            });
+            await this._doTurn(angle * Math.PI / 180, 0.6);
         }
 
         async turnRight(angle) {
             angle = Math.max(0, Math.min(360, Number(angle) || 0));
+            if (angle < 1) return;
             this._notify('오른쪽 회전 ' + angle + '도');
-            var radians = angle * Math.PI / 180;
-            var speed = Math.PI / 2;
-            var duration = radians / speed;
+            await this._doTurn(angle * Math.PI / 180, -0.6);
+        }
+
+        async _doTurn(targetRadians, yawInput) {
             var self = this;
-            var startTime = Date.now();
+            var accumulated = 0;
+            var lastYaw = this.physics.rotation.yaw;
+
+            this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: yawInput };
+
             await new Promise(function (resolve) {
-                var interval = setInterval(function () {
-                    if (self._cancelled) { clearInterval(interval); resolve(); return; }
-                    if ((Date.now() - startTime) / 1000 >= duration) {
-                        clearInterval(interval); resolve(); return;
+                var check = setInterval(function () {
+                    if (self._cancelled) {
+                        self._inputOverride = null;
+                        clearInterval(check);
+                        resolve();
+                        return;
                     }
-                    self.physics.rotation.yaw += speed * 0.05;
+
+                    var currentYaw = self.physics.rotation.yaw;
+                    var delta = currentYaw - lastYaw;
+                    // Handle wrapping at +/-PI
+                    while (delta > Math.PI) delta -= 2 * Math.PI;
+                    while (delta < -Math.PI) delta += 2 * Math.PI;
+
+                    accumulated += Math.abs(delta);
+                    lastYaw = currentYaw;
+
+                    if (accumulated >= targetRadians - 0.05) {
+                        self._inputOverride = null;
+                        clearInterval(check);
+                        resolve();
+                    }
                 }, 50);
-                self._activeTimers.push(interval);
+                self._activeTimers.push(check);
             });
         }
 
@@ -305,28 +330,52 @@
         // autopilot 없을 때 간단한 좌표 이동
         async _simpleFlyTo(tx, ty, tz) {
             var self = this;
-            var speed = this._flightSpeed || 3;
+            var autopilot = this._getAutopilot();
+            if (autopilot) {
+                var prevThreshold = autopilot.arrivalThreshold;
+                autopilot.arrivalThreshold = 0.3;
+                autopilot.flyTo(tx, ty, tz);
+                await new Promise(function (resolve) {
+                    var check = setInterval(function () {
+                        if (self._cancelled || !autopilot.isNavigating) {
+                            clearInterval(check);
+                            autopilot.stop();
+                            autopilot.arrivalThreshold = prevThreshold;
+                            resolve();
+                        }
+                    }, 100);
+                    self._activeTimers.push(check);
+                });
+                return;
+            }
+            // Fallback with input override (no autopilot)
             await new Promise(function (resolve) {
                 var interval = setInterval(function () {
-                    if (self._cancelled) { clearInterval(interval); resolve(); return; }
+                    if (self._cancelled) { self._inputOverride = null; clearInterval(interval); resolve(); return; }
                     var dx = tx - self.physics.position.x;
                     var dy = ty - self.physics.position.y;
                     var dz = tz - self.physics.position.z;
                     var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
                     if (dist < 0.5) {
-                        self.physics.velocity.x = 0;
-                        self.physics.velocity.y = 0;
-                        self.physics.velocity.z = 0;
+                        self._inputOverride = null;
                         clearInterval(interval);
                         resolve();
                         return;
                     }
-
-                    var scale = Math.min(speed, dist) / dist;
-                    self.physics.velocity.x = dx * scale;
-                    self.physics.velocity.y = dy * scale;
-                    self.physics.velocity.z = dz * scale;
+                    // Simple proportional control as input
+                    var yaw = self.physics.rotation.yaw;
+                    var cos = Math.cos(yaw);
+                    var sin = Math.sin(yaw);
+                    var localFwd = -(dx * sin + dz * cos);
+                    var localRight = dx * cos - dz * sin;
+                    var maxIn = 0.5;
+                    var s = Math.min(1, dist / 3);
+                    self._inputOverride = {
+                        throttle: Math.max(-maxIn, Math.min(maxIn, dy * 0.5)),
+                        pitch: Math.max(-maxIn, Math.min(maxIn, localFwd * 0.3 * s)),
+                        roll: Math.max(-maxIn, Math.min(maxIn, -localRight * 0.3 * s)),
+                        yaw: 0
+                    };
                 }, 50);
                 self._activeTimers.push(interval);
             });
@@ -371,6 +420,7 @@
         }
 
         cancel() {
+            this._inputOverride = null;
             this._cancelled = true;
             // Clear all active timers
             for (var i = 0; i < this._activeTimers.length; i++) {
@@ -380,6 +430,7 @@
             this._activeTimers = [];
         }
         reset() {
+            this._inputOverride = null;
             this._cancelled = false;
             this._flightSpeed = 3;
             this._activeTimers = [];
