@@ -202,6 +202,15 @@
         missionBtn.style.cssText = 'position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:50;padding:8px 24px;border-radius:20px;border:1px solid rgba(74,158,255,0.4);background:rgba(74,158,255,0.15);color:#4a9eff;font-size:14px;font-weight:bold;cursor:pointer;font-family:inherit;';
         missionBtn.addEventListener('click', function () { showMissionSelect(); });
         document.body.appendChild(missionBtn);
+
+        // 웨이포인트 방향 안내 HUD
+        var wpGuide = document.createElement('div');
+        wpGuide.id = 'wp-guide';
+        wpGuide.style.cssText = 'position:fixed;top:90px;left:50%;transform:translateX(-50%);z-index:50;' +
+            'background:rgba(0,0,0,0.7);color:#fff;padding:8px 20px;border-radius:12px;' +
+            'font-size:13px;font-family:inherit;display:none;text-align:center;' +
+            'border:1px solid rgba(255,255,255,0.15);pointer-events:none;min-width:200px;';
+        document.body.appendChild(wpGuide);
     }
 
     function showMissionSelect() {
@@ -214,6 +223,8 @@
             }
         }
         clearPathInfo();
+        var wpg = document.getElementById('wp-guide');
+        if (wpg) wpg.style.display = 'none';
         physics.reset();
         missionUI.show();
     }
@@ -328,24 +339,79 @@
                 missionManager.update(dt, state);
                 if (missionUI) missionUI.updateMissionHUD(currentMissionDef, missionManager.missionTime);
 
+                // 웨이포인트 방향 안내
+                var origM = currentMissionDef._origMission;
+                var wpGuideEl = document.getElementById('wp-guide');
+                var wpIdx = origM ? (origM._currentTarget || origM._currentCheckpoint || 0) : 0;
+                var wpTargets = origM ? (origM._targets || null) : null;
+
+                // _targets 배열이 없으면 collectibles에서 추출
+                if (!wpTargets && origM && origM.collectibles && origM.collectibles.length > 0) {
+                    var wpsFromCollectibles = [];
+                    for (var ci = 0; ci < origM.collectibles.length; ci += 2) {
+                        var obj = origM.collectibles[ci];
+                        if (obj && obj.position) {
+                            wpsFromCollectibles.push({
+                                x: obj.position.x,
+                                y: obj.position.y,
+                                z: obj.position.z
+                            });
+                        }
+                    }
+                    if (wpsFromCollectibles.length > 0) wpTargets = wpsFromCollectibles;
+                }
+
+                if (wpGuideEl && wpTargets && wpIdx < wpTargets.length) {
+                    var wp = wpTargets[wpIdx];
+                    var dx = wp.x - state.position.x;
+                    var dy = wp.y - state.position.y;
+                    var dz = wp.z - state.position.z;
+                    var distToWp = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // 방향 화살표 (드론 기준 상대 방향)
+                    var angle = Math.atan2(dx, -dz) * 180 / Math.PI;
+                    var headingDiff = angle - (state.heading || 0);
+                    var arrow = '&#x2191;'; // ↑
+                    var absDiff = ((headingDiff % 360) + 360) % 360;
+                    if (absDiff > 330 || absDiff < 30) arrow = '&#x2191;';       // 전방
+                    else if (absDiff >= 30 && absDiff < 60) arrow = '&#x2197;';   // 우전방
+                    else if (absDiff >= 60 && absDiff < 120) arrow = '&#x2192;';  // 우측
+                    else if (absDiff >= 120 && absDiff < 150) arrow = '&#x2198;'; // 우후방
+                    else if (absDiff >= 150 && absDiff < 210) arrow = '&#x2193;'; // 후방
+                    else if (absDiff >= 210 && absDiff < 240) arrow = '&#x2199;'; // 좌후방
+                    else if (absDiff >= 240 && absDiff < 300) arrow = '&#x2190;'; // 좌측
+                    else arrow = '&#x2196;'; // 좌전방
+
+                    var heightHint = '';
+                    if (dy > 1.5) heightHint = ' <span style="color:#66ccff;">&#x25B2; ' + dy.toFixed(1) + 'm 위</span>';
+                    else if (dy < -1.5) heightHint = ' <span style="color:#ff8866;">&#x25BC; ' + (-dy).toFixed(1) + 'm 아래</span>';
+
+                    wpGuideEl.innerHTML = '<span style="font-size:20px;">' + arrow + '</span> ' +
+                        '<b>#' + (wpIdx + 1) + '</b> (' + wp.x + ', ' + wp.y + ', ' + wp.z + ') ' +
+                        '<span style="color:#ffcc44;">' + distToWp.toFixed(1) + 'm</span>' + heightHint;
+                    wpGuideEl.style.display = 'block';
+                } else if (wpGuideEl) {
+                    if (wpTargets && wpIdx >= wpTargets.length) {
+                        wpGuideEl.innerHTML = '<span style="color:#44ff88;">모든 웨이포인트 완료!</span>';
+                    } else {
+                        wpGuideEl.style.display = 'none';
+                    }
+                }
+
                 // 경로 진행 상황 업데이트
-                if (currentMissionDef._pathWaypoints && currentMissionDef._origMission) {
-                    var wpIdx = currentMissionDef._origMission._currentTarget || 0;
+                if (currentMissionDef._pathWaypoints && origM) {
                     var wps = currentMissionDef._pathWaypoints;
 
-                    // 미니맵 현재 웨이포인트 인덱스 업데이트
                     if (minimap) minimap.setCurrentWaypointIndex(wpIdx);
 
-                    // 다음 웨이포인트까지 거리
                     var distToNext = 0;
                     if (wpIdx < wps.length) {
-                        var dx = wps[wpIdx].x - state.position.x;
-                        var dy = wps[wpIdx].y - state.position.y;
-                        var dz = wps[wpIdx].z - state.position.z;
-                        distToNext = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        var pdx = wps[wpIdx].x - state.position.x;
+                        var pdy = wps[wpIdx].y - state.position.y;
+                        var pdz = wps[wpIdx].z - state.position.z;
+                        distToNext = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
                     }
 
-                    // 남은 예상 시간
                     var remTime = 0;
                     if (currentMissionDef._pathEstimate && currentMissionDef._pathEstimate.segmentTimes) {
                         var segTimes = currentMissionDef._pathEstimate.segmentTimes;
@@ -354,11 +420,14 @@
                         }
                     }
 
-                    // PathOverlay 업데이트
                     if (pathOverlay) {
                         pathOverlay.updateProgress(wpIdx, distToNext, remTime, state.position);
                     }
                 }
+            } else {
+                // 미션 비활성 시 가이드 숨기기
+                var wpGuideOff = document.getElementById('wp-guide');
+                if (wpGuideOff) wpGuideOff.style.display = 'none';
             }
 
             var dist = Math.sqrt(state.position.x ** 2 + state.position.z ** 2);

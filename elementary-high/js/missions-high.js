@@ -5,6 +5,122 @@
 (function () {
     'use strict';
 
+    // 웨이포인트 색상 팔레트
+    var WP_COLORS = [0xff4444, 0xff8800, 0xffff00, 0x44ff44, 0x4488ff, 0xaa44ff, 0xff44aa, 0x44ffff];
+
+    /**
+     * 웨이포인트 시각화 헬퍼
+     * 크고 눈에 띄는 마커 + 번호 라벨 + 연결 라인 + 지면 마커 생성
+     *
+     * @param {THREE.Scene} scene
+     * @param {Array} targets - [{x, y, z}, ...]
+     * @param {Array} collectibles - 기존 collectibles 배열 (even=sphere, odd=beam)
+     * @param {Array} extraVisuals - 추가 시각 요소 배열 (cleanup용)
+     * @param {Object} opts - { sphereRadius, activeIdx }
+     */
+    function createWaypointVisuals(scene, targets, collectibles, extraVisuals, opts) {
+        opts = opts || {};
+        var radius = opts.sphereRadius || 0.8;
+        var activeIdx = opts.activeIdx || 0;
+
+        targets.forEach(function (pos, i) {
+            var color = WP_COLORS[i % WP_COLORS.length];
+
+            // 타겟 구체 (크고 밝은)
+            var geo = new THREE.SphereGeometry(radius, 16, 16);
+            var mat = new THREE.MeshBasicMaterial({
+                color: color, transparent: true,
+                opacity: i === activeIdx ? 1.0 : 0.5
+            });
+            var sphere = new THREE.Mesh(geo, mat);
+            sphere.position.set(pos.x, pos.y, pos.z);
+            scene.add(sphere);
+            collectibles.push(sphere);  // even index
+
+            // 수직 빔 (지면 → 타겟)
+            var beamH = Math.max(pos.y, 0.5);
+            var beamGeo = new THREE.CylinderGeometry(0.04, 0.04, beamH, 8);
+            var beamMat = new THREE.MeshBasicMaterial({
+                color: color, transparent: true,
+                opacity: i === activeIdx ? 0.5 : 0.2
+            });
+            var beam = new THREE.Mesh(beamGeo, beamMat);
+            beam.position.set(pos.x, beamH / 2, pos.z);
+            scene.add(beam);
+            collectibles.push(beam);  // odd index
+        });
+
+        // 번호 라벨 스프라이트
+        targets.forEach(function (pos, i) {
+            var color = WP_COLORS[i % WP_COLORS.length];
+            var canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            var ctx = canvas.getContext('2d');
+            // 배경 원
+            ctx.fillStyle = 'rgba(0,0,0,0.75)';
+            ctx.beginPath(); ctx.arc(32, 32, 28, 0, Math.PI * 2); ctx.fill();
+            // 테두리
+            var hex = '#' + ('000000' + color.toString(16)).slice(-6);
+            ctx.strokeStyle = hex;
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(32, 32, 28, 0, Math.PI * 2); ctx.stroke();
+            // 번호
+            ctx.fillStyle = hex;
+            ctx.font = 'bold 34px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(String(i + 1), 32, 34);
+            var texture = new THREE.CanvasTexture(canvas);
+            var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+            var sprite = new THREE.Sprite(spriteMat);
+            sprite.position.set(pos.x, pos.y + 1.5, pos.z);
+            sprite.scale.set(2, 2, 1);
+            scene.add(sprite);
+            extraVisuals.push(sprite);
+        });
+
+        // 경로 연결선
+        if (targets.length > 1) {
+            var linePoints = targets.map(function (t) { return new THREE.Vector3(t.x, t.y, t.z); });
+            var lineGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
+            var lineMat = new THREE.LineBasicMaterial({ color: 0x00ccff, transparent: true, opacity: 0.5 });
+            var line = new THREE.Line(lineGeo, lineMat);
+            scene.add(line);
+            extraVisuals.push(line);
+        }
+
+        // 지면 마커 (링)
+        targets.forEach(function (pos, i) {
+            var color = WP_COLORS[i % WP_COLORS.length];
+            var ringGeo = new THREE.RingGeometry(0.6, 1.0, 32);
+            var ringMat = new THREE.MeshBasicMaterial({
+                color: color, side: THREE.DoubleSide, transparent: true, opacity: 0.4
+            });
+            var ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.set(pos.x, 0.02, pos.z);
+            ring.rotation.x = -Math.PI / 2;
+            scene.add(ring);
+            extraVisuals.push(ring);
+        });
+    }
+
+    /**
+     * 추가 시각 요소 정리
+     */
+    function cleanupVisuals(scene, arr) {
+        arr.forEach(function (obj) {
+            scene.remove(obj);
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (obj.material.map) obj.material.map.dispose();
+                if (Array.isArray(obj.material)) {
+                    obj.material.forEach(function (m) { m.dispose(); });
+                } else {
+                    obj.material.dispose();
+                }
+            }
+        });
+    }
+
     function createHighMissions() {
         return [
             // 미션 1: 이륙과 착륙
@@ -46,69 +162,45 @@
             // 미션 2: 정밀 비행
             {
                 name: '정밀 비행',
-                description: '정확한 좌표로 이동하는 능력을 키워요.',
+                description: '번호 순서대로 웨이포인트를 방문하세요!',
                 timeLimit: 90,
                 collectibles: [],
+                _extraVisuals: [],
                 _currentTarget: 0,
+                _targets: [
+                    { x: 10, y: 5, z: 0 },
+                    { x: 10, y: 10, z: 10 },
+                    { x: 0, y: 8, z: 10 },
+                    { x: -10, y: 6, z: 0 },
+                    { x: 0, y: 4, z: -10 }
+                ],
                 setup: function (scene) {
                     this.collectibles = [];
+                    this._extraVisuals = [];
                     this._currentTarget = 0;
-                    var targets = [
-                        { x: 10, y: 5, z: 0 },
-                        { x: 10, y: 10, z: 10 },
-                        { x: 0, y: 8, z: 10 },
-                        { x: -10, y: 6, z: 0 },
-                        { x: 0, y: 4, z: -10 }
-                    ];
-                    var self = this;
-                    targets.forEach(function (pos, i) {
-                        // 타겟 구
-                        var geo = new THREE.SphereGeometry(0.4, 16, 16);
-                        var mat = new THREE.MeshBasicMaterial({
-                            color: 0x00aaff,
-                            transparent: true,
-                            opacity: i === 0 ? 1 : 0.25
-                        });
-                        var target = new THREE.Mesh(geo, mat);
-                        target.position.set(pos.x, pos.y, pos.z);
-                        scene.add(target);
-                        self.collectibles.push(target);
-
-                        // 기둥
-                        var poleGeo = new THREE.CylinderGeometry(0.03, 0.03, pos.y, 8);
-                        var poleMat = new THREE.MeshPhongMaterial({ color: 0x00aaff });
-                        var pole = new THREE.Mesh(poleGeo, poleMat);
-                        pole.position.set(pos.x, pos.y / 2, pos.z);
-                        scene.add(pole);
-                        self.collectibles.push(pole);
-                    });
+                    createWaypointVisuals(scene, this._targets, this.collectibles, this._extraVisuals);
                 },
                 cleanup: function (scene) {
-                    this.collectibles.forEach(function (obj) {
-                        scene.remove(obj);
-                        if (obj.geometry) obj.geometry.dispose();
-                        if (obj.material) {
-                            if (Array.isArray(obj.material)) {
-                                obj.material.forEach(function (m) { m.dispose(); });
-                            } else {
-                                obj.material.dispose();
-                            }
-                        }
-                    });
+                    cleanupVisuals(scene, this.collectibles);
+                    cleanupVisuals(scene, this._extraVisuals);
                     this.collectibles = [];
+                    this._extraVisuals = [];
                 },
                 frameUpdate: function (state) {
                     if (this._currentTarget >= 5) return;
                     var target = this.collectibles[this._currentTarget * 2];
+                    var beam = this.collectibles[this._currentTarget * 2 + 1];
                     var dx = state.position.x - target.position.x;
                     var dy = state.position.y - target.position.y;
                     var dz = state.position.z - target.position.z;
                     var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
                     if (dist < 1.5) {
                         target.material.opacity = 0.1;
+                        if (beam) beam.material.opacity = 0.05;
                         this._currentTarget++;
                         if (this._currentTarget < 5) {
                             this.collectibles[this._currentTarget * 2].material.opacity = 1;
+                            this.collectibles[this._currentTarget * 2 + 1].material.opacity = 0.5;
                         }
                     }
                 },
