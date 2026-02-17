@@ -222,9 +222,6 @@
 
         if (isStarted && controls && physics) {
             var input = controls.getInput();
-            if (physics.isFlying && !physics.isLanding) {
-                input.throttle += 0.52;
-            }
 
             var state = physics.update(dt, input);
             if (droneModel) {

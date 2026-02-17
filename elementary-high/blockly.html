@@ -455,10 +455,7 @@
             // 자율비행 입력 또는 호버링
             var autoInput = autopilot.update(dt);
             if (autoInput && physics.isFlying && !physics.isLanding) {
-                autoInput.throttle += 0.52;
                 physics.update(dt, autoInput);
-            } else if (physics.isFlying && !physics.isLanding) {
-                physics.update(dt, { throttle: 0.52 });
             } else {
                 physics.update(dt, {});
             }

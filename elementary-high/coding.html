@@ -413,10 +413,7 @@ await drone.land();
             var ap = droneAPI._autopilot;
             var autoInput = ap ? ap.update(dt) : null;
             if (autoInput && physics.isFlying && !physics.isLanding) {
-                autoInput.throttle += 0.52;
                 physics.update(dt, autoInput);
-            } else if (physics.isFlying && !physics.isLanding) {
-                physics.update(dt, { throttle: 0.52 });
             } else {
                 physics.update(dt, {});
             }
