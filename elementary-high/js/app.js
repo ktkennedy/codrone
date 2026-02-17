@@ -203,14 +203,7 @@
         missionBtn.addEventListener('click', function () { showMissionSelect(); });
         document.body.appendChild(missionBtn);
 
-        // 웨이포인트 방향 안내 HUD
-        var wpGuide = document.createElement('div');
-        wpGuide.id = 'wp-guide';
-        wpGuide.style.cssText = 'position:fixed;top:70px;right:15px;z-index:50;' +
-            'background:rgba(0,0,0,0.75);color:#fff;padding:8px 16px;border-radius:10px;' +
-            'font-size:12px;font-family:inherit;display:none;text-align:left;' +
-            'border:1px solid rgba(255,255,255,0.15);pointer-events:none;';
-        document.body.appendChild(wpGuide);
+        // wp-guide는 이제 mission-hud 안에 통합됨 (별도 div 불필요)
     }
 
     function showMissionSelect() {
@@ -223,8 +216,6 @@
             }
         }
         clearPathInfo();
-        var wpg = document.getElementById('wp-guide');
-        if (wpg) wpg.style.display = 'none';
         physics.reset();
         missionUI.show();
     }
@@ -339,9 +330,9 @@
                 missionManager.update(dt, state);
                 if (missionUI) missionUI.updateMissionHUD(currentMissionDef, missionManager.missionTime);
 
-                // 웨이포인트 방향 안내
+                // 웨이포인트 방향 안내 (mission-hud 내부에 통합)
                 var origM = currentMissionDef._origMission;
-                var wpGuideEl = document.getElementById('wp-guide');
+                var wpGuideEl = document.getElementById('wp-guide-line');
                 var wpIdx = 0;
                 if (origM) {
                     if (origM._currentTarget !== undefined) wpIdx = origM._currentTarget;
@@ -376,28 +367,29 @@
                     // 방향 화살표 (드론 기준 상대 방향)
                     var angle = Math.atan2(dx, -dz) * 180 / Math.PI;
                     var headingDiff = angle - (state.heading || 0);
-                    var arrow = '&#x2191;'; // ↑
+                    var arrow = '&#x2191;';
                     var absDiff = ((headingDiff % 360) + 360) % 360;
-                    if (absDiff > 330 || absDiff < 30) arrow = '&#x2191;';       // 전방
-                    else if (absDiff >= 30 && absDiff < 60) arrow = '&#x2197;';   // 우전방
-                    else if (absDiff >= 60 && absDiff < 120) arrow = '&#x2192;';  // 우측
-                    else if (absDiff >= 120 && absDiff < 150) arrow = '&#x2198;'; // 우후방
-                    else if (absDiff >= 150 && absDiff < 210) arrow = '&#x2193;'; // 후방
-                    else if (absDiff >= 210 && absDiff < 240) arrow = '&#x2199;'; // 좌후방
-                    else if (absDiff >= 240 && absDiff < 300) arrow = '&#x2190;'; // 좌측
-                    else arrow = '&#x2196;'; // 좌전방
+                    if (absDiff > 330 || absDiff < 30) arrow = '&#x2191;';
+                    else if (absDiff >= 30 && absDiff < 60) arrow = '&#x2197;';
+                    else if (absDiff >= 60 && absDiff < 120) arrow = '&#x2192;';
+                    else if (absDiff >= 120 && absDiff < 150) arrow = '&#x2198;';
+                    else if (absDiff >= 150 && absDiff < 210) arrow = '&#x2193;';
+                    else if (absDiff >= 210 && absDiff < 240) arrow = '&#x2199;';
+                    else if (absDiff >= 240 && absDiff < 300) arrow = '&#x2190;';
+                    else arrow = '&#x2196;';
 
                     var heightHint = '';
                     if (dy > 1.5) heightHint = ' <span style="color:#66ccff;">&#x25B2; ' + dy.toFixed(1) + 'm 위</span>';
                     else if (dy < -1.5) heightHint = ' <span style="color:#ff8866;">&#x25BC; ' + (-dy).toFixed(1) + 'm 아래</span>';
 
-                    wpGuideEl.innerHTML = '<span style="font-size:20px;">' + arrow + '</span> ' +
+                    wpGuideEl.innerHTML = '<span style="font-size:18px;">' + arrow + '</span> ' +
                         '<b>#' + (wpIdx + 1) + '</b> (' + wp.x + ', ' + wp.y + ', ' + wp.z + ') ' +
                         '<span style="color:#ffcc44;">' + distToWp.toFixed(1) + 'm</span>' + heightHint;
                     wpGuideEl.style.display = 'block';
                 } else if (wpGuideEl) {
                     if (wpTargets && wpIdx >= wpTargets.length) {
                         wpGuideEl.innerHTML = '<span style="color:#44ff88;">모든 웨이포인트 완료!</span>';
+                        wpGuideEl.style.display = 'block';
                     } else {
                         wpGuideEl.style.display = 'none';
                     }
@@ -430,9 +422,8 @@
                     }
                 }
             } else {
-                // 미션 비활성 시 가이드 숨기기
-                var wpGuideOff = document.getElementById('wp-guide');
-                if (wpGuideOff) wpGuideOff.style.display = 'none';
+                // 미션 비활성 시 — wp-guide-line은 mission-hud 안에 있으므로
+                // mission-hud가 제거되면 자동으로 사라짐
             }
 
             var dist = Math.sqrt(state.position.x ** 2 + state.position.z ** 2);

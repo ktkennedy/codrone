@@ -393,6 +393,13 @@ class MissionSelectUI {
                 color: #ffaa44;
                 margin-top: 5px;
             }
+            #mission-hud .wp-guide-line {
+                font-size: 12px;
+                margin-top: 6px;
+                padding-top: 6px;
+                border-top: 1px solid rgba(255,255,255,0.15);
+                color: #fff;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -470,6 +477,7 @@ class MissionSelectUI {
             <div class="mission-title">${mission.name}</div>
             ${objectivesHtml}
             ${mission.timeLimit ? `<div class="mission-timer" id="mission-timer">남은 시간: ${mission.timeLimit}초</div>` : ''}
+            <div class="wp-guide-line" id="wp-guide-line" style="display:none;"></div>
         `;
         document.body.appendChild(hud);
     }
