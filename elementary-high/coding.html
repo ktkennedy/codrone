@@ -121,6 +121,20 @@
             background: #161b22; padding: 1px 5px;
             border-radius: 3px; color: #ff7b72; font-size: 12px;
         }
+
+        /* 디버그 오버레이 */
+        #debug-overlay {
+            position: absolute; bottom: 5px; right: 5px;
+            background: rgba(0,0,0,0.75); color: #aaddaa;
+            padding: 6px 10px; border-radius: 6px;
+            font-family: 'Courier New', monospace; font-size: 10px;
+            line-height: 1.5; z-index: 15;
+            pointer-events: none; white-space: pre;
+            min-width: 180px;
+        }
+        #debug-overlay .lbl { color: #88aacc; }
+        #debug-overlay .tgt { color: #ffcc66; }
+        #debug-overlay .inp { color: #cc88ff; }
     </style>
 </head>
 <body>
@@ -167,6 +181,7 @@ await drone.land();
         <div id="right-panel">
             <div id="sim-container">
                 <div id="exec-status">대기 중</div>
+                <div id="debug-overlay"></div>
             </div>
             <div id="api-panel">
                 <h4>드론 API 레퍼런스</h4>
@@ -354,7 +369,7 @@ await drone.land();
 
         function stopCode() {
             droneAPI.cancel();
-            physics.velocity = { x: 0, y: 0, z: 0 };
+            if (droneAPI._autopilot) droneAPI._autopilot.stop();
             isRunning = false;
             document.getElementById('btn-run').textContent = '▶ 실행';
             document.getElementById('exec-status').classList.remove('active');
@@ -405,6 +420,8 @@ await drone.land();
             });
         }
 
+        var _debugEl = null;
+        var _debugCounter = 0;
         function animate() {
             requestAnimationFrame(animate);
             var dt = Math.min(clock.getDelta(), 0.05);
@@ -413,9 +430,12 @@ await drone.land();
             var overrideInput = droneAPI.getInputOverride ? droneAPI.getInputOverride() : null;
             var ap = droneAPI._autopilot;
             var autoInput = ap ? ap.update(dt) : null;
+            var activeInput = null;
             if (overrideInput && physics.isFlying && !physics.isLanding) {
+                activeInput = overrideInput;
                 physics.update(dt, overrideInput);
             } else if (autoInput && physics.isFlying && !physics.isLanding) {
+                activeInput = autoInput;
                 physics.update(dt, autoInput);
             } else {
                 physics.update(dt, {});
@@ -425,6 +445,28 @@ await drone.land();
             droneModel.updateFromPhysics(state);
             droneModel.updatePropellers(dt, physics.isFlying ? 0.5 : 0);
             cameraSystem.update(dt);
+
+            // 디버그 오버레이 업데이트 (5프레임마다)
+            if (++_debugCounter % 5 === 0) {
+                if (!_debugEl) _debugEl = document.getElementById('debug-overlay');
+                if (_debugEl) {
+                    var p = state.position;
+                    var v = state.velocity;
+                    var spd = state.speed;
+                    var lines = '<span class="lbl">Pos</span> X:' + p.x.toFixed(1) + ' Y:' + p.y.toFixed(1) + ' Z:' + p.z.toFixed(1);
+                    lines += '\n<span class="lbl">Vel</span> ' + v.x.toFixed(1) + ',' + v.y.toFixed(1) + ',' + v.z.toFixed(1) + '  Spd:' + spd.toFixed(1);
+                    if (ap && ap.target) {
+                        var t = ap.target;
+                        var dx = t.x - p.x, dy = t.y - p.y, dz = t.z - p.z;
+                        var dist = Math.sqrt(dx*dx+dy*dy+dz*dz);
+                        lines += '\n<span class="tgt">Tgt</span> ' + t.x.toFixed(1) + ',' + t.y.toFixed(1) + ',' + t.z.toFixed(1) + '  D:' + dist.toFixed(1) + 'm';
+                    }
+                    if (activeInput) {
+                        lines += '\n<span class="inp">In</span>  P:' + (activeInput.pitch||0).toFixed(2) + ' R:' + (activeInput.roll||0).toFixed(2) + ' T:' + (activeInput.throttle||0).toFixed(2) + ' Y:' + (activeInput.yaw||0).toFixed(2);
+                    }
+                    _debugEl.innerHTML = lines;
+                }
+            }
 
             renderer.render(scene, camera);
         }

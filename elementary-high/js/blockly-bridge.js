@@ -324,6 +324,9 @@
          */
         setSpeed(speed) {
             this._flightSpeed = Math.max(1, Math.min(10, speed));
+            // autopilot에도 속도 전달
+            var autopilot = this._getAutopilot();
+            if (autopilot) autopilot.flightSpeed = this._flightSpeed;
             this._notify('속도: ' + this._flightSpeed + 'm/s');
         }
 

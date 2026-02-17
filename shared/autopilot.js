@@ -1,13 +1,24 @@
 /**
  * 자율비행 시스템 (Autopilot)
- * PID 컨트롤러 + 웨이포인트 추적 + 장애물 회피
+ * 계단식 PD 제어기 + 웨이포인트 추적
+ *
+ * RotorPy(rotorpy-main) SE3 컨트롤러 참조 설계:
+ *   1. 위치 오차 → 원하는 속도 (속도 제한 포함)
+ *   2. 속도 오차 → 원하는 가속도 (실제 velocity state 사용, derivative kick 없음)
+ *   3. 가속도 → 물리 엔진 입력 변환 (pitch/roll/throttle/yaw)
+ *
+ * 기존 PID 방식의 문제점:
+ *   - D항이 (error - prevError)/dt 로 계산되어 derivative kick 발생
+ *   - I항 windup으로 진동 유발
+ *   - 속도 제한 없이 위치 오차에 비례하여 최대 입력 발생
+ *
+ * 좌표계: Three.js Y-up (X: 오른쪽, Y: 위, -Z: 전방)
  */
 (function () {
     'use strict';
 
     /**
-     * PID 컨트롤러
-     * 목표값과 현재값의 차이를 기반으로 제어 출력을 계산합니다.
+     * PID 컨트롤러 (범용, yaw 등에서 사용)
      */
     class PIDController {
         constructor(kp, ki, kd, outputMin, outputMax) {
@@ -25,19 +36,15 @@
         update(error, dt) {
             if (dt <= 0) return 0;
 
-            // P: 비례
             var p = this.kp * error;
 
-            // I: 적분 (누적 오차)
             this._integral += error * dt;
             this._integral = Math.max(-this._integralMax, Math.min(this._integralMax, this._integral));
             var i = this.ki * this._integral;
 
-            // D: 미분 (오차 변화율)
             var d = this.kd * (error - this._prevError) / dt;
             this._prevError = error;
 
-            // 합산 후 클램프
             var output = p + i + d;
             return Math.max(this.outputMin, Math.min(this.outputMax, output));
         }
@@ -49,26 +56,39 @@
     }
 
     /**
-     * 자율비행 시스템
+     * 자율비행 시스템 (계단식 PD 제어기)
+     *
+     * 제어 구조:
+     *   외부 루프: 위치 오차 → 원하는 속도 (kpPos, 속도 클램프)
+     *   내부 루프: 속도 오차 → 원하는 가속도 (kvH/kvV, 실제 velocity 사용)
+     *   변환: 월드 가속도 → body-local → 물리 입력 (pitch/roll/throttle)
      */
     class Autopilot {
         constructor(physics) {
             this.physics = physics;
 
-            // PID 컨트롤러 (X, Y, Z 각 축)
-            this.pidX = new PIDController(0.8, 0.05, 0.3, -1, 1);
-            this.pidY = new PIDController(1.0, 0.1, 0.2, -1, 1);
-            this.pidZ = new PIDController(0.8, 0.05, 0.3, -1, 1);
-            this.pidYaw = new PIDController(1.5, 0, 0.5, -1, 1);
+            // === 계단식 PD 게인 (RotorPy SE3 참조 튜닝) ===
+            // 외부: 위치 → 원하는 속도
+            this._kpPos = 1.5;     // [1/s] 수평 위치 게인
+            this._kpPosV = 2.0;    // [1/s] 수직 위치 게인 (더 강하게)
+
+            // 내부: 속도 오차 → 원하는 가속도
+            this._kvH = 2.0;      // [1/s] 수평 속도 추적 게인
+            this._kvV = 2.5;      // [1/s] 수직 속도 추적 게인
 
             // 상태
             this.homePosition = { x: 0, y: 0, z: 0 };
-            this.target = null;      // 현재 목표 지점
-            this.waypoints = [];     // 웨이포인트 큐
+            this.target = null;
+            this.waypoints = [];
             this.waypointIndex = 0;
             this.isNavigating = false;
-            this.arrivalThreshold = 0.8; // 도착 판정 거리
-            this.flightSpeed = 3;    // 비행 속도 (m/s)
+            this.arrivalThreshold = 0.8;
+            this.flightSpeed = 3;         // 최대 수평 속도 (m/s)
+            this.maxVerticalSpeed = 2;    // 최대 수직 속도 (m/s)
+
+            // 디버그 정보 (외부에서 읽기 가능)
+            this._lastInput = null;
+            this._lastDesiredVel = null;
 
             // 콜백
             this.onWaypointReached = null;
@@ -93,7 +113,6 @@
         flyTo(x, y, z) {
             this.target = { x: x, y: y, z: z };
             this.isNavigating = true;
-            this._resetPIDs();
         }
 
         /**
@@ -144,60 +163,110 @@
             this.target = null;
             this.waypoints = [];
             this.waypointIndex = 0;
-            this._resetPIDs();
+            this._lastInput = null;
+            this._lastDesiredVel = null;
         }
 
         /**
-         * 매 프레임 업데이트 - 자율비행 입력 계산
+         * 매 프레임 업데이트 - 계단식 PD 제어
+         *
+         * 제어 흐름:
+         *   1. 위치 오차 → 원하는 속도 (속도 제한)
+         *   2. 속도 오차 → 원하는 가속도 (실제 velocity 사용)
+         *   3. 월드 가속도 → body-local → 물리 입력
+         *
          * @param {number} dt - 델타 타임
-         * @returns {Object|null} 입력값 {throttle, pitch, roll, yaw} 또는 null (비활성)
+         * @returns {Object|null} 입력값 {throttle, pitch, roll, yaw} 또는 null
          */
         update(dt) {
             if (!this.isNavigating || !this.target) return null;
 
             var pos = this.physics.position;
+            var vel = this.physics.velocity;
             var target = this.target;
 
-            // 3D 오차 계산
-            var errorX = target.x - pos.x;
-            var errorY = target.y - pos.y;
-            var errorZ = target.z - pos.z;
+            // === 1. 위치 오차 (월드 프레임) ===
+            var ex = target.x - pos.x;
+            var ey = target.y - pos.y;
+            var ez = target.z - pos.z;
 
-            // 수평 거리
-            var hDist = Math.sqrt(errorX * errorX + errorZ * errorZ);
+            var hDist = Math.sqrt(ex * ex + ez * ez);
+            var totalDist = Math.sqrt(ex * ex + ey * ey + ez * ez);
+            var speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
 
-            // 도착 판정
-            var totalDist = Math.sqrt(errorX * errorX + errorY * errorY + errorZ * errorZ);
-            if (totalDist < this.arrivalThreshold) {
+            // 도착 판정 (거리 + 속도 모두 확인하여 안정적 도착)
+            if (totalDist < this.arrivalThreshold && speed < 0.5) {
+                this._lastInput = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
                 this._onArrived();
-                return { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
+                return this._lastInput;
             }
 
-            // 월드 좌표 → 로컬 좌표 변환 (드론의 yaw 기준)
+            // === 2. 위치 → 원하는 속도 (속도 제한) ===
+            var desVx = this._kpPos * ex;
+            var desVz = this._kpPos * ez;
+
+            // 수평 원하는 속도를 flightSpeed로 클램프
+            var desMag = Math.sqrt(desVx * desVx + desVz * desVz);
+            if (desMag > this.flightSpeed) {
+                var scale = this.flightSpeed / desMag;
+                desVx *= scale;
+                desVz *= scale;
+            }
+
+            // 수직 원하는 속도 클램프
+            var desVy = this._kpPosV * ey;
+            if (desVy > this.maxVerticalSpeed) desVy = this.maxVerticalSpeed;
+            if (desVy < -this.maxVerticalSpeed) desVy = -this.maxVerticalSpeed;
+
+            this._lastDesiredVel = { x: desVx, y: desVy, z: desVz };
+
+            // === 3. 속도 오차 → 원하는 가속도 ===
+            // 실제 velocity state 사용 (derivative kick 없음, 안정적 댐핑)
+            var ax = this._kvH * (desVx - vel.x);
+            var ay = this._kvV * (desVy - vel.y);
+            var az = this._kvH * (desVz - vel.z);
+
+            // === 4. 월드 가속도 → body-local 입력 변환 ===
             var yaw = this.physics.rotation.yaw;
-            var cos = Math.cos(yaw);
-            var sin = Math.sin(yaw);
+            var cosY = Math.cos(yaw);
+            var sinY = Math.sin(yaw);
 
-            // 로컬 전진(Z-) / 우측(X+) 방향 오차
-            var localForward = errorX * sin + errorZ * cos;   // 전방 오차 (Z-)
-            var localRight = errorX * cos - errorZ * sin;     // 우측 오차 (X+)
+            // 월드 → 바디 로컬 가속도
+            var aBodyZ = ax * sinY + az * cosY;    // body +Z 성분 (후방)
+            var aBodyX = ax * cosY - az * sinY;    // body +X 성분 (우측)
 
-            // 목표 방향으로 yaw 회전
-            var targetYaw = Math.atan2(errorX, errorZ);
-            var yawError = targetYaw - yaw;
-            // -PI ~ PI 범위로 정규화
-            while (yawError > Math.PI) yawError -= 2 * Math.PI;
-            while (yawError < -Math.PI) yawError += 2 * Math.PI;
+            // 최대 달성 가능 가속도로 정규화
+            var maxHAccel = this.physics.g * Math.sin(this.physics.maxTiltAngle);
+            var maxVAccel = this.physics.maxExtraAccel;
 
-            // PID 제어
-            var throttle = this.pidY.update(errorY, dt);
-            var yawControl = this.pidYaw.update(yawError, dt);
+            // pitch: +입력 → nose down → 전방(-Z) 가속
+            // aBodyZ > 0 → 후방 가속 원함 → 음의 pitch
+            var pitch = -aBodyZ / maxHAccel;
 
-            // 전진/후진 (pitch)과 좌우 (roll)
-            // 속도 제한을 위한 스케일링
-            var speedScale = Math.min(1, hDist / 3);
-            var pitch = this.pidZ.update(-localForward, dt) * speedScale;
-            var roll = this.pidX.update(localRight, dt) * speedScale;
+            // roll: +입력 → 왼쪽 틸트 → -X 방향 가속
+            // aBodyX > 0 → 우측 가속 원함 → 음의 roll
+            var roll = -aBodyX / maxHAccel;
+
+            // throttle: 수직 가속도
+            var throttle = ay / maxVAccel;
+
+            // === 5. Yaw 제어 (부드럽게) ===
+            var yawInput = 0;
+            if (hDist > 2.0) {
+                var targetYaw = Math.atan2(ex, ez);
+                var yawError = targetYaw - yaw;
+                while (yawError > Math.PI) yawError -= 2 * Math.PI;
+                while (yawError < -Math.PI) yawError += 2 * Math.PI;
+                yawInput = this._clamp(yawError * 0.3, -0.3, 0.3);
+            }
+
+            // === 6. 안전 범위 클램프 ===
+            var maxInput = 0.6;  // 최대 60%로 급격한 기동 방지
+            pitch = this._clamp(pitch, -maxInput, maxInput);
+            roll = this._clamp(roll, -maxInput, maxInput);
+            throttle = this._clamp(throttle, -0.8, 0.8);
+
+            this._lastInput = { throttle: throttle, pitch: pitch, roll: roll, yaw: yawInput };
 
             // 상태 알림
             if (this.onStatusUpdate) {
@@ -208,12 +277,7 @@
                 });
             }
 
-            return {
-                throttle: throttle,
-                pitch: pitch,
-                roll: -roll,
-                yaw: yawControl
-            };
+            return this._lastInput;
         }
 
         _onArrived() {
@@ -227,7 +291,6 @@
                 if (this.waypointIndex < this.waypoints.length) {
                     var next = this.waypoints[this.waypointIndex];
                     this.target = { x: next.x, y: next.y, z: next.z };
-                    this._resetPIDs();
                     return;
                 }
             }
@@ -260,15 +323,11 @@
          * 두 지점 간 물리 기반 예상 비행 시간 (사다리꼴 속도 프로파일)
          */
         _estimateSegmentTime(from, to) {
-            // 수평 거리
             var dx = to.x - from.x;
             var dz = to.z - from.z;
             var hDist = Math.sqrt(dx * dx + dz * dz);
-
-            // 수직 거리
             var vDist = Math.abs(to.y - from.y);
 
-            // 물리 기반 파라미터
             var maxHSpeed = this.physics.speedLimit || 15;
             var maxVSpeed = this.physics.speedLimit || 15;
             var maxHAccel = Math.tan(this.physics.maxTiltAngle || Math.PI / 5) * 9.81;
@@ -277,17 +336,15 @@
             var hTime = this._trapezoidalTime(hDist, maxHSpeed, maxHAccel);
             var vTime = this._trapezoidalTime(vDist, maxVSpeed, maxVAccel);
 
-            // 요(방향전환) 시간
             var yawAngle = Math.abs(Math.atan2(dx, dz));
             var maxYawRate = this.physics.maxYawRate || 3.0;
             var yawTime = yawAngle / maxYawRate;
 
-            return Math.max(hTime, vTime) + yawTime * 0.3; // yaw는 이동과 부분 병렬
+            return Math.max(hTime, vTime) + yawTime * 0.3;
         }
 
         /**
          * 사다리꼴 속도 프로파일 기반 소요 시간 계산
-         * 가속 -> 순항 -> 감속 (또는 삼각형 프로파일)
          */
         _trapezoidalTime(dist, maxSpeed, maxAccel) {
             if (dist < 0.001) return 0;
@@ -295,21 +352,18 @@
             var accelDist = 0.5 * maxAccel * accelTime * accelTime;
 
             if (2 * accelDist >= dist) {
-                // 최대 속도 도달 못함 - 삼각형 프로파일
                 return 2 * Math.sqrt(dist / maxAccel);
             } else {
-                // 사다리꼴 프로파일
                 var cruiseDist = dist - 2 * accelDist;
                 var cruiseTime = cruiseDist / maxSpeed;
                 return 2 * accelTime + cruiseTime;
             }
         }
 
-        _resetPIDs() {
-            this.pidX.reset();
-            this.pidY.reset();
-            this.pidZ.reset();
-            this.pidYaw.reset();
+        _clamp(value, min, max) {
+            if (value < min) return min;
+            if (value > max) return max;
+            return value;
         }
     }
 

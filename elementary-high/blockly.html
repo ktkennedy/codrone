@@ -134,6 +134,20 @@
             color: #aabbcc; font-size: 12px; padding: 3px 0;
         }
         .mission-obj.done { color: #44ff88; text-decoration: line-through; }
+
+        /* 디버그 오버레이 */
+        #debug-overlay {
+            position: absolute; bottom: 5px; right: 5px;
+            background: rgba(0,0,0,0.75); color: #aaddaa;
+            padding: 6px 10px; border-radius: 6px;
+            font-family: 'Courier New', monospace; font-size: 10px;
+            line-height: 1.5; z-index: 15;
+            pointer-events: none; white-space: pre;
+            min-width: 180px;
+        }
+        #debug-overlay .lbl { color: #88aacc; }
+        #debug-overlay .tgt { color: #ffcc66; }
+        #debug-overlay .inp { color: #cc88ff; }
     </style>
 </head>
 <body>
@@ -172,6 +186,7 @@
         <div id="right-panel">
             <div id="sim-container">
                 <div id="exec-status">대기 중</div>
+                <div id="debug-overlay"></div>
             </div>
             <div id="code-panel">
                 <div id="code-panel-header">
@@ -418,7 +433,7 @@
 
             document.getElementById('btn-stop').addEventListener('click', function () {
                 bridge.stop();
-                physics.velocity = { x: 0, y: 0, z: 0 };
+                autopilot.stop();
                 document.getElementById('btn-run').textContent = '▶ 실행';
                 document.getElementById('btn-run').classList.remove('running');
                 document.getElementById('exec-status').classList.remove('active');
@@ -448,6 +463,8 @@
             });
         }
 
+        var _debugEl = null;
+        var _debugCounter = 0;
         function animate() {
             requestAnimationFrame(animate);
             var dt = Math.min(clock.getDelta(), 0.05);
@@ -455,9 +472,12 @@
             // 코딩 입력 > 자율비행 > 호버링 우선순위
             var overrideInput = bridge.drone.getInputOverride ? bridge.drone.getInputOverride() : null;
             var autoInput = autopilot.update(dt);
+            var activeInput = null;
             if (overrideInput && physics.isFlying && !physics.isLanding) {
+                activeInput = overrideInput;
                 physics.update(dt, overrideInput);
             } else if (autoInput && physics.isFlying && !physics.isLanding) {
+                activeInput = autoInput;
                 physics.update(dt, autoInput);
             } else {
                 physics.update(dt, {});
@@ -467,6 +487,28 @@
             droneModel.updateFromPhysics(state);
             droneModel.updatePropellers(dt, physics.isFlying ? 0.5 : 0);
             cameraSystem.update(dt);
+
+            // 디버그 오버레이 업데이트 (5프레임마다)
+            if (++_debugCounter % 5 === 0) {
+                if (!_debugEl) _debugEl = document.getElementById('debug-overlay');
+                if (_debugEl) {
+                    var p = state.position;
+                    var v = state.velocity;
+                    var spd = state.speed;
+                    var lines = '<span class="lbl">Pos</span> X:' + p.x.toFixed(1) + ' Y:' + p.y.toFixed(1) + ' Z:' + p.z.toFixed(1);
+                    lines += '\n<span class="lbl">Vel</span> ' + v.x.toFixed(1) + ',' + v.y.toFixed(1) + ',' + v.z.toFixed(1) + '  Spd:' + spd.toFixed(1);
+                    if (autopilot.target) {
+                        var t = autopilot.target;
+                        var dx = t.x - p.x, dy = t.y - p.y, dz = t.z - p.z;
+                        var dist = Math.sqrt(dx*dx+dy*dy+dz*dz);
+                        lines += '\n<span class="tgt">Tgt</span> ' + t.x.toFixed(1) + ',' + t.y.toFixed(1) + ',' + t.z.toFixed(1) + '  D:' + dist.toFixed(1) + 'm';
+                    }
+                    if (activeInput) {
+                        lines += '\n<span class="inp">In</span>  P:' + (activeInput.pitch||0).toFixed(2) + ' R:' + (activeInput.roll||0).toFixed(2) + ' T:' + (activeInput.throttle||0).toFixed(2) + ' Y:' + (activeInput.yaw||0).toFixed(2);
+                    }
+                    _debugEl.innerHTML = lines;
+                }
+            }
 
             renderer.render(scene, camera);
         }
