@@ -882,37 +882,40 @@ class PhysicsTuningPanel {
         this._defaults = {
             mass: physics.mass,
             maxTiltAngle: physics.maxTiltAngle,
-            maxExtraAccel: physics.maxExtraAccel,
             kp_att: physics.kp_att,
             kd_att: physics.kd_att,
             tau_m: physics.tau_m,
             c_Dx: physics.c_Dx,
-            c_Dy: physics.c_Dy,
             c_Dz: physics.c_Dz,
             k_d: physics.k_d,
             k_h: physics.k_h,
             maxYawRate: physics.maxYawRate,
-            stabilizeRate: physics.stabilizeRate
+            windDragLin: physics.windDragLin,
+            cpOffset: physics.cpOffset
         };
 
         this._params = [
+            // 기체
             { key: 'mass', label: '질량 (kg)', min: 0.1, max: 2.0, step: 0.05, fmt: 3 },
             { key: 'maxTiltAngle', label: '최대 기울기 (deg)', min: 5, max: 60, step: 1, fmt: 0,
               toSlider: function(v) { return v * 180 / Math.PI; },
               fromSlider: function(v) { return v * Math.PI / 180; }
             },
-            { key: 'maxExtraAccel', label: '추가 가속 (m/s2)', min: 1, max: 15, step: 0.5, fmt: 1 },
-            { key: 'kp_att', label: '자세 P게인', min: 50, max: 2000, step: 10, fmt: 0 },
-            { key: 'kd_att', label: '자세 D게인', min: 5, max: 200, step: 1, fmt: 1 },
-            { key: 'tau_m', label: '모터 응답 (ms)', min: 2, max: 50, step: 1, fmt: 0,
+            // 자세 제어 (낮으면 바람에 기울어짐)
+            { key: 'kp_att', label: '자세 P (낮을수록 흔들림)', min: 20, max: 2000, step: 10, fmt: 0 },
+            { key: 'kd_att', label: '자세 D (낮을수록 진동)', min: 2, max: 200, step: 1, fmt: 1 },
+            { key: 'tau_m', label: '모터 응답 (ms)', min: 2, max: 80, step: 1, fmt: 0,
               toSlider: function(v) { return v * 1000; },
               fromSlider: function(v) { return v / 1000; }
             },
+            { key: 'maxYawRate', label: '최대 요속도 (r/s)', min: 0.5, max: 8, step: 0.5, fmt: 1 },
+            // 바람 반응 (올리면 바람 영향 커짐)
+            { key: 'windDragLin', label: '바람 민감도', min: 0, max: 0.3, step: 0.005, fmt: 3 },
+            { key: 'cpOffset', label: '바람 토크 (기울기)', min: 0, max: 0.1, step: 0.002, fmt: 3 },
             { key: 'c_Dx', label: '기체 항력 X', min: 0, max: 0.1, step: 0.001, fmt: 3 },
             { key: 'c_Dz', label: '기체 항력 Z', min: 0, max: 0.1, step: 0.001, fmt: 3 },
-            { key: 'k_d', label: '로터 항력', min: 0, max: 0.001, step: 0.00001, fmt: 5 },
-            { key: 'k_h', label: 'Translational Lift', min: 0, max: 0.02, step: 0.0005, fmt: 4 },
-            { key: 'maxYawRate', label: '최대 요속도 (r/s)', min: 0.5, max: 8, step: 0.5, fmt: 1 }
+            { key: 'k_d', label: '로터 H-항력', min: 0, max: 0.001, step: 0.00001, fmt: 5 },
+            { key: 'k_h', label: 'Translational Lift', min: 0, max: 0.02, step: 0.0005, fmt: 4 }
         ];
 
         this._create();
@@ -1073,8 +1076,9 @@ class PhysicsTuningPanel {
             var curVal = this.physics[p.key];
             var displayVal = p.toSlider ? p.toSlider(curVal) : curVal;
 
-            if (i === 3) html += '<div class="tp-section">제어기 게인</div>';
-            if (i === 6) html += '<div class="tp-section">공기역학</div>';
+            if (i === 2) html += '<div class="tp-section">자세 제어 (바람 안정성)</div>';
+            if (i === 6) html += '<div class="tp-section">바람 반응</div>';
+            if (i === 8) html += '<div class="tp-section">공기역학 상세</div>';
 
             html += '<div class="tp-row">';
             html += '<div class="tp-label"><span>' + p.label + '</span><span class="tp-val" id="tp-val-' + p.key + '">' + displayVal.toFixed(p.fmt) + '</span></div>';
@@ -1094,9 +1098,10 @@ class PhysicsTuningPanel {
                     var physVal = p.fromSlider ? p.fromSlider(sliderVal) : sliderVal;
                     self.physics[p.key] = physVal;
 
-                    // 관성 역수 업데이트
+                    // 파생값 업데이트
                     if (p.key === 'mass') {
                         self.physics._hoverSpeed = Math.sqrt(self.physics.mass * self.physics.g / (4 * self.physics.k_eta));
+                        self.physics._maxTotalThrust = 4 * self.physics.k_eta * self.physics.rotorSpeedMax * self.physics.rotorSpeedMax;
                     }
 
                     var valEl = document.getElementById('tp-val-' + p.key);
@@ -1138,23 +1143,27 @@ class PhysicsTuningPanel {
         var presets = {
             'default': this._defaults,
             'agile': {
-                mass: 0.35, maxTiltAngle: 50 * Math.PI / 180, maxExtraAccel: 10,
-                kp_att: 800, kd_att: 60, tau_m: 0.008,
-                c_Dx: 0.003, c_Dz: 0.003, k_d: 0.0001, k_h: 0.0034, maxYawRate: 5.0
+                mass: 0.35, maxTiltAngle: 50 * Math.PI / 180,
+                kp_att: 800, kd_att: 40, tau_m: 0.008,
+                windDragLin: 0.04, cpOffset: 0.02,
+                c_Dx: 0.004, c_Dz: 0.004, k_d: 0.0001, k_h: 0.0034, maxYawRate: 5.0
             },
             'stable': {
-                mass: 0.6, maxTiltAngle: 20 * Math.PI / 180, maxExtraAccel: 4,
-                kp_att: 400, kd_att: 80, tau_m: 0.02,
+                mass: 0.6, maxTiltAngle: 20 * Math.PI / 180,
+                kp_att: 1500, kd_att: 120, tau_m: 0.012,
+                windDragLin: 0.08, cpOffset: 0.015,
                 c_Dx: 0.008, c_Dz: 0.008, k_d: 0.00015, k_h: 0.0034, maxYawRate: 2.0
             },
             'heavy': {
-                mass: 1.2, maxTiltAngle: 25 * Math.PI / 180, maxExtraAccel: 5,
-                kp_att: 300, kd_att: 55, tau_m: 0.025,
-                c_Dx: 0.01, c_Dz: 0.01, k_d: 0.0002, k_h: 0.005, maxYawRate: 2.0
+                mass: 1.5, maxTiltAngle: 25 * Math.PI / 180,
+                kp_att: 200, kd_att: 35, tau_m: 0.035,
+                windDragLin: 0.12, cpOffset: 0.04,
+                c_Dx: 0.015, c_Dz: 0.015, k_d: 0.0002, k_h: 0.005, maxYawRate: 1.5
             },
             'racing': {
-                mass: 0.3, maxTiltAngle: 55 * Math.PI / 180, maxExtraAccel: 12,
-                kp_att: 1200, kd_att: 45, tau_m: 0.005,
+                mass: 0.25, maxTiltAngle: 55 * Math.PI / 180,
+                kp_att: 1200, kd_att: 35, tau_m: 0.005,
+                windDragLin: 0.03, cpOffset: 0.015,
                 c_Dx: 0.002, c_Dz: 0.002, k_d: 0.00008, k_h: 0.002, maxYawRate: 6.0
             }
         };
@@ -1177,6 +1186,7 @@ class PhysicsTuningPanel {
         }
         // 파생값 업데이트
         this.physics._hoverSpeed = Math.sqrt(this.physics.mass * this.physics.g / (4 * this.physics.k_eta));
+        this.physics._maxTotalThrust = 4 * this.physics.k_eta * this.physics.rotorSpeedMax * this.physics.rotorSpeedMax;
     }
 
     toggle() {

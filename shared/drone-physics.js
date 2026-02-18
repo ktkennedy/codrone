@@ -52,6 +52,8 @@ class DronePhysics {
         this.k_d = 1.19e-4;                           // 로터항력 계수
         this.k_z = 2.32e-4;                           // 유도유입 계수
         this.k_h = 3.39e-3;                           // translational lift 계수
+        this.windDragLin = 0.06;                      // 선형 바람 항력 (저속 민감도)
+        this.cpOffset = 0.025;                         // 풍압 중심 오프셋 (바람 토크)
 
         // 자세 제어기 게인 (stabilizeRate에 비례)
         var gainScale = this.stabilizeRate / 3.0;
@@ -59,8 +61,10 @@ class DronePhysics {
         this.kd_att = 46.64 * gainScale;
         this.maxYawRate = 3.0;                        // rad/s
 
-        // 추력 매핑: throttle=0 → hover, ±1 → ±maxExtraAccel
-        this.maxExtraAccel = 6.0;                     // m/s²
+        // 추력: 모터 물리 한계 기반
+        this.maxExtraAccel = 6.0;                     // m/s² (레거시 호환)
+        this._maxThrustPerMotor = this.k_eta * this.rotorSpeedMax * this.rotorSpeedMax;
+        this._maxTotalThrust = 4 * this._maxThrustPerMotor;
 
         // 물리 서브스텝
         this._physicsDt = 0.004;                      // 250Hz
@@ -238,8 +242,16 @@ class DronePhysics {
             desRoll = 0;
             desYawRate = 0;
         } else {
-            // 일반 비행: 사용자 입력 기반
-            collectiveThrust = this.mass * this.g + throttle * this.mass * this.maxExtraAccel;
+            // 일반 비행: 모터 물리 한계 기반 추력
+            // 무거운 드론은 여유 추력 감소 → 질량 변화가 체감됨
+            var hoverThrust = this.mass * this.g;
+            var thrustHeadroom = this._maxTotalThrust - hoverThrust;
+            if (thrustHeadroom < 0.5) thrustHeadroom = 0.5;
+            if (throttle >= 0) {
+                collectiveThrust = hoverThrust + throttle * thrustHeadroom;
+            } else {
+                collectiveThrust = hoverThrust + throttle * hoverThrust * 0.8;
+            }
             if (collectiveThrust < 0) collectiveThrust = 0;
 
             if (this.autoStabilize) {
@@ -500,11 +512,21 @@ class DronePhysics {
         var FBx = 0, FBy = 0, FBz = 0;
         var MBx = 0, MBy = 0, MBz = 0;
 
-        // 기생 항력: D = -|v_body| * diag(c_Dx, c_Dy, c_Dz) * v_body
+        // 기생 항력: D = -|v_body| * diag(c_Dx, c_Dy, c_Dz) * v_body (2차 항력)
         var bvNorm = Math.sqrt(bvx * bvx + bvy * bvy + bvz * bvz);
         FBx = -bvNorm * this.c_Dx * bvx;
         FBy = -bvNorm * this.c_Dy * bvy;
         FBz = -bvNorm * this.c_Dz * bvz;
+
+        // 선형 바람 항력: 저속에서도 바람을 체감 (프로펠러 디스크 항력 모델)
+        FBx -= this.windDragLin * bvx;
+        FBz -= this.windDragLin * bvz;
+
+        // 바람에 의한 기체 토크: 풍압 중심이 무게 중심과 어긋남 → 피치/롤 모멘트
+        // kp_att/kd_att 값이 낮으면 바람에 기체가 기울어지는 게 보임
+        var cp = this.cpOffset;
+        MBz += -bvNorm * this.c_Dx * bvx * cp;    // pitch 모멘트 (역풍 → 기수 들림)
+        MBx +=  bvNorm * this.c_Dz * bvz * cp;    // roll 모멘트 (측풍 → 기울기)
 
         // 4개 로터 순회
         var rotorSpeeds = [rs0, rs1, rs2, rs3];
