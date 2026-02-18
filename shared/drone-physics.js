@@ -51,6 +51,7 @@ class DronePhysics {
         this.c_Dz = 0.5e-2 * dragScale;              // 기생항력 body Z
         this.k_d = 1.19e-4;                           // 로터항력 계수
         this.k_z = 2.32e-4;                           // 유도유입 계수
+        this.k_h = 3.39e-3;                           // translational lift 계수
 
         // 자세 제어기 게인 (stabilizeRate에 비례)
         var gainScale = this.stabilizeRate / 3.0;
@@ -102,6 +103,11 @@ class DronePhysics {
         this._omega = [0, 0, 0];                      // body rates [wx, wy, wz]
         this._rotorSpeeds = [0, 0, 0, 0];             // rad/s
 
+        // 바람 속도 (world frame)
+        this._windVel = [0, 0, 0];                      // [wx, wy, wz]
+        this._windProfile = null;                        // wind model reference
+        this._simTime = 0;                               // 누적 시뮬레이션 시간
+
         this._takeoffPhase = false;
         this._takeoffTarget = 2;
     }
@@ -145,11 +151,21 @@ class DronePhysics {
         this._quat = [0, 0, 0, 1];
         this._omega = [0, 0, 0];
         this._rotorSpeeds = [0, 0, 0, 0];
+        // _windVel, _windProfile은 리셋하지 않음 — 바람은 외부에서 설정한 대로 유지
+        this._simTime = 0;
         this._takeoffPhase = false;
         this.isFlying = false;
         this.isLanding = false;
         this.battery = 100;
         this._syncPublicState();
+    }
+
+    setWind(windProfile) {
+        this._windProfile = windProfile;
+    }
+
+    getWindVelocity() {
+        return { x: this._windVel[0], y: this._windVel[1], z: this._windVel[2] };
     }
 
     takeoff(targetHeight) {
@@ -181,6 +197,15 @@ class DronePhysics {
         if (!this.isFlying && !this._takeoffPhase) return this.getState();
 
         dt = Math.min(dt, 0.05);
+
+        // 바람 업데이트
+        this._simTime += dt;
+        if (this._windProfile) {
+            var w = this._windProfile.update(this._simTime, dt);
+            this._windVel[0] = w[0];
+            this._windVel[1] = w[1];
+            this._windVel[2] = w[2];
+        }
 
         var throttle = this._clamp(input.throttle || 0, -1, 1);
         var pitchInput = this._clamp(input.pitch || 0, -1, 1);
@@ -463,10 +488,13 @@ class DronePhysics {
         var qd2 = 0.5 * (-qy * wx + qx * wy + qw * wz);
         var qd3 = 0.5 * (-qx * wx - qy * wy - qz * wz);
 
-        // body frame 대기속도: R^T * v
-        var bvx = R00 * vx + R10 * vy + R20 * vz;
-        var bvy = R01 * vx + R11 * vy + R21 * vz;
-        var bvz = R02 * vx + R12 * vy + R22 * vz;
+        // body frame 대기속도: R^T * (v - v_wind) — 상대 대기속도
+        var relVx = vx - this._windVel[0];
+        var relVy = vy - this._windVel[1];
+        var relVz = vz - this._windVel[2];
+        var bvx = R00 * relVx + R10 * relVy + R20 * relVz;
+        var bvy = R01 * relVx + R11 * relVy + R21 * relVz;
+        var bvz = R02 * relVx + R12 * relVy + R22 * relVz;
 
         // body wrench 계산 (인라인)
         var FBx = 0, FBy = 0, FBz = 0;
@@ -497,6 +525,10 @@ class DronePhysics {
 
             // 추력 (body +Y)
             var T = this.k_eta * omegaSq;
+
+            // translational lift: 횡방향 대기속도가 추력에 기여
+            var vlLateralSq = vlx * vlx + vlz * vlz;
+            T += this.k_h * vlLateralSq;
 
             // 로터 항력 (H-force)
             var Hx = -omega_i * this.k_d * vlx;
@@ -594,7 +626,9 @@ class DronePhysics {
             heading: heading,
             battery: this.battery,
             isFlying: this.isFlying,
-            isLanding: this.isLanding
+            isLanding: this.isLanding,
+            wind: { x: this._windVel[0], y: this._windVel[1], z: this._windVel[2] },
+            windSpeed: Math.sqrt(this._windVel[0] * this._windVel[0] + this._windVel[1] * this._windVel[1] + this._windVel[2] * this._windVel[2])
         };
     }
 

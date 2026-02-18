@@ -20,12 +20,15 @@
     var createHighMissions = DS.createHighMissions;
     var PathOverlay = DS.PathOverlay;
     var Autopilot = DS.Autopilot;
+    var WindPresets = DS.WindPresets;
+    var WindSettingsPanel = DS.WindSettingsPanel;
 
     var scene, renderer, camera;
     var physics, droneModel, world, cameraSystem;
     var hud, messageDisplay, minimap, controls, pathOverlay;
     var missionManager, missionUI;
     var autopilot;
+    var windPanel;
     var clock;
     var isStarted = false;
     var currentMissionDef = null;
@@ -39,7 +42,7 @@
         isStarted = true;
         window._droneStarted = true;
         if (messageDisplay) {
-            messageDisplay.show('T: 이륙 | M: 미션 | H: 키 안내', 'info', 4000);
+            messageDisplay.show('T: 이륙 | M: 미션 | V: 바람', 'info', 4000);
         }
     }
 
@@ -124,6 +127,19 @@
             if (messageDisplay) messageDisplay.show('카메라: ' + cameraSystem.getModeName(), 'info', 1000);
         };
 
+        // 바람 시스템
+        if (WindSettingsPanel && WindPresets) {
+            windPanel = new WindSettingsPanel();
+            windPanel.onPresetChange = function (preset) {
+                var windProfile = WindPresets[preset] ? WindPresets[preset]() : null;
+                physics.setWind(windProfile);
+                if (messageDisplay) {
+                    var names = { calm: '바람 없음', light: '약풍', moderate: '중풍', strong: '강풍', gusty: '돌풍', sinusoid: '변동풍' };
+                    messageDisplay.show('바람: ' + (names[preset] || preset), 'info', 1500);
+                }
+            };
+        }
+
         // 미션 시스템
         initMissions();
 
@@ -132,6 +148,9 @@
             if (e.key === 'Escape' && !isStarted) startSimulation();
             if (e.key === 'm' || e.key === 'M') {
                 if (isStarted) showMissionSelect();
+            }
+            if (e.key === 'v' || e.key === 'V') {
+                if (windPanel) windPanel.toggle();
             }
             if ((e.key === 'p' || e.key === 'P') && !e.ctrlKey && !e.altKey && !e.metaKey) {
                 if (pathOverlay) pathOverlay.toggle();

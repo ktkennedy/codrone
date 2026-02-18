@@ -9,6 +9,7 @@
     var physics, droneModel, world, cameraSystem;
     var hud, messageDisplay, minimap, controls;
     var missionManager, missionUI;
+    var windPanel;
     var clock;
     var isStarted = false;
     var currentMissionDef = null;
@@ -27,6 +28,8 @@
     var MissionManager = DS.MissionManager;
     var MissionSelectUI = DS.MissionSelectUI;
     var createLowMissions = DS.createLowMissions;
+    var WindPresets = DS.WindPresets;
+    var WindSettingsPanel = DS.WindSettingsPanel;
 
     /**
      * 시뮬레이션 시작 (오버레이 숨기기)
@@ -108,10 +111,29 @@
         minimap = new Minimap(null, 60);
         controls = new SimpleControls(physics);
 
+        // 바람 시스템
+        if (WindSettingsPanel && WindPresets) {
+            windPanel = new WindSettingsPanel();
+            windPanel.onPresetChange = function (preset) {
+                var windProfile = WindPresets[preset] ? WindPresets[preset]() : null;
+                physics.setWind(windProfile);
+                if (messageDisplay) {
+                    var names = { calm: '바람 없음', light: '약풍', moderate: '중풍', strong: '강풍', gusty: '돌풍', sinusoid: '변동풍' };
+                    messageDisplay.show('바람: ' + (names[preset] || preset), 'info', 1500);
+                }
+            };
+        }
+
         // 미션 시스템
         initMissions();
 
         window.addEventListener('resize', onResize);
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'v' || e.key === 'V') {
+                if (windPanel) windPanel.toggle();
+            }
+        });
     }
 
     function initMissions() {

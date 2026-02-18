@@ -27,6 +27,10 @@ class HUD {
                     <div class="hud-battery-bar"><div class="hud-battery-fill" id="hud-battery-fill"></div></div>
                     <span class="hud-data small"><span id="hud-battery">100</span>%</span>
                 </div>
+                <div class="hud-row hud-wind-row" id="hud-wind-row" style="display:none;">
+                    <span class="hud-data small"><span id="hud-wind-icon">🌬</span> <span id="hud-wind-speed">0.0</span>m/s</span>
+                    <span class="hud-data small" id="hud-wind-dir"></span>
+                </div>
             </div>
             <div class="hud-cam" id="hud-camera-mode">3인칭</div>
         `;
@@ -96,6 +100,11 @@ class HUD {
                 margin-top: 2px;
                 padding-right: 2px;
             }
+            .hud-wind-row {
+                border-top: 1px solid rgba(255,255,255,0.08);
+                padding-top: 2px;
+                margin-top: 1px;
+            }
         `;
         document.head.appendChild(style);
         this.container.appendChild(this.element);
@@ -128,6 +137,23 @@ class HUD {
             batteryFill.style.width = battery + '%';
             batteryFill.className = 'hud-battery-fill' +
                 (battery < 20 ? ' low' : battery < 50 ? ' medium' : '');
+        }
+
+        // 바람
+        var windRow = $('hud-wind-row');
+        if (windRow && state.wind && state.windSpeed > 0.1) {
+            windRow.style.display = 'flex';
+            var ws = $('hud-wind-speed');
+            if (ws) ws.textContent = state.windSpeed.toFixed(1);
+            var wd = $('hud-wind-dir');
+            if (wd) {
+                var wAngle = Math.atan2(state.wind.x, -state.wind.z) * 180 / Math.PI;
+                var dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+                var idx = Math.round(((wAngle % 360) + 360) % 360 / 45) % 8;
+                wd.textContent = dirs[idx];
+            }
+        } else if (windRow) {
+            windRow.style.display = 'none';
         }
 
         // 상태
@@ -669,8 +695,184 @@ class PathOverlay {
     }
 }
 
+// ===== 바람 설정 패널 =====
+class WindSettingsPanel {
+    constructor(container) {
+        this.container = container || document.body;
+        this._visible = false;
+        this._currentPreset = 'calm';
+        this.onPresetChange = null;
+        this._create();
+    }
+
+    _create() {
+        this.element = document.createElement('div');
+        this.element.id = 'wind-panel';
+        this.element.innerHTML = `
+            <div class="wp-title">바람 설정 <span class="wp-key">[V]</span></div>
+            <div class="wp-presets">
+                <button class="wp-btn active" data-preset="calm">없음</button>
+                <button class="wp-btn" data-preset="light">약풍</button>
+                <button class="wp-btn" data-preset="moderate">중풍</button>
+                <button class="wp-btn" data-preset="strong">강풍</button>
+                <button class="wp-btn" data-preset="gusty">돌풍</button>
+                <button class="wp-btn" data-preset="sinusoid">변동풍</button>
+            </div>
+            <div class="wp-info" id="wp-info">바람 없음</div>
+            <div class="wp-detail" id="wp-detail"></div>
+        `;
+
+        var style = document.createElement('style');
+        style.textContent = `
+            #wind-panel {
+                position: fixed;
+                bottom: 100px; left: 10px;
+                z-index: 45;
+                background: rgba(0, 0, 0, 0.75);
+                border: 1px solid rgba(100, 200, 255, 0.3);
+                border-radius: 10px;
+                padding: 12px 14px;
+                color: #ddeeff;
+                font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+                font-size: 11px;
+                min-width: 180px;
+                opacity: 0;
+                transform: translateY(10px);
+                transition: opacity 0.3s, transform 0.3s;
+                display: none;
+                pointer-events: auto;
+            }
+            #wind-panel.visible {
+                display: block;
+                opacity: 1;
+                transform: translateY(0);
+            }
+            .wp-title {
+                font-size: 13px;
+                font-weight: bold;
+                color: #66ccff;
+                margin-bottom: 8px;
+            }
+            .wp-key {
+                font-size: 9px;
+                color: #4488aa;
+                font-weight: normal;
+            }
+            .wp-presets {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+                margin-bottom: 8px;
+            }
+            .wp-btn {
+                padding: 4px 10px;
+                border-radius: 12px;
+                border: 1px solid rgba(100, 200, 255, 0.25);
+                background: rgba(100, 200, 255, 0.08);
+                color: #88bbdd;
+                font-size: 11px;
+                cursor: pointer;
+                font-family: inherit;
+                transition: all 0.2s;
+            }
+            .wp-btn:hover {
+                background: rgba(100, 200, 255, 0.2);
+                color: #aaddff;
+            }
+            .wp-btn.active {
+                background: rgba(100, 200, 255, 0.3);
+                color: #ffffff;
+                border-color: rgba(100, 200, 255, 0.5);
+            }
+            .wp-info {
+                font-size: 10px;
+                color: #88bbdd;
+                margin-top: 4px;
+            }
+            .wp-detail {
+                font-size: 9px;
+                color: #557799;
+                margin-top: 2px;
+                font-family: 'Courier New', monospace;
+            }
+        `;
+        document.head.appendChild(style);
+        this.container.appendChild(this.element);
+
+        // 버튼 이벤트
+        var self = this;
+        var btns = this.element.querySelectorAll('.wp-btn');
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].addEventListener('click', function () {
+                var preset = this.getAttribute('data-preset');
+                self.setPreset(preset);
+            });
+        }
+    }
+
+    setPreset(preset) {
+        this._currentPreset = preset;
+
+        // 버튼 활성 상태 업데이트
+        var btns = this.element.querySelectorAll('.wp-btn');
+        for (var i = 0; i < btns.length; i++) {
+            if (btns[i].getAttribute('data-preset') === preset) {
+                btns[i].classList.add('active');
+            } else {
+                btns[i].classList.remove('active');
+            }
+        }
+
+        // 정보 텍스트 업데이트
+        var info = document.getElementById('wp-info');
+        var detail = document.getElementById('wp-detail');
+        var descriptions = {
+            calm: ['바람 없음', '안정적인 비행 조건'],
+            light: ['약한 바람 (1~2 m/s)', '약간의 흔들림'],
+            moderate: ['보통 바람 (3~4 m/s)', '주의하며 비행하세요'],
+            strong: ['강한 바람 (5~6 m/s)', '숙련된 조종 필요'],
+            gusty: ['돌풍 (불규칙)', 'Dryden 난류 모델'],
+            sinusoid: ['변동풍 (주기적)', '사인파 패턴']
+        };
+        if (info && descriptions[preset]) {
+            info.textContent = descriptions[preset][0];
+        }
+        if (detail && descriptions[preset]) {
+            detail.textContent = descriptions[preset][1];
+        }
+
+        if (this.onPresetChange) {
+            this.onPresetChange(preset);
+        }
+    }
+
+    getPreset() {
+        return this._currentPreset;
+    }
+
+    toggle() {
+        this._visible = !this._visible;
+        if (this._visible) {
+            this.element.classList.add('visible');
+        } else {
+            this.element.classList.remove('visible');
+        }
+    }
+
+    show() {
+        this._visible = true;
+        this.element.classList.add('visible');
+    }
+
+    hide() {
+        this._visible = false;
+        this.element.classList.remove('visible');
+    }
+}
+
 window.DroneSim = window.DroneSim || {};
 window.DroneSim.HUD = HUD;
 window.DroneSim.MessageDisplay = MessageDisplay;
 window.DroneSim.Minimap = Minimap;
 window.DroneSim.PathOverlay = PathOverlay;
+window.DroneSim.WindSettingsPanel = WindSettingsPanel;
