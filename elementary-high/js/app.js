@@ -22,6 +22,7 @@
     var Autopilot = DS.Autopilot;
     var WindPresets = DS.WindPresets;
     var WindSettingsPanel = DS.WindSettingsPanel;
+    var PhysicsTuningPanel = DS.PhysicsTuningPanel;
 
     var scene, renderer, camera;
     var physics, droneModel, world, cameraSystem;
@@ -29,6 +30,7 @@
     var missionManager, missionUI;
     var autopilot;
     var windPanel;
+    var tuningPanel;
     var clock;
     var isStarted = false;
     var currentMissionDef = null;
@@ -42,7 +44,7 @@
         isStarted = true;
         window._droneStarted = true;
         if (messageDisplay) {
-            messageDisplay.show('T: 이륙 | M: 미션 | V: 바람', 'info', 4000);
+            messageDisplay.show('T: 이륙 | M: 미션 | V: 바람 | B: 튜닝 | H: 키 안내', 'info', 4000);
         }
     }
 
@@ -140,6 +142,11 @@
             };
         }
 
+        // 튜닝 패널
+        if (PhysicsTuningPanel) {
+            tuningPanel = new PhysicsTuningPanel(physics);
+        }
+
         // 미션 시스템
         initMissions();
 
@@ -151,6 +158,9 @@
             }
             if (e.key === 'v' || e.key === 'V') {
                 if (windPanel) windPanel.toggle();
+            }
+            if (e.key === 'b' || e.key === 'B') {
+                if (tuningPanel) tuningPanel.toggle();
             }
             if ((e.key === 'p' || e.key === 'P') && !e.ctrlKey && !e.altKey && !e.metaKey) {
                 if (pathOverlay) pathOverlay.toggle();

@@ -27,6 +27,8 @@ class KeyboardControls {
             <div class="key-row"><span class="key">L</span> <span class="key-desc">착륙</span></div>
             <div class="key-row"><span class="key">C</span> <span class="key-desc">카메라 전환</span></div>
             <div class="key-row"><span class="key">G</span> <span class="key-desc">안정화 토글</span></div>
+            <div class="key-row"><span class="key">V</span> <span class="key-desc">바람 설정</span></div>
+            <div class="key-row"><span class="key">B</span> <span class="key-desc">드론 튜닝</span></div>
             <div class="key-row"><span class="key">H</span> <span class="key-desc">안내 숨기기</span></div>
         `;
         document.body.appendChild(guide);

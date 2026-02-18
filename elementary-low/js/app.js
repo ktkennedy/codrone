@@ -10,6 +10,7 @@
     var hud, messageDisplay, minimap, controls;
     var missionManager, missionUI;
     var windPanel;
+    var tuningPanel;
     var clock;
     var isStarted = false;
     var currentMissionDef = null;
@@ -30,6 +31,7 @@
     var createLowMissions = DS.createLowMissions;
     var WindPresets = DS.WindPresets;
     var WindSettingsPanel = DS.WindSettingsPanel;
+    var PhysicsTuningPanel = DS.PhysicsTuningPanel;
 
     /**
      * 시뮬레이션 시작 (오버레이 숨기기)
@@ -124,6 +126,11 @@
             };
         }
 
+        // 튜닝 패널
+        if (PhysicsTuningPanel) {
+            tuningPanel = new PhysicsTuningPanel(physics);
+        }
+
         // 미션 시스템
         initMissions();
 
@@ -132,6 +139,9 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'v' || e.key === 'V') {
                 if (windPanel) windPanel.toggle();
+            }
+            if (e.key === 'b' || e.key === 'B') {
+                if (tuningPanel) tuningPanel.toggle();
             }
         });
     }
