@@ -113,6 +113,8 @@
         flyTo(x, y, z) {
             this.target = { x: x, y: y, z: z };
             this.isNavigating = true;
+            this._rampTime = 0;
+            this._rampDuration = 0.5;  // 500ms ramp-up
         }
 
         /**
@@ -218,6 +220,16 @@
             var vdx = ex * invH;
             var vdy = ey > 0 ? desSpeedV : (ey < -0.1 ? -desSpeedV : 0);
             var vdz = ez * invH;
+
+            // 속도 피드포워드 램프업: flyTo 시작 시 급격한 힘 요구 방지
+            if (this._rampDuration > 0 && this._rampTime < this._rampDuration) {
+                this._rampTime += dt;
+                var ramp = Math.min(this._rampTime / this._rampDuration, 1.0);
+                ramp = ramp * ramp * (3 - 2 * ramp);  // smoothstep for gentle start
+                vdx *= ramp;
+                vdy *= ramp;
+                vdz *= ramp;
+            }
 
             this.physics.setFlatOutput({
                 x: [target.x, target.y, target.z],

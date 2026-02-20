@@ -80,13 +80,18 @@
             var worldDx = dirX * cos - dirZ * sin;
             var worldDz = dirX * sin + dirZ * cos;
 
-            // Target position
-            var targetX = this.physics.position.x + worldDx * distance;
-            var targetY = this.physics.position.y;
-            var targetZ = this.physics.position.z + worldDz * distance;
-
             var autopilot = this._getAutopilot();
             if (autopilot) {
+                // 턴 후 안정화 대기: SE3 컨트롤러가 정착할 시간 확보
+                this.physics.holdPosition();
+                await this._sleep(300);
+                if (this._cancelled) return;
+
+                // 안정화 후 현재 위치 기준으로 목표 재계산 (드리프트 보정)
+                var targetX = this.physics.position.x + worldDx * distance;
+                var targetY = this.physics.position.y;
+                var targetZ = this.physics.position.z + worldDz * distance;
+
                 var prevThreshold = autopilot.arrivalThreshold;
                 autopilot.arrivalThreshold = 0.3;
                 autopilot.flyTo(targetX, targetY, targetZ);
