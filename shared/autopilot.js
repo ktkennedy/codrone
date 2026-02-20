@@ -159,6 +159,7 @@
          * 네비게이션 중지
          */
         stop() {
+            this.physics.clearFlatOutput();
             this.isNavigating = false;
             this.target = null;
             this.waypoints = [];
@@ -196,79 +197,29 @@
 
             // 도착 판정 (거리 + 속도 모두 확인하여 안정적 도착)
             if (totalDist < this.arrivalThreshold && speed < 0.5) {
-                this._lastInput = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
+                this.physics.clearFlatOutput();
                 this._onArrived();
-                return this._lastInput;
+                return null;
             }
 
-            // === 2. 위치 → 원하는 속도 (속도 제한) ===
-            var desVx = this._kpPos * ex;
-            var desVz = this._kpPos * ez;
-
-            // 수평 원하는 속도를 flightSpeed로 클램프
-            var desMag = Math.sqrt(desVx * desVx + desVz * desVz);
-            if (desMag > this.flightSpeed) {
-                var scale = this.flightSpeed / desMag;
-                desVx *= scale;
-                desVz *= scale;
-            }
-
-            // 수직 원하는 속도 클램프
-            var desVy = this._kpPosV * ey;
-            if (desVy > this.maxVerticalSpeed) desVy = this.maxVerticalSpeed;
-            if (desVy < -this.maxVerticalSpeed) desVy = -this.maxVerticalSpeed;
-
-            this._lastDesiredVel = { x: desVx, y: desVy, z: desVz };
-
-            // === 3. 속도 오차 → 원하는 가속도 ===
-            // 실제 velocity state 사용 (derivative kick 없음, 안정적 댐핑)
-            var ax = this._kvH * (desVx - vel.x);
-            var ay = this._kvV * (desVy - vel.y);
-            var az = this._kvH * (desVz - vel.z);
-
-            // === 4. 월드 가속도 → body-local 입력 변환 ===
-            var yaw = this.physics.rotation.yaw;
-            var cosY = Math.cos(yaw);
-            var sinY = Math.sin(yaw);
-
-            // 월드 → 바디 로컬 가속도
-            var aBodyZ = ax * sinY + az * cosY;    // body +Z 성분 (후방)
-            var aBodyX = ax * cosY - az * sinY;    // body +X 성분 (우측)
-
-            // 최대 달성 가능 가속도로 정규화
-            var maxHAccel = this.physics.g * Math.sin(this.physics.maxTiltAngle);
-            var maxVAccel = this.physics.maxExtraAccel;
-
-            // pitch: +입력 → nose down → 전방(-Z) 가속
-            // aBodyZ > 0 → 후방 가속 원함 → 음의 pitch
-            var pitch = -aBodyZ / maxHAccel;
-
-            // roll: +입력 → 왼쪽 틸트 → -X 방향 가속
-            // aBodyX > 0 → 우측 가속 원함 → 음의 roll
-            var roll = -aBodyX / maxHAccel;
-
-            // throttle: 수직 가속도
-            var throttle = ay / maxVAccel;
-
-            // === 5. Yaw 제어 (부드럽게) ===
-            // 드론 전방 = (-sin(yaw), 0, -cos(yaw)) 이므로
-            // 목표를 향하려면 targetYaw = atan2(-ex, -ez)
-            var yawInput = 0;
+            // === 2. 목표 yaw 계산 (진행 방향을 향함) ===
+            var desiredYaw = this.physics.rotation.yaw; // 기본: 현재 yaw 유지
             if (hDist > 2.0) {
-                var targetYaw = Math.atan2(-ex, -ez);
-                var yawError = targetYaw - yaw;
-                while (yawError > Math.PI) yawError -= 2 * Math.PI;
-                while (yawError < -Math.PI) yawError += 2 * Math.PI;
-                yawInput = this._clamp(yawError * 0.3, -0.3, 0.3);
+                desiredYaw = Math.atan2(-ex, -ez);  // Three.js forward = -Z
             }
 
-            // === 6. 안전 범위 클램프 ===
-            var maxInput = 0.6;  // 최대 60%로 급격한 기동 방지
-            pitch = this._clamp(pitch, -maxInput, maxInput);
-            roll = this._clamp(roll, -maxInput, maxInput);
-            throttle = this._clamp(throttle, -0.8, 0.8);
+            // === 3. SE3 flat output 설정 ===
+            this.physics.setFlatOutput({
+                x: [target.x, target.y, target.z],
+                x_dot: [0, 0, 0],
+                x_ddot: [0, 0, 0],
+                yaw: desiredYaw,
+                yaw_dot: 0
+            });
 
-            this._lastInput = { throttle: throttle, pitch: pitch, roll: roll, yaw: yawInput };
+            // SE3 속도 제한을 autopilot 설정에 맞춤
+            this.physics._se3_maxHSpeed = this.flightSpeed;
+            this.physics._se3_maxVSpeed = this.maxVerticalSpeed;
 
             // 상태 알림
             if (this.onStatusUpdate) {
@@ -279,7 +230,7 @@
                 });
             }
 
-            return this._lastInput;
+            return null;  // SE3 모드: physics.update(dt, {}) 에서 직접 제어
         }
 
         _onArrived() {

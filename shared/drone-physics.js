@@ -119,6 +119,16 @@ class DronePhysics {
 
         this._takeoffPhase = false;
         this._takeoffTarget = 2;
+
+        // ===== SE3 위치+자세 추적 제어기 (RotorPy SE3Control 참조) =====
+        this._flatOutput = null;   // SE3 target
+        this._se3Mode = false;
+
+        // SE3 위치 제어 게인 (cascaded: position → velocity → force)
+        this._se3_kpPos = [1.5, 2.0, 1.5];  // [X, Y(up), Z] position → velocity P gain
+        this._se3_kdVel = [2.0, 2.5, 2.0];  // velocity → acceleration P gain
+        this._se3_maxHSpeed = 3.0;           // max horizontal speed m/s
+        this._se3_maxVSpeed = 2.0;           // max vertical speed m/s
     }
 
     // ================================================================
@@ -163,6 +173,8 @@ class DronePhysics {
         // _windVel, _windProfile은 리셋하지 않음 — 바람은 외부에서 설정한 대로 유지
         this._simTime = 0;
         this._takeoffPhase = false;
+        this._flatOutput = null;
+        this._se3Mode = false;
         this.isFlying = false;
         this.isLanding = false;
         this.battery = 100;
@@ -194,6 +206,17 @@ class DronePhysics {
         this.isLanding = true;
     }
 
+    setFlatOutput(flatOutput) {
+        // flatOutput = { x:[3], x_dot:[3], x_ddot:[3], yaw:number, yaw_dot:number }
+        this._flatOutput = flatOutput;
+        this._se3Mode = true;
+    }
+
+    clearFlatOutput() {
+        this._flatOutput = null;
+        this._se3Mode = false;
+    }
+
     // ================================================================
     //  메인 물리 업데이트
     // ================================================================
@@ -222,7 +245,7 @@ class DronePhysics {
         var yawInput = this._clamp(input.yaw || 0, -1, 1);
 
         // === 1. 추력 및 원하는 자세 결정 ===
-        var collectiveThrust, desPitch, desRoll, desYawRate;
+        var collectiveThrust, desPitch, desRoll, desYawRate, cmdMoment;
 
         if (this._takeoffPhase) {
             // 이륙: PD 고도 제어
@@ -246,6 +269,11 @@ class DronePhysics {
             desPitch = 0;
             desRoll = 0;
             desYawRate = 0;
+        } else if (this._se3Mode && this._flatOutput) {
+            // SE3 위치+자세 추적 제어기: 직접 thrust/moment 계산
+            var se3Result = this._se3Controller();
+            collectiveThrust = se3Result.thrust;
+            cmdMoment = se3Result.moment;
         } else {
             // 일반 비행: 가속도 기반 + 속도 캡 (rotorpy SE3Control 참고)
             // 입력 → 가속도, 속도 한계 도달 시 소프트 브레이크, 무입력 시 자동 감속
@@ -283,11 +311,13 @@ class DronePhysics {
         }
 
         // === 2. 자세 제어기 → 모멘트 명령 ===
-        var cmdMoment;
-        if (!this.autoStabilize && !this._takeoffPhase && !this.isLanding) {
-            cmdMoment = this._rateController(desPitch, desRoll, desYawRate);
-        } else {
-            cmdMoment = this._attitudeController(desPitch, desRoll, desYawRate);
+        // SE3 모드에서는 이미 cmdMoment가 계산됨 (step 1에서)
+        if (!cmdMoment) {
+            if (!this.autoStabilize && !this._takeoffPhase && !this.isLanding) {
+                cmdMoment = this._rateController(desPitch, desRoll, desYawRate);
+            } else {
+                cmdMoment = this._attitudeController(desPitch, desRoll, desYawRate);
+            }
         }
 
         // === 3. 모터 할당 ===
@@ -436,6 +466,139 @@ class DronePhysics {
             this.Iyy * (-kd * (w[1] - wDes[1])) + gyr1,
             this.Izz * (-kd * (w[2] - wDes[2])) + gyr2
         ];
+    }
+
+    // ================================================================
+    //  SE3 위치+자세 추적 제어기 (RotorPy SE3Control 참조, Y-up 적응)
+    // ================================================================
+    _se3Controller() {
+        var fo = this._flatOutput;
+        var m = this.mass;
+        var g = this.g;
+
+        // 1. Cascaded PD: position → velocity → force
+        var posErr0 = this._pos[0] - fo.x[0];
+        var posErr1 = this._pos[1] - fo.x[1];
+        var posErr2 = this._pos[2] - fo.x[2];
+
+        // vel_des = -kpPos * pos_err + target_vel
+        var velDes0 = -this._se3_kpPos[0] * posErr0 + fo.x_dot[0];
+        var velDes1 = -this._se3_kpPos[1] * posErr1 + fo.x_dot[1];
+        var velDes2 = -this._se3_kpPos[2] * posErr2 + fo.x_dot[2];
+
+        // Clamp desired velocity to speed limits
+        var hSpd = Math.sqrt(velDes0 * velDes0 + velDes2 * velDes2);
+        if (hSpd > this._se3_maxHSpeed) {
+            var sc = this._se3_maxHSpeed / hSpd;
+            velDes0 *= sc;
+            velDes2 *= sc;
+        }
+        velDes1 = this._clamp(velDes1, -this._se3_maxVSpeed, this._se3_maxVSpeed);
+
+        // vel_err = current_vel - vel_des
+        var velErr0 = this._vel[0] - velDes0;
+        var velErr1 = this._vel[1] - velDes1;
+        var velErr2 = this._vel[2] - velDes2;
+
+        // F_des = mass * (-kdVel * vel_err + accel_ff + [0, g, 0])
+        var Fd0 = m * (-this._se3_kdVel[0] * velErr0 + fo.x_ddot[0]);
+        var Fd1 = m * (-this._se3_kdVel[1] * velErr1 + fo.x_ddot[1] + g);
+        var Fd2 = m * (-this._se3_kdVel[2] * velErr2 + fo.x_ddot[2]);
+
+        // 2. R_des from F_des and desired yaw (Y-up adaptation)
+        var FdNorm = Math.sqrt(Fd0 * Fd0 + Fd1 * Fd1 + Fd2 * Fd2);
+        var bUp0, bUp1, bUp2;
+        if (FdNorm < 1e-6) {
+            // Near-zero force: default to straight up
+            bUp0 = 0; bUp1 = 1; bUp2 = 0;
+        } else {
+            var invFd = 1 / FdNorm;
+            bUp0 = Fd0 * invFd;
+            bUp1 = Fd1 * invFd;
+            bUp2 = Fd2 * invFd;
+        }
+
+        var yaw = fo.yaw;
+        // heading reference: [-sin(yaw), 0, -cos(yaw)]
+        var hx = -Math.sin(yaw);
+        var hy = 0;
+        var hz = -Math.cos(yaw);
+
+        // Check near-parallel: |cross(bUp, headRef)| ≈ 0
+        var cx = bUp1 * hz - bUp2 * hy;
+        var cy = bUp2 * hx - bUp0 * hz;
+        var cz = bUp0 * hy - bUp1 * hx;
+        var crossNorm = Math.sqrt(cx * cx + cy * cy + cz * cz);
+        if (crossNorm < 1e-4) {
+            // Perturbation: shift heading reference slightly
+            hx += 0.01;
+            cx = bUp1 * hz - bUp2 * hy;
+            cy = bUp2 * hx - bUp0 * hz;
+            cz = bUp0 * hy - bUp1 * hx;
+            crossNorm = Math.sqrt(cx * cx + cy * cy + cz * cz);
+        }
+
+        // bRight = -normalize(cross(bUp, headRef))  (body X+)
+        var invC = -1 / crossNorm;
+        var bR0 = cx * invC;
+        var bR1 = cy * invC;
+        var bR2 = cz * invC;
+
+        // bBack = cross(bRight, bUp)  (body Z+)
+        var bB0 = bR1 * bUp2 - bR2 * bUp1;
+        var bB1 = bR2 * bUp0 - bR0 * bUp2;
+        var bB2 = bR0 * bUp1 - bR1 * bUp0;
+
+        // R_des = [bRight | bUp | bBack] as columns
+        // Rd[row][col]: Rd[i][0]=bR[i], Rd[i][1]=bUp[i], Rd[i][2]=bB[i]
+        var Rd = [
+            [bR0, bUp0, bB0],
+            [bR1, bUp1, bB1],
+            [bR2, bUp2, bB2]
+        ];
+
+        // 3. Thrust: u1 = dot(F_des, R * [0,1,0]) = dot(F_des, body_up_in_world)
+        var R = this._quatToRotMat(this._quat);
+        // body Y+ in world = column 1 of R
+        var bodyUp0 = R[0][1];
+        var bodyUp1 = R[1][1];
+        var bodyUp2 = R[2][1];
+        var u1 = Fd0 * bodyUp0 + Fd1 * bodyUp1 + Fd2 * bodyUp2;
+        if (u1 < 0) u1 = 0;
+        if (u1 > this._maxTotalThrust) u1 = this._maxTotalThrust;
+
+        // 4. SO(3) attitude error: S_err = 0.5*(Rd^T*R - R^T*Rd), att_err = vee(S_err)
+        var RdtR = this._mat3Mul(this._mat3T(Rd), R);
+        var RtRd = this._mat3Mul(this._mat3T(R), Rd);
+
+        var attErr = [
+            -0.5 * (RdtR[1][2] - RtRd[1][2]),
+             0.5 * (RdtR[0][2] - RtRd[0][2]),
+            -0.5 * (RdtR[0][1] - RtRd[0][1])
+        ];
+
+        // 5. Angular velocity error: w_des = [0, yaw_dot, 0]
+        var w = this._omega;
+        var wErr0 = w[0] - 0;
+        var wErr1 = w[1] - fo.yaw_dot;
+        var wErr2 = w[2] - 0;
+
+        // 6. Moment = I*(-kp_att*att_err - kd_att*w_err) + w×(I*w)
+        var kp = this.kp_att;
+        var kd = this.kd_att;
+
+        var Iw0 = this.Ixx * w[0], Iw1 = this.Iyy * w[1], Iw2 = this.Izz * w[2];
+        var gyr0 = w[1] * Iw2 - w[2] * Iw1;
+        var gyr1 = w[2] * Iw0 - w[0] * Iw2;
+        var gyr2 = w[0] * Iw1 - w[1] * Iw0;
+
+        var moment = [
+            this.Ixx * (-kp * attErr[0] - kd * wErr0) + gyr0,
+            this.Iyy * (-kp * attErr[1] - kd * wErr1) + gyr1,
+            this.Izz * (-kp * attErr[2] - kd * wErr2) + gyr2
+        ];
+
+        return { thrust: u1, moment: moment };
     }
 
     // ================================================================

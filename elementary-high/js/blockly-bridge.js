@@ -200,32 +200,28 @@
             var self = this;
             var direction = yawInput > 0 ? 1 : -1;
             var startYaw = this.physics.rotation.yaw;
-            var startAlt = this.physics.position.y; // 회전 시작 고도 기록
+
             // 목표 yaw 절대값 계산
             var goalYaw = startYaw + direction * targetRadians;
             while (goalYaw > Math.PI) goalYaw -= 2 * Math.PI;
             while (goalYaw < -Math.PI) goalYaw += 2 * Math.PI;
 
-            // 고도 유지 PD (RotorPy SE3Control 참조: kp_pos[z]*pos_err + kd_pos[z]*vel_err)
-            // 회전 중 자이로 커플링/translational lift로 인한 고도 변화를 보상
-            var maxVA = this.physics.maxVertAccel || 12;
-            function altHoldThrottle() {
-                var altErr = startAlt - self.physics.position.y;
-                var altVel = self.physics.velocity ? self.physics.velocity.y : 0;
-                var cmd = (2.0 * altErr - 1.5 * altVel) / maxVA;
-                if (cmd > 0.3) cmd = 0.3;
-                if (cmd < -0.3) cmd = -0.3;
-                return cmd;
-            }
+            // SE3 위치 유지 + 목표 yaw 설정
+            var pos = this.physics.position;
+            this.physics.setFlatOutput({
+                x: [pos.x, pos.y, pos.z],
+                x_dot: [0, 0, 0],
+                x_ddot: [0, 0, 0],
+                yaw: goalYaw,
+                yaw_dot: 0
+            });
 
-            // Phase 1: PD 제어로 목표 각도까지 회전
-            this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
+            // yaw 수렴 대기
             var settleCount = 0;
-
             await new Promise(function (resolve) {
                 var check = setInterval(function () {
                     if (self._cancelled) {
-                        self._inputOverride = null;
+                        self.physics.clearFlatOutput();
                         clearInterval(check);
                         resolve();
                         return;
@@ -240,10 +236,10 @@
                     var angVel = self.physics.angularVelocity ? self.physics.angularVelocity.yaw : 0;
                     var absAngVel = Math.abs(angVel);
 
-                    // 목표 근처 + 거의 안 움직이면 완료 (엄격한 기준)
                     if (absError < 0.03 && absAngVel < 0.05) {
                         settleCount++;
-                        if (settleCount >= 8) { // 8프레임 연속 안정 = 240ms
+                        if (settleCount >= 8) { // 8프레임 연속 안정 = ~240ms
+                            self.physics.clearFlatOutput();
                             clearInterval(check);
                             resolve();
                             return;
@@ -251,64 +247,9 @@
                     } else {
                         settleCount = 0;
                     }
-
-                    // PD 제어: P=각도오차 방향으로, D=각속도 브레이크
-                    var kp = 2.0;
-                    var kd = 1.2;
-                    var input = kp * error - kd * angVel;
-
-                    // 최대 입력 클램프
-                    var maxIn = 0.4;
-                    if (input > maxIn) input = maxIn;
-                    if (input < -maxIn) input = -maxIn;
-
-                    self._inputOverride.yaw = input;
-                    self._inputOverride.throttle = altHoldThrottle();
                 }, 30);
                 self._activeTimers.push(check);
             });
-
-            // Phase 2: 회전 후 안정화 - 각속도가 완전히 0이 될 때까지 제동
-            // _inputOverride를 유지하여 다음 명령이 시작되기 전에 완전 정지
-            if (!this._cancelled) {
-                this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
-                var brakeCount = 0;
-
-                await new Promise(function (resolve) {
-                    var brake = setInterval(function () {
-                        if (self._cancelled) {
-                            self._inputOverride = null;
-                            clearInterval(brake);
-                            resolve();
-                            return;
-                        }
-
-                        var angVel = self.physics.angularVelocity ? self.physics.angularVelocity.yaw : 0;
-                        var absAngVel = Math.abs(angVel);
-
-                        // 각속도 거의 0이면 완료 카운트
-                        if (absAngVel < 0.02) {
-                            brakeCount++;
-                            if (brakeCount >= 10) { // 10프레임 연속 정지 = 300ms
-                                self._inputOverride = null;
-                                clearInterval(brake);
-                                resolve();
-                                return;
-                            }
-                        } else {
-                            brakeCount = 0;
-                        }
-
-                        // 적극적 제동: 각속도 반대 방향으로 입력
-                        var brakeInput = -1.5 * angVel;
-                        if (brakeInput > 0.3) brakeInput = 0.3;
-                        if (brakeInput < -0.3) brakeInput = -0.3;
-                        self._inputOverride.yaw = brakeInput;
-                        self._inputOverride.throttle = altHoldThrottle();
-                    }, 30);
-                    self._activeTimers.push(brake);
-                });
-            }
         }
 
         // ===== 자율비행 (Autopilot) =====
@@ -503,6 +444,7 @@
         }
 
         cancel() {
+            this.physics.clearFlatOutput();
             this._inputOverride = null;
             this._cancelled = true;
             // Clear all active timers
@@ -513,6 +455,7 @@
             this._activeTimers = [];
         }
         reset() {
+            this.physics.clearFlatOutput();
             this._inputOverride = null;
             this._cancelled = false;
             this._flightSpeed = 3;
