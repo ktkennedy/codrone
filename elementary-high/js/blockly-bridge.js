@@ -202,14 +202,12 @@
             var startYaw = this.physics.rotation.yaw;
             // 목표 yaw 절대값 계산
             var goalYaw = startYaw + direction * targetRadians;
-            // -PI ~ PI 범위로 정규화
             while (goalYaw > Math.PI) goalYaw -= 2 * Math.PI;
             while (goalYaw < -Math.PI) goalYaw += 2 * Math.PI;
 
-            var maxInput = Math.abs(yawInput);
-
-            // Phase 1: 비례 제어로 회전
+            // PD 제어로 회전 (P: 각도 오차, D: 각속도 감쇠)
             this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
+            var settleCount = 0;
 
             await new Promise(function (resolve) {
                 var check = setInterval(function () {
@@ -226,22 +224,31 @@
                     while (error < -Math.PI) error += 2 * Math.PI;
 
                     var absError = Math.abs(error);
+                    var angVel = self.physics.angularVelocity.yaw;
+                    var absAngVel = Math.abs(angVel);
 
-                    // 목표 도달 + 각속도 작으면 완료
-                    var angVel = Math.abs(self.physics.angularVelocity.yaw);
-                    if (absError < 0.03 && angVel < 0.15) {
-                        self._inputOverride = null;
-                        clearInterval(check);
-                        resolve();
-                        return;
+                    // 목표 근처 + 거의 안 움직이면 완료 카운트
+                    if (absError < 0.05 && absAngVel < 0.1) {
+                        settleCount++;
+                        if (settleCount >= 5) { // 5프레임 연속 안정 = 150ms
+                            self._inputOverride = null;
+                            clearInterval(check);
+                            resolve();
+                            return;
+                        }
+                    } else {
+                        settleCount = 0;
                     }
 
-                    // 비례 제어: 멀면 최대 입력, 가까우면 줄어듦
-                    var gain = 2.0;
-                    var input = gain * error;
-                    // 최대 입력 클램프
-                    if (input > maxInput) input = maxInput;
-                    if (input < -maxInput) input = -maxInput;
+                    // PD 제어: P=각도오차 방향으로, D=각속도 브레이크
+                    var kp = 1.5;
+                    var kd = 0.8;
+                    var input = kp * error - kd * angVel;
+
+                    // 최대 입력 클램프 (0.4로 제한 - 부드러운 회전)
+                    var maxIn = 0.4;
+                    if (input > maxIn) input = maxIn;
+                    if (input < -maxIn) input = -maxIn;
 
                     self._inputOverride.yaw = input;
                 }, 30);
