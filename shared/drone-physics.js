@@ -61,6 +61,11 @@ class DronePhysics {
         this.kd_att = 46.64 * gainScale;
         this.maxYawRate = 3.0;                        // rad/s
 
+        // 수직 속도 제어 (rotorpy SE3Control 참고)
+        this.maxClimbRate = 3.0;                      // m/s 최대 상승/하강 속도
+        this.kp_vel_z = 4.0;                          // 수직속도 P 게인
+        this.maxVertAccel = 6.0;                      // m/s² 수직가속 클램프
+
         // 추력: 모터 물리 한계 기반
         this.maxExtraAccel = 6.0;                     // m/s² (레거시 호환)
         this._maxThrustPerMotor = this.k_eta * this.rotorSpeedMax * this.rotorSpeedMax;
@@ -242,17 +247,15 @@ class DronePhysics {
             desRoll = 0;
             desYawRate = 0;
         } else {
-            // 일반 비행: 모터 물리 한계 기반 추력
-            // 무거운 드론은 여유 추력 감소 → 질량 변화가 체감됨
-            var hoverThrust = this.mass * this.g;
-            var thrustHeadroom = this._maxTotalThrust - hoverThrust;
-            if (thrustHeadroom < 0.5) thrustHeadroom = 0.5;
-            if (throttle >= 0) {
-                collectiveThrust = hoverThrust + throttle * thrustHeadroom;
-            } else {
-                collectiveThrust = hoverThrust + throttle * hoverThrust * 0.8;
-            }
+            // 일반 비행: PD 수직속도 제어 (rotorpy SE3Control 방식)
+            // 입력 → 목표 수직속도 → PD 제어 → 추력
+            var desiredVelY = throttle * this.maxClimbRate;
+            var velErrorY = desiredVelY - this._vel[1];
+            var aDesired = this.kp_vel_z * velErrorY;
+            aDesired = this._clamp(aDesired, -this.maxVertAccel, this.maxVertAccel);
+            collectiveThrust = this.mass * (this.g + aDesired);
             if (collectiveThrust < 0) collectiveThrust = 0;
+            if (collectiveThrust > this._maxTotalThrust) collectiveThrust = this._maxTotalThrust;
 
             if (this.autoStabilize) {
                 // 자세 모드: 입력 → 목표 자세각
