@@ -61,10 +61,10 @@ class DronePhysics {
         this.kd_att = 46.64 * gainScale;
         this.maxYawRate = 3.0;                        // rad/s
 
-        // 수직 속도 제어 (rotorpy SE3Control 참고)
-        this.maxClimbRate = 3.0;                      // m/s 최대 상승/하강 속도
-        this.kp_vel_z = 4.0;                          // 수직속도 P 게인
-        this.maxVertAccel = 6.0;                      // m/s² 수직가속 클램프
+        // 수직 속도 제어 (rotorpy SE3Control 참고: kp_pos[z]=15, kd_pos[z]=9)
+        this.maxClimbRate = 5.0;                      // m/s 최대 상승/하강 속도
+        this.kp_vel_z = 4.0;                          // 속도제한·자동감속 P 게인
+        this.maxVertAccel = 5.0;                      // m/s² 수직가속 클램프
 
         // 추력: 모터 물리 한계 기반
         this.maxExtraAccel = 6.0;                     // m/s² (레거시 호환)
@@ -247,11 +247,23 @@ class DronePhysics {
             desRoll = 0;
             desYawRate = 0;
         } else {
-            // 일반 비행: PD 수직속도 제어 (rotorpy SE3Control 방식)
-            // 입력 → 목표 수직속도 → PD 제어 → 추력
-            var desiredVelY = throttle * this.maxClimbRate;
-            var velErrorY = desiredVelY - this._vel[1];
-            var aDesired = this.kp_vel_z * velErrorY;
+            // 일반 비행: 가속도 기반 + 속도 캡 (rotorpy SE3Control 참고)
+            // 입력 → 가속도, 속도 한계 도달 시 소프트 브레이크, 무입력 시 자동 감속
+            var velY = this._vel[1];
+            var aDesired;
+            if (Math.abs(throttle) > 0.01) {
+                // 입력 활성: 가속도 직접 지정 → 속도 누적 → 꾹 누르면 빨라짐
+                aDesired = throttle * this.maxVertAccel;
+                // 속도 한계 도달 시 소프트 브레이크
+                if (velY > this.maxClimbRate && aDesired > 0) {
+                    aDesired = this.kp_vel_z * (this.maxClimbRate - velY);
+                } else if (velY < -this.maxClimbRate && aDesired < 0) {
+                    aDesired = this.kp_vel_z * (-this.maxClimbRate - velY);
+                }
+            } else {
+                // 무입력: PD 감속 → 고도 유지
+                aDesired = -this.kp_vel_z * velY;
+            }
             aDesired = this._clamp(aDesired, -this.maxVertAccel, this.maxVertAccel);
             collectiveThrust = this.mass * (this.g + aDesired);
             if (collectiveThrust < 0) collectiveThrust = 0;
