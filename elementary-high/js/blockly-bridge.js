@@ -205,7 +205,7 @@
             while (goalYaw > Math.PI) goalYaw -= 2 * Math.PI;
             while (goalYaw < -Math.PI) goalYaw += 2 * Math.PI;
 
-            // PD 제어로 회전 (P: 각도 오차, D: 각속도 감쇠)
+            // Phase 1: PD 제어로 목표 각도까지 회전
             this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
             var settleCount = 0;
 
@@ -224,14 +224,13 @@
                     while (error < -Math.PI) error += 2 * Math.PI;
 
                     var absError = Math.abs(error);
-                    var angVel = self.physics.angularVelocity.yaw;
+                    var angVel = self.physics.angularVelocity ? self.physics.angularVelocity.yaw : 0;
                     var absAngVel = Math.abs(angVel);
 
-                    // 목표 근처 + 거의 안 움직이면 완료 카운트
-                    if (absError < 0.05 && absAngVel < 0.1) {
+                    // 목표 근처 + 거의 안 움직이면 완료 (엄격한 기준)
+                    if (absError < 0.03 && absAngVel < 0.05) {
                         settleCount++;
-                        if (settleCount >= 5) { // 5프레임 연속 안정 = 150ms
-                            self._inputOverride = null;
+                        if (settleCount >= 8) { // 8프레임 연속 안정 = 240ms
                             clearInterval(check);
                             resolve();
                             return;
@@ -241,11 +240,11 @@
                     }
 
                     // PD 제어: P=각도오차 방향으로, D=각속도 브레이크
-                    var kp = 1.5;
-                    var kd = 0.8;
+                    var kp = 2.0;
+                    var kd = 1.2;
                     var input = kp * error - kd * angVel;
 
-                    // 최대 입력 클램프 (0.4로 제한 - 부드러운 회전)
+                    // 최대 입력 클램프
                     var maxIn = 0.4;
                     if (input > maxIn) input = maxIn;
                     if (input < -maxIn) input = -maxIn;
@@ -254,6 +253,47 @@
                 }, 30);
                 self._activeTimers.push(check);
             });
+
+            // Phase 2: 회전 후 안정화 - 각속도가 완전히 0이 될 때까지 제동
+            // _inputOverride를 유지하여 다음 명령이 시작되기 전에 완전 정지
+            if (!this._cancelled) {
+                this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
+                var brakeCount = 0;
+
+                await new Promise(function (resolve) {
+                    var brake = setInterval(function () {
+                        if (self._cancelled) {
+                            self._inputOverride = null;
+                            clearInterval(brake);
+                            resolve();
+                            return;
+                        }
+
+                        var angVel = self.physics.angularVelocity ? self.physics.angularVelocity.yaw : 0;
+                        var absAngVel = Math.abs(angVel);
+
+                        // 각속도 거의 0이면 완료 카운트
+                        if (absAngVel < 0.02) {
+                            brakeCount++;
+                            if (brakeCount >= 10) { // 10프레임 연속 정지 = 300ms
+                                self._inputOverride = null;
+                                clearInterval(brake);
+                                resolve();
+                                return;
+                            }
+                        } else {
+                            brakeCount = 0;
+                        }
+
+                        // 적극적 제동: 각속도 반대 방향으로 입력
+                        var brakeInput = -1.5 * angVel;
+                        if (brakeInput > 0.3) brakeInput = 0.3;
+                        if (brakeInput < -0.3) brakeInput = -0.3;
+                        self._inputOverride.yaw = brakeInput;
+                    }, 30);
+                    self._activeTimers.push(brake);
+                });
+            }
         }
 
         // ===== 자율비행 (Autopilot) =====
