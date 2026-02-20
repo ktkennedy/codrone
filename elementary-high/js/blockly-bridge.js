@@ -198,10 +198,18 @@
 
         async _doTurn(targetRadians, yawInput) {
             var self = this;
-            var accumulated = 0;
-            var lastYaw = this.physics.rotation.yaw;
+            var direction = yawInput > 0 ? 1 : -1;
+            var startYaw = this.physics.rotation.yaw;
+            // 목표 yaw 절대값 계산
+            var goalYaw = startYaw + direction * targetRadians;
+            // -PI ~ PI 범위로 정규화
+            while (goalYaw > Math.PI) goalYaw -= 2 * Math.PI;
+            while (goalYaw < -Math.PI) goalYaw += 2 * Math.PI;
 
-            this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: yawInput };
+            var maxInput = Math.abs(yawInput);
+
+            // Phase 1: 비례 제어로 회전
+            this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
 
             await new Promise(function (resolve) {
                 var check = setInterval(function () {
@@ -213,20 +221,30 @@
                     }
 
                     var currentYaw = self.physics.rotation.yaw;
-                    var delta = currentYaw - lastYaw;
-                    // Handle wrapping at +/-PI
-                    while (delta > Math.PI) delta -= 2 * Math.PI;
-                    while (delta < -Math.PI) delta += 2 * Math.PI;
+                    var error = goalYaw - currentYaw;
+                    while (error > Math.PI) error -= 2 * Math.PI;
+                    while (error < -Math.PI) error += 2 * Math.PI;
 
-                    accumulated += Math.abs(delta);
-                    lastYaw = currentYaw;
+                    var absError = Math.abs(error);
 
-                    if (accumulated >= targetRadians - 0.05) {
+                    // 목표 도달 + 각속도 작으면 완료
+                    var angVel = Math.abs(self.physics.angularVelocity.yaw);
+                    if (absError < 0.03 && angVel < 0.15) {
                         self._inputOverride = null;
                         clearInterval(check);
                         resolve();
+                        return;
                     }
-                }, 50);
+
+                    // 비례 제어: 멀면 최대 입력, 가까우면 줄어듦
+                    var gain = 2.0;
+                    var input = gain * error;
+                    // 최대 입력 클램프
+                    if (input > maxInput) input = maxInput;
+                    if (input < -maxInput) input = -maxInput;
+
+                    self._inputOverride.yaw = input;
+                }, 30);
                 self._activeTimers.push(check);
             });
         }
