@@ -200,10 +200,23 @@
             var self = this;
             var direction = yawInput > 0 ? 1 : -1;
             var startYaw = this.physics.rotation.yaw;
+            var startAlt = this.physics.position.y; // 회전 시작 고도 기록
             // 목표 yaw 절대값 계산
             var goalYaw = startYaw + direction * targetRadians;
             while (goalYaw > Math.PI) goalYaw -= 2 * Math.PI;
             while (goalYaw < -Math.PI) goalYaw += 2 * Math.PI;
+
+            // 고도 유지 PD (RotorPy SE3Control 참조: kp_pos[z]*pos_err + kd_pos[z]*vel_err)
+            // 회전 중 자이로 커플링/translational lift로 인한 고도 변화를 보상
+            var maxVA = this.physics.maxVertAccel || 12;
+            function altHoldThrottle() {
+                var altErr = startAlt - self.physics.position.y;
+                var altVel = self.physics.velocity ? self.physics.velocity.y : 0;
+                var cmd = (2.0 * altErr - 1.5 * altVel) / maxVA;
+                if (cmd > 0.3) cmd = 0.3;
+                if (cmd < -0.3) cmd = -0.3;
+                return cmd;
+            }
 
             // Phase 1: PD 제어로 목표 각도까지 회전
             this._inputOverride = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
@@ -250,6 +263,7 @@
                     if (input < -maxIn) input = -maxIn;
 
                     self._inputOverride.yaw = input;
+                    self._inputOverride.throttle = altHoldThrottle();
                 }, 30);
                 self._activeTimers.push(check);
             });
@@ -290,6 +304,7 @@
                         if (brakeInput > 0.3) brakeInput = 0.3;
                         if (brakeInput < -0.3) brakeInput = -0.3;
                         self._inputOverride.yaw = brakeInput;
+                        self._inputOverride.throttle = altHoldThrottle();
                     }, 30);
                     self._activeTimers.push(brake);
                 });
