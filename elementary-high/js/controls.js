@@ -254,9 +254,9 @@ class KeyboardControls {
         this.input.roll = 0;
         this.input.yaw = 0;
 
-        // 스로틀 (수직)
-        if (this.keys[' '] || this.keys['Space']) this.input.throttle = strength;
-        if (this.keys['shift'] || this.keys['ShiftLeft'] || this.keys['ShiftRight']) this.input.throttle = -strength * 0.7;
+        // 스로틀 (수직) - 추력 여유분이 크므로 별도 감도 적용
+        if (this.keys[' '] || this.keys['Space']) this.input.throttle = 0.15;
+        if (this.keys['shift'] || this.keys['ShiftLeft'] || this.keys['ShiftRight']) this.input.throttle = -0.15;
 
         // 전후 (피치) - 양수 피치 = 기수 하향 = 전진
         if (this.keys['w'] || this.keys['arrowup']) this.input.pitch = strength;

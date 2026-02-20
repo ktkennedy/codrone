@@ -531,7 +531,7 @@ class MissionSelectUI {
             ? [1, 2, 3].map(s => s <= result.stars ? '&#x2B50;' : '&#x2606;').join('')
             : '&#x274C;';
 
-        const isLastMission = isSuccess && result.mission.index >= this.missions.length - 1;
+        const isLastMission = isSuccess && result.mission.index >= this.manager.missions.length - 1;
 
         const div = document.createElement('div');
         div.className = 'mission-result';
