@@ -217,10 +217,6 @@
                 yaw_dot: 0
             });
 
-            // SE3 속도 제한을 autopilot 설정에 맞춤
-            this.physics._se3_maxHSpeed = this.flightSpeed;
-            this.physics._se3_maxVSpeed = this.maxVerticalSpeed;
-
             // 상태 알림
             if (this.onStatusUpdate) {
                 this.onStatusUpdate({

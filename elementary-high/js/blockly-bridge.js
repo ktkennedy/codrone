@@ -95,6 +95,7 @@
                         if (self._cancelled || !autopilot.isNavigating) {
                             clearInterval(check);
                             autopilot.stop();
+                            self.physics.holdPosition();
                             autopilot.arrivalThreshold = prevThreshold;
                             resolve();
                         }
@@ -146,6 +147,7 @@
                         if (self._cancelled || !autopilot.isNavigating) {
                             clearInterval(check);
                             autopilot.stop();
+                            self.physics.holdPosition();
                             autopilot.arrivalThreshold = prevThreshold;
                             resolve();
                         }
@@ -173,6 +175,7 @@
                         if (self._cancelled || !autopilot.isNavigating) {
                             clearInterval(check);
                             autopilot.stop();
+                            self.physics.holdPosition();
                             autopilot.arrivalThreshold = prevThreshold;
                             resolve();
                         }
@@ -277,7 +280,8 @@
                     if (Math.abs(actualError) < 0.03 && Math.abs(angVel) < 0.05) {
                         settleCount++;
                         if (settleCount >= 8) {
-                            self.physics.clearFlatOutput();
+                            // Hold position at final yaw (no control gap)
+                            self.physics.holdPosition();
                             clearInterval(check);
                             resolve();
                             return;
@@ -312,6 +316,7 @@
                     if (self._cancelled || !autopilot.isNavigating) {
                         clearInterval(check);
                         autopilot.stop();
+                        self.physics.holdPosition();
                         resolve();
                     }
                 }, 100);
@@ -333,6 +338,7 @@
                         if (self._cancelled || !autopilot.isNavigating) {
                             clearInterval(check);
                             autopilot.stop();
+                            self.physics.holdPosition();
                             resolve();
                         }
                     }, 100);
@@ -371,6 +377,7 @@
                     if (self._cancelled) {
                         clearInterval(check);
                         autopilot.stop();
+                        self.physics.holdPosition();
                         resolve();
                     }
                 }, 100);
@@ -402,6 +409,7 @@
                         if (self._cancelled || !autopilot.isNavigating) {
                             clearInterval(check);
                             autopilot.stop();
+                            self.physics.holdPosition();
                             autopilot.arrivalThreshold = prevThreshold;
                             resolve();
                         }

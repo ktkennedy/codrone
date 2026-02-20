@@ -40,7 +40,7 @@ class DronePhysics {
         this.armLength = 0.17;                       // m
         this.k_eta = 5.57e-6;                        // 추력계수 N/(rad/s)²
         this.k_m = 1.36e-7;                          // yaw 모멘트 계수 Nm/(rad/s)²
-        this.tau_m = 0.015;                           // 모터 응답시간 (s)
+        this.tau_m = 0.005;                           // 모터 응답시간 (s) — RotorPy 기준
         this.rotorSpeedMin = 0;
         this.rotorSpeedMax = 1500;                    // rad/s
 
@@ -62,7 +62,7 @@ class DronePhysics {
         this.maxYawRate = 3.0;                        // rad/s
 
         // 수직 속도 제어 (rotorpy SE3Control 참고: kp_pos[z]=15, kd_pos[z]=9)
-        this.maxClimbRate = 12.0;                     // m/s 최대 상승/하강 속도 (체감상 빠른 반응)
+        this.maxClimbRate = 8.0;                      // m/s 최대 상승/하강 속도
         this.kp_vel_z = 4.0;                          // 속도제한·자동감속 P 게인
         this.maxVertAccel = 12.0;                     // m/s² 수직가속 클램프 (throttle=1.0 → 12.0 m/s²)
 
@@ -124,17 +124,9 @@ class DronePhysics {
         this._flatOutput = null;   // SE3 target
         this._se3Mode = false;
 
-        // SE3 위치 제어 게인 (cascaded: position → velocity → force)
-        this._se3_kpPos = [1.5, 2.0, 1.5];  // [X, Y(up), Z] position → velocity P gain
-        this._se3_kdVel = [2.0, 2.5, 2.0];  // velocity → acceleration P gain
-        this._se3_maxHSpeed = 3.0;           // max horizontal speed m/s
-        this._se3_maxVSpeed = 2.0;           // max vertical speed m/s
-
-        // SE3 yaw 자세 게인 (roll/pitch보다 훨씬 낮게 — RotorPy Kp/Kd 대각 참조)
-        // 높은 게인으로 90° yaw 변경 시 모터 포화 → 추력 불균형 → 고도 드리프트
-        // k_m/k_eta 비율이 작아 yaw 모멘트가 추력 배분에 큰 영향
-        this._se3_kpYaw = 12;    // (vs kp_att=544 for roll/pitch)
-        this._se3_kdYaw = 5;
+        // RotorPy SE3Control 정확한 게인 (Z-up [6.5,6.5,15]/[4.0,4.0,9] → Y-up [X,Y,Z])
+        this._se3_kp = [6.5, 15, 6.5];   // position P gain [X, Y(up), Z]
+        this._se3_kd = [4.0, 9, 4.0];    // position D gain [X, Y(up), Z]
     }
 
     // ================================================================
@@ -221,6 +213,17 @@ class DronePhysics {
     clearFlatOutput() {
         this._flatOutput = null;
         this._se3Mode = false;
+    }
+
+    holdPosition() {
+        var yaw = this._quatToEulerYXZ(this._quat)[1];
+        this.setFlatOutput({
+            x: [this._pos[0], this._pos[1], this._pos[2]],
+            x_dot: [0, 0, 0],
+            x_ddot: [0, 0, 0],
+            yaw: yaw,
+            yaw_dot: 0
+        });
     }
 
     // ================================================================
@@ -475,41 +478,25 @@ class DronePhysics {
     }
 
     // ================================================================
-    //  SE3 위치+자세 추적 제어기 (RotorPy SE3Control 참조, Y-up 적응)
+    //  SE3 위치+자세 추적 제어기 (RotorPy SE3Control 정확 구현, Y-up 적응)
     // ================================================================
     _se3Controller() {
         var fo = this._flatOutput;
         var m = this.mass;
         var g = this.g;
 
-        // 1. Cascaded PD: position → velocity → force
-        var posErr0 = this._pos[0] - fo.x[0];
-        var posErr1 = this._pos[1] - fo.x[1];
-        var posErr2 = this._pos[2] - fo.x[2];
+        // 1. RotorPy 직접 PD: F_des = m * (-kp * e_pos - kd * e_vel + a_ff + [0,g,0])
+        var ePos0 = this._pos[0] - fo.x[0];
+        var ePos1 = this._pos[1] - fo.x[1];
+        var ePos2 = this._pos[2] - fo.x[2];
 
-        // vel_des = -kpPos * pos_err + target_vel
-        var velDes0 = -this._se3_kpPos[0] * posErr0 + fo.x_dot[0];
-        var velDes1 = -this._se3_kpPos[1] * posErr1 + fo.x_dot[1];
-        var velDes2 = -this._se3_kpPos[2] * posErr2 + fo.x_dot[2];
+        var eVel0 = this._vel[0] - fo.x_dot[0];
+        var eVel1 = this._vel[1] - fo.x_dot[1];
+        var eVel2 = this._vel[2] - fo.x_dot[2];
 
-        // Clamp desired velocity to speed limits
-        var hSpd = Math.sqrt(velDes0 * velDes0 + velDes2 * velDes2);
-        if (hSpd > this._se3_maxHSpeed) {
-            var sc = this._se3_maxHSpeed / hSpd;
-            velDes0 *= sc;
-            velDes2 *= sc;
-        }
-        velDes1 = this._clamp(velDes1, -this._se3_maxVSpeed, this._se3_maxVSpeed);
-
-        // vel_err = current_vel - vel_des
-        var velErr0 = this._vel[0] - velDes0;
-        var velErr1 = this._vel[1] - velDes1;
-        var velErr2 = this._vel[2] - velDes2;
-
-        // F_des = mass * (-kdVel * vel_err + accel_ff + [0, g, 0])
-        var Fd0 = m * (-this._se3_kdVel[0] * velErr0 + fo.x_ddot[0]);
-        var Fd1 = m * (-this._se3_kdVel[1] * velErr1 + fo.x_ddot[1] + g);
-        var Fd2 = m * (-this._se3_kdVel[2] * velErr2 + fo.x_ddot[2]);
+        var Fd0 = m * (-this._se3_kp[0] * ePos0 - this._se3_kd[0] * eVel0 + fo.x_ddot[0]);
+        var Fd1 = m * (-this._se3_kp[1] * ePos1 - this._se3_kd[1] * eVel1 + fo.x_ddot[1] + g);
+        var Fd2 = m * (-this._se3_kp[2] * ePos2 - this._se3_kd[2] * eVel2 + fo.x_ddot[2]);
 
         // 2. R_des from F_des and desired yaw (Y-up adaptation)
         var FdNorm = Math.sqrt(Fd0 * Fd0 + Fd1 * Fd1 + Fd2 * Fd2);
@@ -589,13 +576,10 @@ class DronePhysics {
         var wErr1 = w[1] - fo.yaw_dot;
         var wErr2 = w[2] - 0;
 
-        // 6. Moment = I*(-Kp*att_err - Kd*w_err) + w×(I*w)
-        // Roll/Pitch: 높은 게인 (빠른 자세 추적)
-        // Yaw: 낮은 게인 (모터 포화 방지 — k_m/k_eta 비율이 작아 yaw 모멘트가 추력 배분에 큰 영향)
-        var kp_rp = this.kp_att;
-        var kd_rp = this.kd_att;
-        var kp_yaw = this._se3_kpYaw;
-        var kd_yaw = this._se3_kdYaw;
+        // 6. Moment = I*(-kp*att_err - kd*w_err) + w×(I*w)
+        // 균일 게인 — blockly-bridge.js에서 yaw 점진적 보간(최대 1.5 rad/s)하므로 안전
+        var kp = this.kp_att;
+        var kd = this.kd_att;
 
         var Iw0 = this.Ixx * w[0], Iw1 = this.Iyy * w[1], Iw2 = this.Izz * w[2];
         var gyr0 = w[1] * Iw2 - w[2] * Iw1;
@@ -603,9 +587,9 @@ class DronePhysics {
         var gyr2 = w[0] * Iw1 - w[1] * Iw0;
 
         var moment = [
-            this.Ixx * (-kp_rp * attErr[0] - kd_rp * wErr0) + gyr0,
-            this.Iyy * (-kp_yaw * attErr[1] - kd_yaw * wErr1) + gyr1,
-            this.Izz * (-kp_rp * attErr[2] - kd_rp * wErr2) + gyr2
+            this.Ixx * (-kp * attErr[0] - kd * wErr0) + gyr0,
+            this.Iyy * (-kp * attErr[1] - kd * wErr1) + gyr1,
+            this.Izz * (-kp * attErr[2] - kd * wErr2) + gyr2
         ];
 
         return { thrust: u1, moment: moment };
