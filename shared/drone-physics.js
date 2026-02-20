@@ -129,6 +129,12 @@ class DronePhysics {
         this._se3_kdVel = [2.0, 2.5, 2.0];  // velocity → acceleration P gain
         this._se3_maxHSpeed = 3.0;           // max horizontal speed m/s
         this._se3_maxVSpeed = 2.0;           // max vertical speed m/s
+
+        // SE3 yaw 자세 게인 (roll/pitch보다 훨씬 낮게 — RotorPy Kp/Kd 대각 참조)
+        // 높은 게인으로 90° yaw 변경 시 모터 포화 → 추력 불균형 → 고도 드리프트
+        // k_m/k_eta 비율이 작아 yaw 모멘트가 추력 배분에 큰 영향
+        this._se3_kpYaw = 12;    // (vs kp_att=544 for roll/pitch)
+        this._se3_kdYaw = 5;
     }
 
     // ================================================================
@@ -583,9 +589,13 @@ class DronePhysics {
         var wErr1 = w[1] - fo.yaw_dot;
         var wErr2 = w[2] - 0;
 
-        // 6. Moment = I*(-kp_att*att_err - kd_att*w_err) + w×(I*w)
-        var kp = this.kp_att;
-        var kd = this.kd_att;
+        // 6. Moment = I*(-Kp*att_err - Kd*w_err) + w×(I*w)
+        // Roll/Pitch: 높은 게인 (빠른 자세 추적)
+        // Yaw: 낮은 게인 (모터 포화 방지 — k_m/k_eta 비율이 작아 yaw 모멘트가 추력 배분에 큰 영향)
+        var kp_rp = this.kp_att;
+        var kd_rp = this.kd_att;
+        var kp_yaw = this._se3_kpYaw;
+        var kd_yaw = this._se3_kdYaw;
 
         var Iw0 = this.Ixx * w[0], Iw1 = this.Iyy * w[1], Iw2 = this.Izz * w[2];
         var gyr0 = w[1] * Iw2 - w[2] * Iw1;
@@ -593,9 +603,9 @@ class DronePhysics {
         var gyr2 = w[0] * Iw1 - w[1] * Iw0;
 
         var moment = [
-            this.Ixx * (-kp * attErr[0] - kd * wErr0) + gyr0,
-            this.Iyy * (-kp * attErr[1] - kd * wErr1) + gyr1,
-            this.Izz * (-kp * attErr[2] - kd * wErr2) + gyr2
+            this.Ixx * (-kp_rp * attErr[0] - kd_rp * wErr0) + gyr0,
+            this.Iyy * (-kp_yaw * attErr[1] - kd_yaw * wErr1) + gyr1,
+            this.Izz * (-kp_rp * attErr[2] - kd_rp * wErr2) + gyr2
         ];
 
         return { thrust: u1, moment: moment };
