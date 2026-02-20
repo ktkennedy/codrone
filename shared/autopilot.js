@@ -197,7 +197,7 @@
 
             // 도착 판정 (거리 + 속도 모두 확인하여 안정적 도착)
             if (totalDist < this.arrivalThreshold && speed < 0.5) {
-                this.physics.clearFlatOutput();
+                this.physics.holdPosition();
                 this._onArrived();
                 return null;
             }
@@ -208,10 +208,20 @@
                 desiredYaw = Math.atan2(-ex, -ez);  // Three.js forward = -Z
             }
 
-            // === 3. SE3 flat output 설정 ===
+            // === 3. SE3 flat output 설정 (속도 피드포워드 포함) ===
+            // 목표 방향으로의 원하는 속도: 거리에 비례, 최대 속도 제한
+            // RotorPy SE3 게인은 smooth trajectory 전제 → x_dot 피드포워드 필수
+            var kpApproach = 1.5;
+            var desSpeedH = hDist > 0.1 ? Math.min(this.flightSpeed, kpApproach * hDist) : 0;
+            var desSpeedV = Math.abs(ey) > 0.1 ? Math.min(this.maxVerticalSpeed, kpApproach * Math.abs(ey)) : 0;
+            var invH = hDist > 0.1 ? desSpeedH / hDist : 0;
+            var vdx = ex * invH;
+            var vdy = ey > 0 ? desSpeedV : (ey < -0.1 ? -desSpeedV : 0);
+            var vdz = ez * invH;
+
             this.physics.setFlatOutput({
                 x: [target.x, target.y, target.z],
-                x_dot: [0, 0, 0],
+                x_dot: [vdx, vdy, vdz],
                 x_ddot: [0, 0, 0],
                 yaw: desiredYaw,
                 yaw_dot: 0

@@ -498,6 +498,18 @@ class DronePhysics {
         var Fd1 = m * (-this._se3_kp[1] * ePos1 - this._se3_kd[1] * eVel1 + fo.x_ddot[1] + g);
         var Fd2 = m * (-this._se3_kp[2] * ePos2 - this._se3_kd[2] * eVel2 + fo.x_ddot[2]);
 
+        // 수평 힘 클램프: maxTiltAngle 이상 기울지 않도록 제한
+        // RotorPy는 smooth trajectory 피드포워드 전제이므로 불필요하지만
+        // 우리는 정적 setpoint(flyTo)를 쓰므로 큰 위치 오차 시 과도한 틸트 방지 필수
+        var FdH2 = Fd0 * Fd0 + Fd2 * Fd2;
+        var maxHForce = m * g * Math.tan(this.maxTiltAngle);
+        var maxHF2 = maxHForce * maxHForce;
+        if (FdH2 > maxHF2) {
+            var hScale = maxHForce / Math.sqrt(FdH2);
+            Fd0 *= hScale;
+            Fd2 *= hScale;
+        }
+
         // 2. R_des from F_des and desired yaw (Y-up adaptation)
         var FdNorm = Math.sqrt(Fd0 * Fd0 + Fd1 * Fd1 + Fd2 * Fd2);
         var bUp0, bUp1, bUp2;
