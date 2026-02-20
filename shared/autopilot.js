@@ -251,9 +251,11 @@
             var throttle = ay / maxVAccel;
 
             // === 5. Yaw 제어 (부드럽게) ===
+            // 드론 전방 = (-sin(yaw), 0, -cos(yaw)) 이므로
+            // 목표를 향하려면 targetYaw = atan2(-ex, -ez)
             var yawInput = 0;
             if (hDist > 2.0) {
-                var targetYaw = Math.atan2(ex, ez);
+                var targetYaw = Math.atan2(-ex, -ez);
                 var yawError = targetYaw - yaw;
                 while (yawError > Math.PI) yawError -= 2 * Math.PI;
                 while (yawError < -Math.PI) yawError += 2 * Math.PI;
