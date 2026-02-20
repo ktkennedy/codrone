@@ -76,9 +76,9 @@
             var cos = Math.cos(yaw);
             var sin = Math.sin(yaw);
 
-            // Local direction -> world coordinates
-            var worldDx = dirX * cos - dirZ * sin;
-            var worldDz = dirX * sin + dirZ * cos;
+            // Local direction -> world coordinates (Ry rotation: body → world)
+            var worldDx = dirX * cos + dirZ * sin;
+            var worldDz = -dirX * sin + dirZ * cos;
 
             var autopilot = this._getAutopilot();
             if (autopilot) {
