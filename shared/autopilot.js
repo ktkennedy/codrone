@@ -231,8 +231,16 @@
                 vdz *= ramp;
             }
 
+            // 위치 레퍼런스: 현재 위치 + 속도 방향 lookahead
+            // 목표(최대 수십 m)를 직접 넘기면 SE3 위치 오차가 거대해져 힘 클램프 포화 발생
+            // lookahead로 오차를 ~1m 이내로 유지 → 클램프 미작동, 부드러운 비행
+            var lookahead = 0.5; // seconds
+            var refX = pos.x + vdx * lookahead;
+            var refY = pos.y + vdy * lookahead;
+            var refZ = pos.z + vdz * lookahead;
+
             this.physics.setFlatOutput({
-                x: [target.x, target.y, target.z],
+                x: [refX, refY, refZ],
                 x_dot: [vdx, vdy, vdz],
                 x_ddot: [0, 0, 0],
                 yaw: desiredYaw,
