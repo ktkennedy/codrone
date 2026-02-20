@@ -162,8 +162,11 @@
             <button class="tool-btn run" id="btn-run">&#x25B6; 실행</button>
             <button class="tool-btn stop" id="btn-stop">&#x23F9; 정지</button>
             <button class="tool-btn reset" id="btn-reset">&#x21BA; 리셋</button>
+            <button class="tool-btn" id="btn-mission" style="background:#4a9eff;color:#fff;">&#x1F3AF; 미션</button>
+            <button class="tool-btn" id="btn-export-code" style="background:#ff8844;color:#fff;">&#x1F4DD; 텍스트 코딩으로</button>
         </div>
         <div class="right">
+            <span id="mode-progress" style="color:#88ccff;font-size:12px;margin-right:6px;"></span>
             <div class="speed-control">
                 <span>속도:</span>
                 <select id="speed-select">
@@ -222,11 +225,13 @@
     <script src="../shared/ui-components.js?v=5"></script>
     <script src="../shared/sensors.js?v=5"></script>
     <script src="../shared/autopilot.js?v=5"></script>
+    <script src="../shared/mission-framework.js?v=5"></script>
 
     <!-- Blockly custom -->
     <script src="blockly/blocks.js?v=5"></script>
     <script src="blockly/generators.js?v=5"></script>
     <script src="js/blockly-bridge.js?v=5"></script>
+    <script src="js/missions-blockly.js?v=5"></script>
 
     <!-- Toolbox (load as text) -->
     <script>
@@ -239,6 +244,8 @@
         var sensors, autopilot;
         var messageDisplay;
         var bridge, workspace;
+        var missionManager, missionUI;
+        var currentMissionDef = null;
 
         function initSimulator() {
             scene = new THREE.Scene();
@@ -424,6 +431,107 @@
             };
         }
 
+        function initMissions() {
+            if (!DroneSim.MissionManager || !DroneSim.createBlocklyMissions || !DroneSim.MissionSelectUI) return;
+
+            missionManager = new DroneSim.MissionManager('drone-blockly-progress');
+            var missions = DroneSim.createBlocklyMissions();
+            missions.forEach(function (m) { missionManager.addMission(m); });
+
+            missionManager.onMissionStart = function (mission) {
+                currentMissionDef = mission;
+                var origMission = missions[mission.index];
+                if (origMission.setup) origMission.setup(scene);
+                currentMissionDef._origMission = origMission;
+
+                physics.reset();
+                if (messageDisplay) messageDisplay.show(mission.name + ' 시작!', 'info', 2000);
+                missionUI.showMissionHUD(mission);
+            };
+
+            missionManager.onMissionComplete = function (result) {
+                if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
+                    currentMissionDef._origMission.cleanup(scene);
+                }
+                missionUI.hideMissionHUD();
+                missionUI.showResult(result,
+                    function () { startMission(result.mission.index); },
+                    function () { startMission(result.mission.index + 1); },
+                    function () { showMissionSelect(); }
+                );
+            };
+
+            missionManager.onMissionFail = function (result) {
+                if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
+                    currentMissionDef._origMission.cleanup(scene);
+                }
+                missionUI.hideMissionHUD();
+                missionUI.showResult(result,
+                    function () { startMission(result.mission.index); },
+                    null,
+                    function () { showMissionSelect(); }
+                );
+            };
+
+            missionManager.onObjectiveUpdate = function (obj) {
+                if (messageDisplay) messageDisplay.show(obj.description + ' 완료!', 'success', 1500);
+            };
+
+            missionManager.onAllMissionsComplete = function () {
+                var modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);';
+                modal.innerHTML = '<div style="background:#1a1a2e;border:2px solid rgba(255,123,114,0.5);border-radius:16px;padding:40px 48px;text-align:center;max-width:420px;color:#fff;font-family:inherit;">' +
+                    '<div style="font-size:48px;margin-bottom:16px;">&#x1F389;</div>' +
+                    '<h2 style="font-size:22px;margin-bottom:12px;color:#ff7b72;">블록 코딩 마스터!</h2>' +
+                    '<p style="font-size:15px;margin-bottom:8px;line-height:1.6;">블록 코딩을 마스터했어요!</p>' +
+                    '<p style="font-size:14px;color:#aaa;margin-bottom:28px;">이제 직접 코드를 작성해볼까요?</p>' +
+                    '<div style="display:flex;gap:12px;justify-content:center;">' +
+                    '<button id="modal-next-stage" style="padding:12px 24px;border-radius:8px;border:none;background:#ff7b72;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;font-family:inherit;">&#x1F4BB; 텍스트 코딩 시작하기</button>' +
+                    '<button id="modal-practice" style="padding:12px 24px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#ccc;font-size:15px;cursor:pointer;font-family:inherit;">더 연습하기</button>' +
+                    '</div></div>';
+                document.body.appendChild(modal);
+                document.getElementById('modal-next-stage').addEventListener('click', function () {
+                    window.location.href = 'coding.html';
+                });
+                document.getElementById('modal-practice').addEventListener('click', function () {
+                    modal.remove();
+                });
+            };
+
+            missionUI = new DroneSim.MissionSelectUI(missionManager,
+                function (idx) { startMission(idx); },
+                function () { /* 자유 코딩 */ }
+            );
+        }
+
+        function showMissionSelect() {
+            if (!missionManager || !missionUI) return;
+            if (missionManager.isRunning) {
+                missionManager.stopMission();
+                missionUI.hideMissionHUD();
+                if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
+                    currentMissionDef._origMission.cleanup(scene);
+                }
+            }
+            physics.reset();
+            bridge.stop();
+            missionUI.show();
+        }
+
+        function startMission(index) {
+            if (!missionManager) return;
+            if (index >= missionManager.missions.length) {
+                if (messageDisplay) messageDisplay.show('모든 미션을 완료했습니다!', 'success', 3000);
+                return;
+            }
+            if (!missionManager.isMissionUnlocked(index)) {
+                if (messageDisplay) messageDisplay.show('이전 미션을 먼저 완료하세요!', 'warning', 2000);
+                return;
+            }
+            physics.reset();
+            missionManager.startMission(index);
+        }
+
         function bindButtons() {
             document.getElementById('btn-run').addEventListener('click', function () {
                 if (bridge.isRunning) return;
@@ -461,6 +569,30 @@
                     btn.textContent = '보이기';
                 }
             });
+
+            document.getElementById('btn-mission').addEventListener('click', function () {
+                showMissionSelect();
+            });
+
+            document.getElementById('btn-export-code').addEventListener('click', function () {
+                var code = Blockly.JavaScript.workspaceToCode(workspace);
+                if (!code || code.trim() === '') {
+                    alert('먼저 블록을 조립해주세요!');
+                    return;
+                }
+                localStorage.setItem('drone-blockly-export', code);
+
+                var modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;';
+                modal.innerHTML =
+                    '<div style="background:#1a1a2e;border:2px solid #4a9eff;border-radius:16px;padding:30px;text-align:center;max-width:400px;">' +
+                        '<h3 style="color:#4a9eff;margin:0 0 15px;">코드가 저장되었어요! &#x1F4CB;</h3>' +
+                        '<p style="color:#ccc;margin:0 0 20px;line-height:1.6;">블록으로 만든 코드를 텍스트 코딩 에디터로 가져갈 수 있어요.<br>직접 수정하면서 코딩을 배워보세요!</p>' +
+                        '<button onclick="window.location.href=\'coding.html?from=blockly\'" style="background:#4a9eff;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:16px;cursor:pointer;margin:5px;">텍스트 코딩으로 이동</button>' +
+                        '<button onclick="this.closest(\'div\').parentElement.remove()" style="background:#333;color:#ccc;border:1px solid #555;padding:12px 24px;border-radius:8px;font-size:16px;cursor:pointer;margin:5px;">계속 블록 코딩</button>' +
+                    '</div>';
+                document.body.appendChild(modal);
+            });
         }
 
         var _debugEl = null;
@@ -487,6 +619,22 @@
             droneModel.updateFromPhysics(state);
             droneModel.updatePropellers(dt, physics.isFlying ? 0.5 : 0);
             cameraSystem.update(dt);
+
+            // 미션 업데이트
+            if (missionManager && missionManager.isRunning && currentMissionDef) {
+                if (currentMissionDef._origMission && currentMissionDef._origMission.frameUpdate) {
+                    currentMissionDef._origMission.frameUpdate(state, missionManager.missionTime, dt);
+                    // frameUpdate 후 미션 상태 동기화
+                    var origM_ = currentMissionDef._origMission;
+                    for (var k in origM_) {
+                        if ((k.charAt(0) === '_' || k === 'collectibles') && origM_.hasOwnProperty(k)) {
+                            currentMissionDef[k] = origM_[k];
+                        }
+                    }
+                }
+                missionManager.update(dt, state);
+                if (missionUI) missionUI.updateMissionHUD(currentMissionDef, missionManager.missionTime);
+            }
 
             // 디버그 오버레이 업데이트 (5프레임마다)
             if (++_debugCounter % 5 === 0) {
@@ -517,8 +665,25 @@
         initSimulator();
         initBlockly();
         initBridge();
+        initMissions();
         bindButtons();
         animate();
+    })();
+    </script>
+
+    <!-- 블록 코딩 진행도 표시 -->
+    <script>
+    (function() {
+        function updateModeProgress() {
+            var data = JSON.parse(localStorage.getItem('drone-blockly-progress') || '{}');
+            var completed = 0;
+            for (var i = 0; i < 6; i++) {
+                if (data['mission_' + i] && data['mission_' + i].completed) completed++;
+            }
+            var el = document.getElementById('mode-progress');
+            if (el) el.textContent = '&#x1F3AF; 과제 ' + completed + '/6 완료';
+        }
+        updateModeProgress();
     })();
     </script>
 </body>

@@ -8,6 +8,7 @@ class SimpleControls {
         this.input = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
         this._smoothInput = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
         this.activeButtons = new Set();
+        this.onTakeoff = null;
         this._createUI();
         this._bindEvents();
     }
@@ -19,23 +20,23 @@ class SimpleControls {
             <!-- 왼쪽: 상승/하강 + 좌회전/우회전 -->
             <div class="control-group">
                 <div class="vertical-controls">
-                    <button class="vert-btn" data-action="up">&#x2B06; 위로</button>
-                    <button class="vert-btn" data-action="down">&#x2B07; 아래로</button>
+                    <button class="vert-btn" data-action="up" aria-label="드론 상승">&#x2B06; 위로</button>
+                    <button class="vert-btn" data-action="down" aria-label="드론 하강">&#x2B07; 아래로</button>
                 </div>
                 <div class="turn-controls">
-                    <button class="turn-btn" data-action="turnLeft">&#x21A9; 왼쪽</button>
-                    <button class="turn-btn" data-action="turnRight">&#x21AA; 오른쪽</button>
+                    <button class="turn-btn" data-action="turnLeft" aria-label="드론 좌회전">&#x21A9; 왼쪽</button>
+                    <button class="turn-btn" data-action="turnRight" aria-label="드론 우회전">&#x21AA; 오른쪽</button>
                 </div>
             </div>
 
             <!-- 중앙: 이착륙 -->
             <div class="control-group">
                 <div class="action-controls">
-                    <button class="action-btn takeoff" id="btn-takeoff">
+                    <button class="action-btn takeoff" id="btn-takeoff" aria-label="이륙">
                         <span class="icon">&#x1F680;</span>
                         이륙
                     </button>
-                    <button class="action-btn land" id="btn-land">
+                    <button class="action-btn land" id="btn-land" aria-label="착륙">
                         <span class="icon">&#x1F6EC;</span>
                         착륙
                     </button>
@@ -46,13 +47,13 @@ class SimpleControls {
             <div class="control-group">
                 <div class="dpad">
                     <div class="dpad-btn empty"></div>
-                    <button class="dpad-btn" data-action="forward">&#x2B06;</button>
+                    <button class="dpad-btn" data-action="forward" aria-label="앞으로 이동">&#x2B06;</button>
                     <div class="dpad-btn empty"></div>
-                    <button class="dpad-btn" data-action="left">&#x2B05;</button>
+                    <button class="dpad-btn" data-action="left" aria-label="왼쪽으로 이동">&#x2B05;</button>
                     <div class="dpad-btn empty"></div>
-                    <button class="dpad-btn" data-action="right">&#x27A1;</button>
+                    <button class="dpad-btn" data-action="right" aria-label="오른쪽으로 이동">&#x27A1;</button>
                     <div class="dpad-btn empty"></div>
-                    <button class="dpad-btn" data-action="backward">&#x2B07;</button>
+                    <button class="dpad-btn" data-action="backward" aria-label="뒤로 이동">&#x2B07;</button>
                     <div class="dpad-btn empty"></div>
                 </div>
             </div>
@@ -92,9 +93,14 @@ class SimpleControls {
         // 이착륙 버튼
         document.getElementById('btn-takeoff').addEventListener('click', () => {
             this.physics.takeoff(2);
+            if (this.onTakeoff) this.onTakeoff();
+            // 튜토리얼 이벤트 발생
+            window.dispatchEvent(new CustomEvent('tutorial:action', { detail: { action: 'takeoff' } }));
         });
         document.getElementById('btn-land').addEventListener('click', () => {
             this.physics.land();
+            // 튜토리얼 이벤트 발생
+            window.dispatchEvent(new CustomEvent('tutorial:action', { detail: { action: 'land' } }));
         });
 
         // 키보드도 지원 (저학년이지만 키보드가 있는 경우)
@@ -109,7 +115,10 @@ class SimpleControls {
                 case 'Shift': this._pressButton('down'); break;
                 case 'q': case 'Q': this._pressButton('turnLeft'); break;
                 case 'e': case 'E': this._pressButton('turnRight'); break;
-                case 't': case 'T': this.physics.takeoff(2); break;
+                case 't': case 'T':
+                    this.physics.takeoff(2);
+                    if (this.onTakeoff) this.onTakeoff();
+                    break;
                 case 'l': case 'L': this.physics.land(); break;
             }
         });
@@ -131,6 +140,9 @@ class SimpleControls {
     _pressButton(action, btnElement) {
         this.activeButtons.add(action);
         if (btnElement) btnElement.classList.add('pressed');
+
+        // 튜토리얼 이벤트 발생
+        window.dispatchEvent(new CustomEvent('tutorial:action', { detail: { action: action } }));
     }
 
     _releaseButton(action, btnElement) {

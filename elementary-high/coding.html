@@ -92,7 +92,20 @@
         }
         .console-log { color: #c9d1d9; }
         .console-success { color: #3fb950; }
-        .console-error { color: #f85149; }
+        .console-error {
+            color: #fff;
+            background: #da3633;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 4px 0;
+            font-size: 13px;
+        }
+        .console-error-detail {
+            color: #8b949e;
+            font-size: 11px;
+            margin-top: 2px;
+            padding-left: 12px;
+        }
         .console-info { color: #58a6ff; }
 
         /* 오른쪽: 3D 뷰 */
@@ -140,7 +153,8 @@
 <body>
     <div id="toolbar">
         <div class="left">
-            <a href="blockly.html" class="back-link">&#x2B05; 블록 코딩</a>
+            <a href="index.html" class="back-link">&#x1F680; 비행 모드</a>
+            <a href="blockly.html" class="back-link">&#x1F9E9; 블록 코딩</a>
             <span class="toolbar-title">&#x1F4BB; 텍스트 코딩</span>
         </div>
         <div class="center">
@@ -149,6 +163,8 @@
             <button class="tool-btn reset" id="btn-reset">&#x21BA; 리셋</button>
         </div>
         <div class="right">
+            <span id="mode-progress" style="color:#88ccff;font-size:12px;margin-right:6px;"></span>
+            <button id="btn-missions" style="background:#4a9eff;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit;">&#x1F3AF; 코딩 과제</button>
             <button class="demo-btn" id="demo-square">사각형 비행</button>
             <button class="demo-btn" id="demo-flyto">좌표 비행</button>
             <button class="demo-btn" id="demo-patrol">순찰 비행</button>
@@ -174,6 +190,7 @@ await drone.land();
 </textarea>
             <div id="console-panel">
                 <div id="console-header">콘솔 출력</div>
+                <div id="mission-hint" style="display:none;background:#1a3a5c;border:1px solid #4a9eff;color:#88ccff;padding:10px 15px;font-size:13px;"><strong>&#x1F4A1; 힌트:</strong> <span id="hint-text"></span></div>
                 <div id="console-output"></div>
             </div>
         </div>
@@ -237,6 +254,8 @@ await drone.land();
     <script src="../shared/sensors.js?v=5"></script>
     <script src="../shared/autopilot.js?v=5"></script>
     <script src="js/blockly-bridge.js?v=5"></script>
+    <script src="../shared/mission-framework.js?v=5"></script>
+    <script src="js/missions-coding.js?v=5"></script>
 
     <script>
     (function () {
@@ -258,6 +277,7 @@ await drone.land();
 
         function initSimulator() {
             scene = new THREE.Scene();
+            window._codingScene = scene;
             scene.fog = new THREE.Fog(0x87ceeb, 80, 200);
 
             var container = document.getElementById('sim-container');
@@ -314,6 +334,86 @@ await drone.land();
             });
         }
 
+        function translateError(error) {
+            var message = error.message || String(error);
+            var stack = error.stack || '';
+            var lineNumber = null;
+
+            // Extract line number from stack trace
+            var lineMatch = stack.match(/<anonymous>:(\d+):/);
+            if (lineMatch) {
+                lineNumber = parseInt(lineMatch[1]) - 1; // Adjust for wrapper function
+            }
+
+            var koreanMsg = '';
+            var errorType = error.name || 'Error';
+
+            // TypeError translations
+            if (errorType === 'TypeError') {
+                if (message.includes('Cannot read properties of undefined')) {
+                    koreanMsg = '타입 오류: 아직 준비되지 않은 값을 사용하려고 했어요';
+                } else if (message.includes('Cannot read properties of null')) {
+                    koreanMsg = '타입 오류: 비어있는 값을 사용하려고 했어요';
+                } else if (message.includes('is not a function')) {
+                    var funcName = message.match(/(\w+) is not a function/);
+                    if (funcName) {
+                        koreanMsg = '타입 오류: \'' + funcName[1] + '\'은(는) 실행할 수 있는 명령이 아니에요';
+                    } else {
+                        koreanMsg = '타입 오류: 실행할 수 없는 것을 실행하려고 했어요';
+                    }
+                } else {
+                    koreanMsg = '타입 오류: ' + message;
+                }
+            }
+            // ReferenceError translations
+            else if (errorType === 'ReferenceError') {
+                if (message.includes('is not defined')) {
+                    var varName = message.match(/(\w+) is not defined/);
+                    if (varName) {
+                        koreanMsg = '이름 오류: \'' + varName[1] + '\'을(를) 찾을 수 없어요. 철자를 확인해보세요!';
+                    } else {
+                        koreanMsg = '이름 오류: 정의되지 않은 이름을 사용했어요';
+                    }
+                } else {
+                    koreanMsg = '이름 오류: ' + message;
+                }
+            }
+            // SyntaxError translations
+            else if (errorType === 'SyntaxError') {
+                if (message.includes('Unexpected token')) {
+                    koreanMsg = '문법 오류: 예상하지 못한 글자가 있어요. 괄호나 세미콜론을 확인해보세요!';
+                } else if (message.includes('Unexpected end of input')) {
+                    koreanMsg = '문법 오류: 코드가 완성되지 않았어요. 닫는 괄호 }를 확인해보세요!';
+                } else if (message.includes('Unexpected identifier')) {
+                    koreanMsg = '문법 오류: 잘못된 위치에 단어가 있어요. 앞 줄에 세미콜론이 빠졌나요?';
+                } else {
+                    koreanMsg = '문법 오류: 코드 작성 규칙에 맞지 않아요. ' + message;
+                }
+            }
+            // RangeError translations
+            else if (errorType === 'RangeError') {
+                if (message.includes('Maximum call stack')) {
+                    koreanMsg = '범위 오류: 코드가 무한 반복되고 있어요! 반복 조건을 확인해보세요.';
+                } else {
+                    koreanMsg = '범위 오류: 숫자가 너무 크거나 작아요';
+                }
+            }
+            // Generic fallback
+            else {
+                koreanMsg = '오류가 발생했어요: ' + message;
+            }
+
+            // Add line number if available
+            if (lineNumber !== null && lineNumber > 0) {
+                koreanMsg = '줄 ' + lineNumber + '에서 ' + koreanMsg;
+            }
+
+            return {
+                korean: koreanMsg,
+                original: errorType + ': ' + message
+            };
+        }
+
         function logToConsole(text, type) {
             var output = document.getElementById('console-output');
             var line = document.createElement('div');
@@ -356,7 +456,16 @@ await drone.land();
                 await asyncFn(drone, console, undefined, undefined, undefined, undefined);
                 logToConsole('프로그램 실행 완료!', 'success');
             } catch (e) {
-                logToConsole('오류: ' + e.message, 'error');
+                var translated = translateError(e);
+                logToConsole(translated.korean, 'error');
+
+                // Log original error in smaller gray text for teachers
+                var output = document.getElementById('console-output');
+                var detail = document.createElement('div');
+                detail.className = 'console-error-detail';
+                detail.textContent = '원본: ' + translated.original;
+                output.appendChild(detail);
+                output.parentElement.scrollTop = output.parentElement.scrollHeight;
             }
 
             console.log = origLog;
@@ -446,6 +555,9 @@ await drone.land();
             droneModel.updatePropellers(dt, physics.isFlying ? 0.5 : 0);
             cameraSystem.update(dt);
 
+            // 미션 업데이트
+            if (window._codingMissionTick) window._codingMissionTick(dt, state);
+
             // 디버그 오버레이 업데이트 (5프레임마다)
             if (++_debugCounter % 5 === 0) {
                 if (!_debugEl) _debugEl = document.getElementById('debug-overlay');
@@ -473,7 +585,189 @@ await drone.land();
 
         initSimulator();
         bindButtons();
+
+        // 블록 코딩에서 가져온 코드 확인
+        (function checkBlocklyImport() {
+            var importedCode = localStorage.getItem('drone-blockly-export');
+            var urlParams = new URLSearchParams(window.location.search);
+
+            if (importedCode && urlParams.get('from') === 'blockly') {
+                document.getElementById('code-editor').value = importedCode;
+                localStorage.removeItem('drone-blockly-export');
+
+                var notification = document.createElement('div');
+                notification.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#4a9eff;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+                notification.textContent = '블록 코딩에서 가져온 코드입니다. 자유롭게 수정해보세요! ✏️';
+                document.body.appendChild(notification);
+                setTimeout(function () { notification.remove(); }, 3000);
+            }
+        })();
+
         animate();
+    })();
+    </script>
+
+    <!-- 미션 시스템 초기화 -->
+    <script>
+    (function() {
+        'use strict';
+
+        var missionManager = null;
+        var missionUI = null;
+        var activeMissionIndex = -1;
+
+        function updateModeProgress() {
+            if (!missionManager) return;
+            var completed = 0;
+            for (var i = 0; i < 6; i++) {
+                if (missionManager.getMissionStars(i) > 0) completed++;
+            }
+            var el = document.getElementById('mode-progress');
+            if (el) el.textContent = '&#x1F4BB; 과제 ' + completed + '/6 완료';
+        }
+
+        function showHint(text) {
+            var hintDiv = document.getElementById('mission-hint');
+            var hintText = document.getElementById('hint-text');
+            if (hintDiv && hintText) {
+                hintText.textContent = text;
+                hintDiv.style.display = 'block';
+            }
+        }
+
+        function hideHint() {
+            var hintDiv = document.getElementById('mission-hint');
+            if (hintDiv) hintDiv.style.display = 'none';
+        }
+
+        function stopActiveMission() {
+            if (missionManager && missionManager.isRunning) {
+                var cm = missionManager.currentMission;
+                if (cm && cm.cleanup) cm.cleanup(window._codingScene);
+                missionManager.stopMission();
+            }
+            if (missionUI) missionUI.hideMissionHUD();
+            hideHint();
+            activeMissionIndex = -1;
+        }
+
+        function startMission(index) {
+            stopActiveMission();
+
+            var missions = window.DroneSim.createCodingMissions();
+            missionManager = new window.DroneSim.MissionManager('drone-coding-progress');
+            missions.forEach(function(m) { missionManager.addMission(m); });
+
+            missionUI = new window.DroneSim.MissionSelectUI(missionManager, null, null);
+
+            activeMissionIndex = index;
+            var mission = missionManager.missions[index];
+
+            // 3D 마커 setup
+            if (mission.setup && window._codingScene) {
+                mission.setup(window._codingScene);
+            }
+
+            missionManager.startMission(index);
+            missionUI.showMissionHUD(missionManager.currentMission);
+
+            // 힌트 표시
+            if (mission.hint) showHint(mission.hint);
+
+            // 콘솔에 미션 안내
+            var output = document.getElementById('console-output');
+            if (output) {
+                var line = document.createElement('div');
+                line.className = 'console-info';
+                line.textContent = '[미션 ' + (index + 1) + '] ' + mission.name + ' - ' + mission.description;
+                output.innerHTML = '';
+                output.appendChild(line);
+            }
+
+            missionManager.onMissionComplete = function(result) {
+                if (missionUI) missionUI.hideMissionHUD();
+                hideHint();
+
+                // cleanup 3D markers
+                var m = missionManager.missions[index];
+                if (m && m.cleanup && window._codingScene) m.cleanup(window._codingScene);
+
+                updateModeProgress();
+
+                missionUI.showResult(
+                    result,
+                    function() { startMission(index); },        // retry
+                    function() {                                  // next
+                        if (index + 1 < 6) startMission(index + 1);
+                    },
+                    function() {                                  // menu
+                        activeMissionIndex = -1;
+                        missionUI.show();
+                    }
+                );
+            };
+
+            missionManager.onMissionFail = function(result) {
+                if (missionUI) missionUI.hideMissionHUD();
+                hideHint();
+
+                var m = missionManager.missions[index];
+                if (m && m.cleanup && window._codingScene) m.cleanup(window._codingScene);
+
+                missionUI.showResult(
+                    result,
+                    function() { startMission(index); },
+                    null,
+                    function() {
+                        activeMissionIndex = -1;
+                        missionUI.show();
+                    }
+                );
+            };
+        }
+
+        function showMissionSelect() {
+            var missions = window.DroneSim.createCodingMissions();
+            missionManager = new window.DroneSim.MissionManager('drone-coding-progress');
+            missions.forEach(function(m) { missionManager.addMission(m); });
+            missionUI = new window.DroneSim.MissionSelectUI(
+                missionManager,
+                function(idx) { startMission(idx); },
+                function() { /* closed - free mode */ }
+            );
+            missionUI.show();
+        }
+
+        // 미션 버튼 연결
+        document.getElementById('btn-missions').addEventListener('click', showMissionSelect);
+
+        // animate 루프에서 미션 업데이트 훅
+        // window._codingMissionTick 를 animate() 내부에서 호출
+        window._codingMissionTick = function(dt, state) {
+            if (!missionManager || !missionManager.isRunning) return;
+
+            // frameUpdate는 currentMission 컨텍스트에서 호출 (mutable 상태가 거기 있음)
+            var cm = missionManager.currentMission;
+            if (cm && cm.frameUpdate) {
+                cm.frameUpdate(state);
+            }
+
+            missionManager.update(dt, state);
+            if (missionUI) missionUI.updateMissionHUD(missionManager.currentMission, missionManager.missionTime);
+        };
+
+        // 초기 진행도 표시
+        (function initProgress() {
+            var mgr = new window.DroneSim.MissionManager('drone-coding-progress');
+            var missions = window.DroneSim.createCodingMissions();
+            missions.forEach(function(m) { mgr.addMission(m); });
+            var completed = 0;
+            for (var i = 0; i < 6; i++) {
+                if (mgr.getMissionStars(i) > 0) completed++;
+            }
+            var el = document.getElementById('mode-progress');
+            if (el) el.textContent = '&#x1F4BB; 과제 ' + completed + '/6 완료';
+        })();
     })();
     </script>
 </body>

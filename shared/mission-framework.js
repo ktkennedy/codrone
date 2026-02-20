@@ -18,6 +18,7 @@ class MissionManager {
         this.onMissionComplete = null;
         this.onMissionFail = null;
         this.onObjectiveUpdate = null;
+        this.onAllMissionsComplete = null;
     }
 
     /**
@@ -283,7 +284,7 @@ class MissionSelectUI {
                 margin-bottom: 3px;
             }
             .mission-info .desc {
-                font-size: 12px;
+                font-size: 14px;
                 color: #88aacc;
             }
             .mission-stars {
@@ -381,7 +382,7 @@ class MissionSelectUI {
                 margin-bottom: 5px;
             }
             #mission-hud .mission-objective {
-                font-size: 12px;
+                font-size: 13px;
                 color: #aabbcc;
             }
             #mission-hud .mission-objective.done {
@@ -400,6 +401,8 @@ class MissionSelectUI {
                 border-top: 1px solid rgba(255,255,255,0.15);
                 color: #fff;
             }
+            @keyframes confetti-fall { 0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+            .confetti { position: fixed; width: 10px; height: 10px; z-index: 700; pointer-events: none; animation: confetti-fall 3s ease-in forwards; }
         `;
         document.head.appendChild(style);
     }
@@ -418,7 +421,7 @@ class MissionSelectUI {
             ).join('');
 
             missionsHtml += `
-                <div class="mission-item ${unlocked ? '' : 'locked'}" data-index="${i}">
+                <div class="mission-item ${unlocked ? '' : 'locked'}" data-index="${i}" role="button" tabindex="${unlocked ? 0 : -1}">
                     <div class="mission-num">${i + 1}</div>
                     <div class="mission-info">
                         <div class="name">${unlocked ? m.name : '???'}</div>
@@ -446,6 +449,18 @@ class MissionSelectUI {
                 const idx = parseInt(item.dataset.index);
                 this.hide();
                 if (this.onSelect) this.onSelect(idx);
+            });
+        });
+
+        overlay.querySelectorAll('.mission-item.locked').forEach(function(item) {
+            item.addEventListener('click', function() {
+                var idx = parseInt(item.dataset.index);
+                var toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(255,170,68,0.9);color:#fff;padding:10px 20px;border-radius:8px;z-index:600;font-size:14px;font-family:inherit;transition:opacity 0.3s;';
+                toast.textContent = '미션 ' + idx + '을 먼저 완료하세요!';
+                document.body.appendChild(toast);
+                setTimeout(function() { toast.style.opacity = '0'; }, 1500);
+                setTimeout(function() { toast.remove(); }, 1800);
             });
         });
 
@@ -516,6 +531,8 @@ class MissionSelectUI {
             ? [1, 2, 3].map(s => s <= result.stars ? '&#x2B50;' : '&#x2606;').join('')
             : '&#x274C;';
 
+        const isLastMission = isSuccess && result.mission.index >= this.missions.length - 1;
+
         const div = document.createElement('div');
         div.className = 'mission-result';
         div.innerHTML = `
@@ -524,21 +541,51 @@ class MissionSelectUI {
             <div class="result-time">${isSuccess ? '시간: ' + result.time.toFixed(1) + '초' : result.reason || ''}</div>
             <div class="result-btns">
                 <button class="result-btn" id="result-retry">다시 도전</button>
-                ${isSuccess ? '<button class="result-btn primary" id="result-next">다음 미션</button>' : ''}
+                ${isSuccess && !isLastMission ? '<button class="result-btn primary" id="result-next">다음 미션</button>' : ''}
+                ${isLastMission ? '<button class="result-btn primary" id="result-next-stage">다음 단계로! &#x1F389;</button>' : ''}
                 <button class="result-btn" id="result-menu">미션 목록</button>
             </div>
         `;
 
         document.body.appendChild(div);
 
+        if (isSuccess) {
+            var colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff6bff'];
+            for (var i = 0; i < 25; i++) {
+                let c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + '%';
+                c.style.top = '-10px';
+                c.style.background = colors[Math.floor(Math.random() * colors.length)];
+                c.style.animationDelay = Math.random() * 0.5 + 's';
+                c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                document.body.appendChild(c);
+                setTimeout(function() { c.remove(); }, 3500);
+            }
+        }
+
+        if (!isSuccess) {
+            var flash = document.createElement('div');
+            flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,0,0,0.2);z-index:550;pointer-events:none;transition:opacity 0.5s;';
+            document.body.appendChild(flash);
+            setTimeout(function() { flash.style.opacity = '0'; }, 100);
+            setTimeout(function() { flash.remove(); }, 600);
+        }
+
         document.getElementById('result-retry').addEventListener('click', () => {
             div.remove();
             if (onRetry) onRetry();
         });
-        if (isSuccess) {
+        if (isSuccess && !isLastMission) {
             document.getElementById('result-next').addEventListener('click', () => {
                 div.remove();
                 if (onNext) onNext();
+            });
+        }
+        if (isLastMission) {
+            document.getElementById('result-next-stage').addEventListener('click', () => {
+                div.remove();
+                if (this.onAllMissionsComplete) this.onAllMissionsComplete();
             });
         }
         document.getElementById('result-menu').addEventListener('click', () => {

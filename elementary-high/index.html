@@ -17,37 +17,16 @@
         <a href="../index.html" class="back-btn">&#x2B05; 처음으로</a>
         <span class="mode-label">&#x1F680; 고학년 모드</span>
         <a href="blockly.html" class="back-btn" style="border-color:rgba(74,158,255,0.4);color:#4a9eff;">&#x1F9E9; 블록 코딩</a>
+        <a href="coding.html" class="back-btn" style="border-color:rgba(255,123,114,0.4);color:#ff7b72;">&#x1F4BB; 텍스트 코딩</a>
     </div>
 
-    <!-- 튜토리얼 오버레이 -->
-    <div id="tutorial-overlay">
-        <div class="tutorial-box">
-            <h2>&#x1F680; 드론 조종사가 되어보세요!</h2>
-            <p>키보드로 드론을 자유롭게 조종할 수 있어요.</p>
-
-            <div class="keys-preview">
-                <div class="group">
-                    <span class="group-title">이동</span>
-                    <span><span class="key">W</span> 전진</span>
-                    <span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 좌/후/우</span>
-                </div>
-                <div class="group">
-                    <span class="group-title">고도</span>
-                    <span><span class="key">Space</span> 상승</span>
-                    <span><span class="key">Shift</span> 하강</span>
-                </div>
-                <div class="group">
-                    <span class="group-title">회전</span>
-                    <span><span class="key">Q</span> 좌회전</span>
-                    <span><span class="key">E</span> 우회전</span>
-                </div>
-            </div>
-
-            <p><span class="key">T</span> 이륙 &nbsp; <span class="key">L</span> 착륙 &nbsp; <span class="key">C</span> 카메라</p>
-
-            <button class="start-btn" id="btn-start" onclick="window._droneStarted=true;document.getElementById('tutorial-overlay').style.display='none';">시작하기!</button>
-        </div>
+    <!-- 학습 진행도 패널 -->
+    <div id="progress-panel" style="position:fixed;top:60px;right:15px;background:rgba(10,10,30,0.9);border:1px solid #333;border-radius:12px;padding:15px;z-index:100;min-width:200px;">
+        <h4 style="color:#4a9eff;margin:0 0 10px;font-size:14px;">&#x1F4CA; 학습 진행도</h4>
+        <div id="progress-content"></div>
+        <button id="toggle-progress" style="position:absolute;top:5px;right:10px;background:none;border:none;color:#666;cursor:pointer;font-size:16px;">&#xD7;</button>
     </div>
+
 
     <!-- 버전 표시 (디버깅용) -->
     <div style="position:fixed;bottom:2px;left:2px;color:rgba(255,255,255,0.3);font-size:9px;z-index:99999;pointer-events:none;font-family:monospace;">v5-high</div>
@@ -73,6 +52,8 @@
     <script src="../shared/ui-components.js?v=5"></script>
     <script src="../shared/wind.js?v=5"></script>
     <script src="../shared/autopilot.js?v=5"></script>
+    <script src="../shared/audio.js?v=5"></script>
+    <script src="../shared/onboarding.js?v=5"></script>
 
     <!-- 미션 시스템 -->
     <script src="../shared/mission-framework.js?v=5"></script>
@@ -81,5 +62,93 @@
     <!-- 고학년 전용 -->
     <script src="js/controls.js?v=5"></script>
     <script src="js/app.js?v=5"></script>
+
+    <!-- 학습 진행도 패널 스크립트 -->
+    <script>
+    (function() {
+        function updateProgressPanel() {
+            var modes = [
+                { name: '비행 미션', key: 'drone-high-progress', total: 15, icon: '&#x1F681;', link: '#' },
+                { name: '블록 코딩', key: 'drone-blockly-progress', total: 6, icon: '&#x1F9E9;', link: 'blockly.html' },
+                { name: '텍스트 코딩', key: 'drone-coding-progress', total: 6, icon: '&#x1F4BB;', link: 'coding.html' }
+            ];
+
+            var container = document.getElementById('progress-content');
+            if (!container) return;
+
+            var totalCompleted = 0;
+            var totalMissions = 0;
+            var html = '';
+
+            modes.forEach(function(mode) {
+                var data = JSON.parse(localStorage.getItem(mode.key) || '{}');
+                var completed = 0;
+                for (var i = 0; i < mode.total; i++) {
+                    var m = data['mission_' + i];
+                    if (m && m.completed) completed++;
+                }
+                totalCompleted += completed;
+                totalMissions += mode.total;
+
+                var pct = Math.round((completed / mode.total) * 100);
+                var barColor = pct === 100 ? '#44bb77' : '#4a9eff';
+                var linkStart = mode.link !== '#' ? '<a href="' + mode.link + '"' : '<div';
+                var linkEnd = mode.link !== '#' ? '</a>' : '</div>';
+                var linkStyle = 'display:block;text-decoration:none;margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px;cursor:' + (mode.link !== '#' ? 'pointer' : 'default') + ';';
+
+                html += linkStart + ' style="' + linkStyle + '" ' +
+                    (mode.link !== '#' ? '' : '') +
+                    'onmouseover="this.style.background=\'rgba(74,158,255,0.15)\'" ' +
+                    'onmouseout="this.style.background=\'rgba(255,255,255,0.05)\'">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+                        '<span style="color:#ccc;font-size:13px;">' + mode.icon + ' ' + mode.name + '</span>' +
+                        '<span style="color:#4a9eff;font-size:12px;">' + completed + '/' + mode.total + '</span>' +
+                    '</div>' +
+                    '<div style="background:#1a1a2e;border-radius:4px;height:6px;overflow:hidden;">' +
+                        '<div style="background:' + barColor + ';height:100%;width:' + pct + '%;border-radius:4px;transition:width 0.3s;"></div>' +
+                    '</div>' +
+                    linkEnd;
+            });
+
+            var overallPct = Math.round((totalCompleted / totalMissions) * 100);
+            html += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #333;">' +
+                '<div style="display:flex;justify-content:space-between;color:#fff;font-size:13px;margin-bottom:4px;">' +
+                    '<span>전체 진행도</span>' +
+                    '<span>' + overallPct + '%</span>' +
+                '</div>' +
+                '<div style="background:#1a1a2e;border-radius:4px;height:8px;overflow:hidden;">' +
+                    '<div style="background:linear-gradient(90deg,#4a9eff,#44bb77);height:100%;width:' + overallPct + '%;border-radius:4px;"></div>' +
+                '</div>' +
+            '</div>';
+
+            container.innerHTML = html;
+        }
+
+        // 패널이 DOM에 있을 때 실행
+        window.addEventListener('load', function() {
+            updateProgressPanel();
+
+            var toggleBtn = document.getElementById('toggle-progress');
+            var panel = document.getElementById('progress-panel');
+            if (toggleBtn && panel) {
+                toggleBtn.addEventListener('click', function() {
+                    var content = document.getElementById('progress-content');
+                    var title = panel.querySelector('h4');
+                    if (content.style.display === 'none') {
+                        content.style.display = 'block';
+                        title.style.display = 'block';
+                        toggleBtn.innerHTML = '&#xD7;';
+                        panel.style.minWidth = '200px';
+                    } else {
+                        content.style.display = 'none';
+                        title.style.display = 'none';
+                        toggleBtn.innerHTML = '&#x1F4CA;';
+                        panel.style.minWidth = 'auto';
+                    }
+                });
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

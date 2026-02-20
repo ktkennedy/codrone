@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -18,17 +18,6 @@
         <span class="mode-label">&#x2B50; 저학년 모드</span>
     </div>
 
-    <!-- 튜토리얼 오버레이 -->
-    <div id="tutorial-overlay">
-        <div class="tutorial-box">
-            <h2>&#x1F681; 드론 조종을 배워봐요!</h2>
-            <p>&#x1F7E2; 초록 버튼을 누르면 드론이 날아올라요</p>
-            <p>&#x2B06;&#x2B07;&#x2B05;&#x27A1; 화살표 버튼으로 방향을 바꿔요</p>
-            <p>&#x2B06;위로 &#x2B07;아래로 버튼으로 높이를 조절해요</p>
-            <p>&#x1F7E0; 주황 버튼을 누르면 착륙해요</p>
-            <button class="start-btn" id="btn-start" onclick="window._droneStarted=true;document.getElementById('tutorial-overlay').style.display='none';">시작하기!</button>
-        </div>
-    </div>
 
     <!-- 버전 표시 (디버깅용) -->
     <div style="position:fixed;bottom:2px;left:2px;color:rgba(255,255,255,0.3);font-size:9px;z-index:99999;pointer-events:none;font-family:monospace;">v5-low</div>
@@ -53,6 +42,8 @@
     <script src="../shared/camera.js?v=5"></script>
     <script src="../shared/ui-components.js?v=5"></script>
     <script src="../shared/wind.js?v=5"></script>
+    <script src="../shared/audio.js?v=5"></script>
+    <script src="../shared/onboarding.js?v=5"></script>
 
     <!-- 미션 시스템 -->
     <script src="../shared/mission-framework.js?v=5"></script>

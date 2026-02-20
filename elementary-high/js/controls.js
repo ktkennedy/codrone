@@ -7,12 +7,15 @@ class KeyboardControls {
         this.physics = physics;
         this.keys = {};
         this.input = { throttle: 0, pitch: 0, roll: 0, yaw: 0 };
+        this.overlayVisible = false;
+        this.onTakeoff = null;
         this._createUI();
         this._bindEvents();
+        this._startPulseTimer();
     }
 
     _createUI() {
-        // 키 안내 패널
+        // 키 안내 패널 (기존 - 하단 좌측)
         const guide = document.createElement('div');
         guide.id = 'key-guide';
         guide.className = 'hidden';
@@ -33,6 +36,124 @@ class KeyboardControls {
         `;
         document.body.appendChild(guide);
 
+        // 새로운 키 가이드 오버레이
+        const overlay = document.createElement('div');
+        overlay.id = 'key-guide-overlay';
+        overlay.innerHTML = `
+            <div class="key-guide-content">
+                <h2>🎮 드론 조작법</h2>
+
+                <div class="key-guide-section">
+                    <h3>이동</h3>
+                    <div class="key-guide-grid">
+                        <div class="key-guide-item">
+                            <span class="key-cap">W</span>
+                            <span class="key-label">앞으로</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">S</span>
+                            <span class="key-label">뒤로</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">A</span>
+                            <span class="key-label">왼쪽</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">D</span>
+                            <span class="key-label">오른쪽</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="key-guide-section">
+                    <h3>고도</h3>
+                    <div class="key-guide-grid">
+                        <div class="key-guide-item">
+                            <span class="key-cap wide">Space</span>
+                            <span class="key-label">올리기</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap wide">Shift</span>
+                            <span class="key-label">내리기</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="key-guide-section">
+                    <h3>회전</h3>
+                    <div class="key-guide-grid">
+                        <div class="key-guide-item">
+                            <span class="key-cap">Q</span>
+                            <span class="key-label">왼쪽 회전</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">E</span>
+                            <span class="key-label">오른쪽 회전</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="key-guide-section">
+                    <h3>기타</h3>
+                    <div class="key-guide-grid">
+                        <div class="key-guide-item">
+                            <span class="key-cap">T</span>
+                            <span class="key-label">이륙</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">L</span>
+                            <span class="key-label">착륙</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">C</span>
+                            <span class="key-label">카메라</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">M</span>
+                            <span class="key-label">미션</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">G</span>
+                            <span class="key-label">안정화</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">V</span>
+                            <span class="key-label">바람</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">B</span>
+                            <span class="key-label">튜닝</span>
+                        </div>
+                        <div class="key-guide-item">
+                            <span class="key-cap">H</span>
+                            <span class="key-label">도움말</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="key-guide-footer">
+                    <strong>H</strong> 키를 눌러 닫기
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // 오버레이 클릭 시 닫기
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                this._toggleOverlay();
+            }
+        });
+
+        // 작은 힌트 배지 (우측 하단)
+        const badge = document.createElement('div');
+        badge.id = 'key-hint-badge';
+        badge.innerHTML = '<strong>H</strong>: 조작법';
+        badge.addEventListener('click', () => {
+            this._toggleOverlay();
+        });
+        document.body.appendChild(badge);
+
         // 자동안정화 토글
         const toggle = document.createElement('div');
         toggle.id = 'stabilize-toggle';
@@ -44,17 +165,50 @@ class KeyboardControls {
         });
     }
 
+    _startPulseTimer() {
+        // 10초 후 펄스 애니메이션 제거
+        setTimeout(() => {
+            const badge = document.getElementById('key-hint-badge');
+            if (badge) {
+                badge.classList.add('no-pulse');
+            }
+        }, 10000);
+    }
+
+    _toggleOverlay() {
+        const overlay = document.getElementById('key-guide-overlay');
+        if (!overlay) return;
+
+        this.overlayVisible = !this.overlayVisible;
+
+        if (this.overlayVisible) {
+            overlay.classList.add('visible');
+        } else {
+            overlay.classList.remove('visible');
+        }
+    }
+
     _bindEvents() {
         document.addEventListener('keydown', (e) => {
             if (e.repeat) return;
+
+            // H 또는 ? 키로 오버레이 토글 (오버레이가 보일 때도 다른 키 동작은 유지)
+            if (e.key.toLowerCase() === 'h' || e.key === '?') {
+                this._toggleOverlay();
+                e.preventDefault();
+                return;
+            }
+
             this.keys[e.key.toLowerCase()] = true;
             this.keys[e.code] = true;
 
             switch (e.key.toLowerCase()) {
-                case 't': this.physics.takeoff(3); break;
+                case 't':
+                    this.physics.takeoff(3);
+                    if (this.onTakeoff) this.onTakeoff();
+                    break;
                 case 'l': this.physics.land(); break;
                 case 'g': this.toggleStabilize(); break;
-                case 'h': this._toggleGuide(); break;
                 case ' ': e.preventDefault(); break;
             }
 

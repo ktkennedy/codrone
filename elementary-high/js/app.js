@@ -23,6 +23,8 @@
     var WindPresets = DS.WindPresets;
     var WindSettingsPanel = DS.WindSettingsPanel;
     var PhysicsTuningPanel = DS.PhysicsTuningPanel;
+    var AudioManager = DS.AudioManager;
+    var OnboardingTutorial = DS.OnboardingTutorial;
 
     var scene, renderer, camera;
     var physics, droneModel, world, cameraSystem;
@@ -31,6 +33,7 @@
     var autopilot;
     var windPanel;
     var tuningPanel;
+    var audioManager;
     var clock;
     var isStarted = false;
     var currentMissionDef = null;
@@ -95,11 +98,13 @@
         });
 
         physics.onCollision = function (speed) {
+            if (audioManager) audioManager.playCollision();
             if (!messageDisplay) return;
             if (speed > 5) messageDisplay.show('강한 충돌! 주의하세요!', 'error', 2000);
             else messageDisplay.show('가벼운 충돌', 'warning', 1000);
         };
         physics.onLanded = function () {
+            if (audioManager) audioManager.playLand();
             if (missionManager && missionManager.isRunning) return;
             if (!messageDisplay) return;
             var state = physics.getState();
@@ -122,11 +127,20 @@
         if (PathOverlay) pathOverlay = new PathOverlay();
         if (Autopilot) autopilot = new Autopilot(physics);
 
+        // 오디오 매니저
+        if (AudioManager) {
+            audioManager = new AudioManager();
+            window._dronePhysics = physics; // 오디오 업데이트용 참조
+        }
+
         controls = new KeyboardControls(physics);
         controls.onCameraSwitch = function () {
             cameraSystem.nextMode();
             if (hud) hud.setCameraMode(cameraSystem.getModeName());
             if (messageDisplay) messageDisplay.show('카메라: ' + cameraSystem.getModeName(), 'info', 1000);
+        };
+        controls.onTakeoff = function () {
+            if (audioManager) audioManager.playTakeoff();
         };
 
         // 바람 시스템
@@ -149,6 +163,29 @@
 
         // 미션 시스템
         initMissions();
+
+        // 고학년 온보딩 튜토리얼
+        if (OnboardingTutorial) {
+            var tutorial = new OnboardingTutorial({
+                storageKey: 'drone-high-tutorial-complete',
+                steps: [
+                    { id: 'welcome', title: '드론 조종사가 되어보세요!', description: '키보드로 드론을 자유롭게 조종할 수 있어요.', icon: '🚁', buttonText: '시작하기', highlightSelector: null, waitForAction: null, position: 'center' },
+                    { id: 'takeoff', title: 'T키를 눌러 이륙하세요!', description: '드론을 하늘로 띄워보세요!', icon: '🟢', buttonText: null, highlightSelector: null, waitForAction: 'keyboard_T', position: 'center' },
+                    { id: 'move', title: 'WASD로 움직여보세요!', description: 'W:전진 A:좌 S:후진 D:우', icon: '🎮', buttonText: null, highlightSelector: null, waitForAction: 'keyboard_WASD', position: 'center' },
+                    { id: 'altitude', title: 'Space/Shift로 높이 조절!', description: 'Space:상승 Shift:하강', icon: '⬆️', buttonText: null, highlightSelector: null, waitForAction: 'keyboard_altitude', position: 'center' },
+                    { id: 'land', title: 'L키를 눌러 착륙하세요!', description: '안전하게 착륙해보세요!', icon: '🟠', buttonText: null, highlightSelector: null, waitForAction: 'keyboard_L', position: 'center' },
+                    { id: 'complete', title: '잘했어요! 🎉', description: '이제 미션에 도전해볼까요? M키로 미션을 열 수 있어요!', icon: '🏆', buttonText: '미션 시작', highlightSelector: '#btn-mission', waitForAction: null, position: 'center' }
+                ],
+                onComplete: function() { startSimulation(); }
+            });
+            if (tutorial.isCompleted()) {
+                startSimulation();
+            } else {
+                tutorial.start();
+            }
+        } else {
+            startSimulation();
+        }
 
         window.addEventListener('resize', onResize);
         document.addEventListener('keydown', function (e) {
@@ -190,6 +227,7 @@
         };
 
         missionManager.onMissionComplete = function (result) {
+            if (audioManager) audioManager.playMissionComplete();
             if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
                 currentMissionDef._origMission.cleanup(scene);
             }
@@ -203,6 +241,7 @@
         };
 
         missionManager.onMissionFail = function (result) {
+            if (audioManager) audioManager.playMissionFail();
             if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
                 currentMissionDef._origMission.cleanup(scene);
             }
@@ -216,7 +255,29 @@
         };
 
         missionManager.onObjectiveUpdate = function (obj) {
+            if (audioManager) audioManager.playWaypointReached();
             if (messageDisplay) messageDisplay.show(obj.description + ' 완료!', 'success', 1500);
+        };
+
+        missionManager.onAllMissionsComplete = function () {
+            var modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);';
+            modal.innerHTML = '<div style="background:#1a1a2e;border:2px solid rgba(74,158,255,0.5);border-radius:16px;padding:40px 48px;text-align:center;max-width:420px;color:#fff;font-family:inherit;">' +
+                '<div style="font-size:48px;margin-bottom:16px;">&#x1F389;</div>' +
+                '<h2 style="font-size:22px;margin-bottom:12px;color:#4a9eff;">축하합니다!</h2>' +
+                '<p style="font-size:15px;margin-bottom:8px;line-height:1.6;">모든 비행 미션을 완료했어요!</p>' +
+                '<p style="font-size:14px;color:#aaa;margin-bottom:28px;">이제 블록 코딩에 도전해볼까요?</p>' +
+                '<div style="display:flex;gap:12px;justify-content:center;">' +
+                '<button id="modal-next-stage" style="padding:12px 24px;border-radius:8px;border:none;background:#4a9eff;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;font-family:inherit;">&#x1F9E9; 블록 코딩 시작하기</button>' +
+                '<button id="modal-practice" style="padding:12px 24px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#ccc;font-size:15px;cursor:pointer;font-family:inherit;">더 연습하기</button>' +
+                '</div></div>';
+            document.body.appendChild(modal);
+            document.getElementById('modal-next-stage').addEventListener('click', function () {
+                window.location.href = 'blockly.html';
+            });
+            document.getElementById('modal-practice').addEventListener('click', function () {
+                modal.remove();
+            });
         };
 
         missionUI = new MissionSelectUI(missionManager,
@@ -231,6 +292,19 @@
         missionBtn.style.cssText = 'position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:50;padding:8px 24px;border-radius:20px;border:1px solid rgba(74,158,255,0.4);background:rgba(74,158,255,0.15);color:#4a9eff;font-size:14px;font-weight:bold;cursor:pointer;font-family:inherit;';
         missionBtn.addEventListener('click', function () { showMissionSelect(); });
         document.body.appendChild(missionBtn);
+
+        // 음소거 버튼
+        if (audioManager) {
+            var muteBtn = document.createElement('button');
+            muteBtn.id = 'btn-mute';
+            muteBtn.textContent = '🔊';
+            muteBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:50;padding:8px 16px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);color:#fff;font-size:18px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;';
+            muteBtn.addEventListener('click', function () {
+                audioManager.toggleMute();
+                muteBtn.textContent = audioManager.isMuted ? '🔇' : '🔊';
+            });
+            document.body.appendChild(muteBtn);
+        }
 
         // wp-guide는 이제 mission-hud 안에 통합됨 (별도 div 불필요)
     }
@@ -350,6 +424,7 @@
             if (cameraSystem) cameraSystem.update(dt);
             if (hud) hud.update(state);
             if (minimap) minimap.update(state);
+            if (audioManager) audioManager.update(state);
 
             // 미션 업데이트
             if (missionManager && missionManager.isRunning && currentMissionDef) {

@@ -11,6 +11,7 @@
     var missionManager, missionUI;
     var windPanel;
     var tuningPanel;
+    var audioManager;
     var clock;
     var isStarted = false;
     var currentMissionDef = null;
@@ -32,43 +33,23 @@
     var WindPresets = DS.WindPresets;
     var WindSettingsPanel = DS.WindSettingsPanel;
     var PhysicsTuningPanel = DS.PhysicsTuningPanel;
+    var OnboardingTutorial = DS.OnboardingTutorial;
+    var AudioManager = DS.AudioManager;
+
+    var tutorial = null;
 
     /**
-     * 시뮬레이션 시작 (오버레이 숨기기)
+     * 시뮬레이션 시작 (튜토리얼 완료 후)
      */
     function startSimulation() {
-        var overlay = document.getElementById('tutorial-overlay');
-        if (overlay) overlay.style.display = 'none';
         isStarted = true;
         window._droneStarted = true;
         if (messageDisplay) {
-            messageDisplay.show('이륙 버튼을 눌러보세요!', 'info', 3000);
+            messageDisplay.show('자유롭게 비행해보세요!', 'info', 2000);
         }
-    }
-
-    // 시작 버튼 이벤트 - 가능한 한 빨리 등록
-    function attachStartButton() {
-        var btn = document.getElementById('btn-start');
-        if (btn) {
-            btn.addEventListener('click', startSimulation);
-            btn.addEventListener('touchend', function (e) {
-                e.preventDefault();
-                startSimulation();
-            });
-        }
-    }
-
-    // DOM 로드 후 즉시 시작 버튼 연결
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', attachStartButton);
-    } else {
-        attachStartButton();
     }
 
     function init() {
-        // 시작 버튼 한 번 더 확인 (혹시 위에서 실패했을 경우)
-        attachStartButton();
-
         scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0x87ceeb, 80, 200);
 
@@ -94,9 +75,11 @@
         });
 
         physics.onCollision = function (speed) {
+            if (audioManager) audioManager.playCollision();
             if (messageDisplay) messageDisplay.show('쿵! 조심해요!', 'warning', 1500);
         };
         physics.onLanded = function () {
+            if (audioManager) audioManager.playLand();
             if (!missionManager || !missionManager.isRunning) {
                 if (messageDisplay) messageDisplay.show('착륙 성공!', 'success', 2000);
             }
@@ -110,8 +93,22 @@
 
         hud = new HUD();
         messageDisplay = new MessageDisplay();
+        window._droneMessageDisplay = messageDisplay;
         minimap = new Minimap(null, 60);
         controls = new SimpleControls(physics);
+
+        // 오디오 매니저
+        if (AudioManager) {
+            audioManager = new AudioManager();
+            window._dronePhysics = physics; // 오디오 업데이트용 참조
+        }
+
+        // 이륙 사운드 콜백
+        if (controls && audioManager) {
+            controls.onTakeoff = function () {
+                audioManager.playTakeoff();
+            };
+        }
 
         // 바람 시스템
         if (WindSettingsPanel && WindPresets) {
@@ -133,6 +130,23 @@
 
         // 미션 시스템
         initMissions();
+
+        // 온보딩 튜토리얼 초기화
+        if (OnboardingTutorial) {
+            tutorial = new OnboardingTutorial({
+                storageKey: 'drone-low-tutorial-complete',
+                onComplete: function() {
+                    startSimulation();
+                }
+            });
+            // 씬 준비 후 튜토리얼 시작
+            setTimeout(function() {
+                tutorial.start();
+            }, 500);
+        } else {
+            // 튜토리얼이 없으면 바로 시작
+            startSimulation();
+        }
 
         window.addEventListener('resize', onResize);
 
@@ -165,6 +179,7 @@
         };
 
         missionManager.onMissionComplete = function (result) {
+            if (audioManager) audioManager.playMissionComplete();
             if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
                 currentMissionDef._origMission.cleanup(scene);
             }
@@ -177,6 +192,7 @@
         };
 
         missionManager.onMissionFail = function (result) {
+            if (audioManager) audioManager.playMissionFail();
             if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
                 currentMissionDef._origMission.cleanup(scene);
             }
@@ -189,7 +205,29 @@
         };
 
         missionManager.onObjectiveUpdate = function (obj) {
+            if (audioManager) audioManager.playWaypointReached();
             if (messageDisplay) messageDisplay.show(obj.description + ' 완료!', 'success', 1500);
+        };
+
+        missionManager.onAllMissionsComplete = function () {
+            var modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);';
+            modal.innerHTML = '<div style="background:#1a1a2e;border:2px solid rgba(68,255,136,0.5);border-radius:16px;padding:40px 48px;text-align:center;max-width:420px;color:#fff;font-family:inherit;">' +
+                '<div style="font-size:48px;margin-bottom:16px;">🎉</div>' +
+                '<h2 style="font-size:22px;margin-bottom:12px;color:#44ff88;">축하합니다!</h2>' +
+                '<p style="font-size:15px;margin-bottom:8px;line-height:1.6;">모든 미션을 완료했어요!</p>' +
+                '<p style="font-size:14px;color:#aaa;margin-bottom:28px;">고학년 모드에서 더 어려운 미션에 도전해볼까요?</p>' +
+                '<div style="display:flex;gap:12px;justify-content:center;">' +
+                '<button id="modal-next-stage" style="padding:12px 24px;border-radius:8px;border:none;background:#4a9eff;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;font-family:inherit;">🚀 고학년 모드 도전하기</button>' +
+                '<button id="modal-practice" style="padding:12px 24px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#ccc;font-size:15px;cursor:pointer;font-family:inherit;">더 연습하기</button>' +
+                '</div></div>';
+            document.body.appendChild(modal);
+            document.getElementById('modal-next-stage').addEventListener('click', function () {
+                window.location.href = '../elementary-high/index.html';
+            });
+            document.getElementById('modal-practice').addEventListener('click', function () {
+                modal.remove();
+            });
         };
 
         missionUI = new MissionSelectUI(missionManager,
@@ -204,6 +242,19 @@
         missionBtn.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:50;padding:8px 24px;border-radius:20px;border:1px solid rgba(68,255,136,0.4);background:rgba(68,255,136,0.15);color:#44ff88;font-size:14px;font-weight:bold;cursor:pointer;font-family:inherit;';
         missionBtn.addEventListener('click', function () { showMissionSelect(); });
         document.body.appendChild(missionBtn);
+
+        // 음소거 버튼
+        if (audioManager) {
+            var muteBtn = document.createElement('button');
+            muteBtn.id = 'btn-mute';
+            muteBtn.textContent = '🔊';
+            muteBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:50;padding:8px 16px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);color:#fff;font-size:18px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;';
+            muteBtn.addEventListener('click', function () {
+                audioManager.toggleMute();
+                muteBtn.textContent = audioManager.isMuted ? '🔇' : '🔊';
+            });
+            document.body.appendChild(muteBtn);
+        }
     }
 
     function showMissionSelect() {
@@ -222,7 +273,7 @@
     function startMission(index) {
         if (!missionManager) return;
         if (index >= missionManager.missions.length) {
-            if (messageDisplay) messageDisplay.show('모든 미션을 완료했어요!', 'success', 3000);
+            if (missionManager.onAllMissionsComplete) missionManager.onAllMissionsComplete();
             return;
         }
         if (!missionManager.isMissionUnlocked(index)) {
@@ -263,6 +314,7 @@
             if (cameraSystem) cameraSystem.update(dt);
             if (hud) hud.update(state);
             if (minimap) minimap.update(state);
+            if (audioManager) audioManager.update(state);
 
             // 미션 업데이트
             if (missionManager && missionManager.isRunning && currentMissionDef) {

@@ -134,12 +134,12 @@
                         check: function (state) { return state.altitude > 5; }
                     },
                     {
-                        description: '10초 동안 호버링',
+                        description: '5초 동안 호버링',
                         _hoverStart: null,
                         check: function (state, time) {
                             if (state.altitude > 4 && state.altitude < 6) {
                                 if (!this._hoverStart) this._hoverStart = time;
-                                return time - this._hoverStart > 10;
+                                return time - this._hoverStart > 5;
                             }
                             this._hoverStart = null;
                             return false;
@@ -170,9 +170,7 @@
                 _targets: [
                     { x: 10, y: 5, z: 0 },
                     { x: 10, y: 10, z: 10 },
-                    { x: 0, y: 8, z: 10 },
-                    { x: -10, y: 6, z: 0 },
-                    { x: 0, y: 4, z: -10 }
+                    { x: 0, y: 8, z: 10 }
                 ],
                 setup: function (scene) {
                     this.collectibles = [];
@@ -187,7 +185,7 @@
                     this._extraVisuals = [];
                 },
                 frameUpdate: function (state) {
-                    if (this._currentTarget >= 5) return;
+                    if (this._currentTarget >= 3) return;
                     var target = this.collectibles[this._currentTarget * 2];
                     var beam = this.collectibles[this._currentTarget * 2 + 1];
                     var dx = state.position.x - target.position.x;
@@ -198,7 +196,7 @@
                         target.material.opacity = 0.1;
                         if (beam) beam.material.opacity = 0.05;
                         this._currentTarget++;
-                        if (this._currentTarget < 5) {
+                        if (this._currentTarget < 3) {
                             this.collectibles[this._currentTarget * 2].material.opacity = 1;
                             this.collectibles[this._currentTarget * 2 + 1].material.opacity = 0.5;
                         }
@@ -206,16 +204,16 @@
                 },
                 objectives: [
                     {
-                        description: '첫 번째, 두 번째 좌표 방문',
+                        description: '첫 번째 좌표 방문',
+                        check: function (s, t, m) { return m._currentTarget >= 1; }
+                    },
+                    {
+                        description: '두 번째 좌표 방문',
                         check: function (s, t, m) { return m._currentTarget >= 2; }
                     },
                     {
-                        description: '세 번째, 네 번째 좌표 방문',
-                        check: function (s, t, m) { return m._currentTarget >= 4; }
-                    },
-                    {
-                        description: '모든 좌표 방문 완료!',
-                        check: function (s, t, m) { return m._currentTarget >= 5; }
+                        description: '세 번째 좌표 방문 완료!',
+                        check: function (s, t, m) { return m._currentTarget >= 3; }
                     }
                 ],
                 starCriteria: {

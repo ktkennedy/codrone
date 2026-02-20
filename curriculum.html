@@ -522,6 +522,81 @@
             starsContainer.appendChild(star);
         }
 
+        // 학습 진행도 배지 표시
+        (function() {
+            // localStorage 진행도 읽기
+            var lowData = JSON.parse(localStorage.getItem('drone-low-progress') || '{}');
+            var highData = JSON.parse(localStorage.getItem('drone-high-progress') || '{}');
+            var blocklyData = JSON.parse(localStorage.getItem('drone-blockly-progress') || '{}');
+            var codingData = JSON.parse(localStorage.getItem('drone-coding-progress') || '{}');
+
+            function countCompleted(data, total) {
+                var c = 0;
+                for (var i = 0; i < total; i++) {
+                    if (data['mission_' + i] && data['mission_' + i].completed) c++;
+                }
+                return c;
+            }
+
+            var lowDone = countCompleted(lowData, 15);
+            var highDone = countCompleted(highData, 15);
+            var blocklyDone = countCompleted(blocklyData, 6);
+            var codingDone = countCompleted(codingData, 6);
+
+            // 비행 미션 배지: 저학년 또는 고학년 중 하나라도 달성하면 완료
+            function flightBadge(threshold) {
+                var lowOk = lowDone >= threshold;
+                var highOk = highDone >= threshold;
+                var done = lowOk || highOk;
+                var grade = highOk ? '(고학년)' : lowOk ? '(저학년)' : '';
+                return { done: done, label: '비행 미션', grade: grade };
+            }
+
+            // 주차별 진행도 매핑 (통합):
+            // 5~8주: 비행 미션 (저학년 또는 고학년, 1/3/5/8개)
+            // 9~12주: 비행 미션 (이어서, 10/12/14/15개)
+            // 13~17주: 블록 코딩 (고학년)
+            // 18~21주: 텍스트 코딩 (고학년)
+            var weekBadges = {
+                5:  flightBadge(1),
+                6:  flightBadge(3),
+                7:  flightBadge(5),
+                8:  flightBadge(8),
+                9:  flightBadge(10),
+                10: flightBadge(12),
+                11: flightBadge(14),
+                12: flightBadge(15),
+                13: { done: blocklyDone >= 1, label: '블록 코딩', grade: '(고학년)' },
+                14: { done: blocklyDone >= 2, label: '블록 코딩', grade: '(고학년)' },
+                15: { done: blocklyDone >= 3, label: '블록 코딩', grade: '(고학년)' },
+                16: { done: blocklyDone >= 5, label: '블록 코딩', grade: '(고학년)' },
+                17: { done: blocklyDone >= 6, label: '블록 코딩', grade: '(고학년)' },
+                18: { done: codingDone >= 1, label: '텍스트 코딩', grade: '(고학년)' },
+                19: { done: codingDone >= 2, label: '텍스트 코딩', grade: '(고학년)' },
+                20: { done: codingDone >= 4, label: '텍스트 코딩', grade: '(고학년)' },
+                21: { done: codingDone >= 6, label: '텍스트 코딩', grade: '(고학년)' }
+            };
+
+            document.querySelectorAll('.week-item[data-week]').forEach(function(item) {
+                var week = parseInt(item.dataset.week);
+                var badge = weekBadges[week];
+                if (!badge) return;
+
+                var weekInfo = item.querySelector('.week-info');
+                if (!weekInfo) return;
+
+                var badgeEl = document.createElement('span');
+                if (badge.done) {
+                    badgeEl.style.cssText = 'display:inline-block;background:rgba(68,187,119,0.2);color:#44bb77;border:1px solid rgba(68,187,119,0.4);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;margin-top:4px;';
+                    badgeEl.textContent = '✓ 완료 ' + badge.grade;
+                } else {
+                    badgeEl.style.cssText = 'display:inline-block;background:rgba(74,158,255,0.1);color:#4a9eff;border:1px solid rgba(74,158,255,0.2);border-radius:6px;padding:2px 8px;font-size:11px;margin-top:4px;';
+                    badgeEl.textContent = '진행 중';
+                }
+                weekInfo.appendChild(badgeEl);
+            });
+        })();
+
         // PPT 파일 존재 여부 확인 후 버튼 생성
         const BASE_URL = 'https://ktkennedy.github.io/codrone/materials/';
         const VIEWER_URL = 'https://view.officeapps.live.com/op/embed.aspx?src=';

@@ -529,10 +529,12 @@
                 description: '속도를 2 이하로 유지하며 목표지점까지 이동해요!',
                 timeLimit: 60,
                 collectibles: [],
-                _speedViolation: false,
+                _speedWarnings: 0,
+                _lastWarnTime: -999,
                 setup: function (scene) {
                     this.collectibles = [];
-                    this._speedViolation = false;
+                    this._speedWarnings = 0;
+                    this._lastWarnTime = -999;
                     // 목표 마커
                     var geo = new THREE.SphereGeometry(0.8, 16, 16);
                     var mat = new THREE.MeshStandardMaterial({
@@ -567,14 +569,18 @@
                     });
                     this.collectibles = [];
                 },
-                frameUpdate: function (state) {
+                frameUpdate: function (state, time) {
                     var speed = Math.sqrt(
                         state.velocity.x * state.velocity.x +
                         state.velocity.y * state.velocity.y +
                         state.velocity.z * state.velocity.z
                     );
-                    if (speed > 5) {
-                        this._speedViolation = true;
+                    if (speed > 2 && time - this._lastWarnTime > 2) {
+                        this._lastWarnTime = time;
+                        this._speedWarnings++;
+                        if (window._droneMessageDisplay) {
+                            window._droneMessageDisplay.show('천천히! 속도 위반 ' + this._speedWarnings + '회', 'warning', 1000);
+                        }
                     }
                 },
                 objectives: [
@@ -593,13 +599,13 @@
                         }
                     },
                     {
-                        description: '속도 위반 없이 완료',
+                        description: '속도 위반 3회 미만으로 완료',
                         check: function (state, time, mission) {
                             var dx = state.position.x - 15;
                             var dy = state.position.y - 3;
                             var dz = state.position.z - 15;
                             var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                            return dist < 3 && !mission._speedViolation;
+                            return dist < 3 && mission._speedWarnings < 4;
                         }
                     }
                 ],
