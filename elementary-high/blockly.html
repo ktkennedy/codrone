@@ -194,10 +194,14 @@
             </div>
             <div id="code-panel">
                 <div id="code-panel-header">
-                    <span>생성된 JavaScript 코드</span>
+                    <div style="display:flex;gap:8px;">
+                        <button class="tab-btn active" id="tab-code" style="background:#0d1117;color:#88aacc;border:1px solid #444;padding:3px 12px;border-radius:4px;font-size:11px;cursor:pointer;">코드 보기</button>
+                        <button class="tab-btn" id="tab-console" style="background:transparent;color:#666;border:1px solid #333;padding:3px 12px;border-radius:4px;font-size:11px;cursor:pointer;">콘솔 출력</button>
+                    </div>
                     <button class="toggle-code-btn" id="btn-toggle-code">숨기기</button>
                 </div>
                 <pre id="code-output">// 블록을 조합하면 여기에 코드가 표시됩니다.</pre>
+                <div id="console-output" style="display:none;padding:10px;color:#c9d1d9;font-family:'Courier New',monospace;font-size:12px;white-space:pre-wrap;line-height:1.6;overflow:auto;height:100%;"></div>
             </div>
         </div>
     </div>
@@ -336,6 +340,15 @@
                     '<block type="drone_add_waypoint"><value name="X"><shadow type="math_number"><field name="NUM">5</field></shadow></value><value name="Z"><shadow type="math_number"><field name="NUM">5</field></shadow></value><value name="Y"><shadow type="math_number"><field name="NUM">3</field></shadow></value></block>' +
                 '</category>' +
                 '<sep></sep>' +
+                '<category name="출력" colour="#e67e22">' +
+                    '<block type="drone_print"><value name="VALUE"><shadow type="text"><field name="TEXT">안녕하세요!</field></shadow></value></block>' +
+                    '<block type="drone_print_text"><field name="TEXT">안녕하세요!</field></block>' +
+                '</category>' +
+                '<category name="텍스트" colour="#5ba58c">' +
+                    '<block type="text"><field name="TEXT">안녕!</field></block>' +
+                    '<block type="text_join"></block>' +
+                    '<block type="text_length"></block>' +
+                '</category>' +
                 '<category name="논리" colour="#5b80a5">' +
                     '<block type="controls_if"></block>' +
                     '<block type="controls_ifelse"></block>' +
@@ -432,6 +445,17 @@
 
             bridge.onCodeGenerated = function (code) {
                 document.getElementById('code-output').textContent = code;
+            };
+
+            bridge.onConsoleLog = function (msg) {
+                var consoleDiv = document.getElementById('console-output');
+                if (consoleDiv) {
+                    var line = document.createElement('div');
+                    line.style.color = '#c9d1d9';
+                    line.textContent = msg;
+                    consoleDiv.appendChild(line);
+                    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+                }
             };
         }
 
@@ -537,8 +561,32 @@
         }
 
         function bindButtons() {
+            // 탭 전환
+            document.getElementById('tab-code').addEventListener('click', function () {
+                document.getElementById('code-output').style.display = '';
+                document.getElementById('console-output').style.display = 'none';
+                this.style.background = '#0d1117';
+                this.style.color = '#88aacc';
+                this.style.borderColor = '#444';
+                document.getElementById('tab-console').style.background = 'transparent';
+                document.getElementById('tab-console').style.color = '#666';
+                document.getElementById('tab-console').style.borderColor = '#333';
+            });
+            document.getElementById('tab-console').addEventListener('click', function () {
+                document.getElementById('code-output').style.display = 'none';
+                document.getElementById('console-output').style.display = '';
+                this.style.background = '#0d1117';
+                this.style.color = '#88aacc';
+                this.style.borderColor = '#444';
+                document.getElementById('tab-code').style.background = 'transparent';
+                document.getElementById('tab-code').style.color = '#666';
+                document.getElementById('tab-code').style.borderColor = '#333';
+            });
+
             document.getElementById('btn-run').addEventListener('click', function () {
                 if (bridge.isRunning) return;
+                var consoleDiv = document.getElementById('console-output');
+                if (consoleDiv) consoleDiv.innerHTML = '';
                 physics.reset();
                 bridge.run();
             });

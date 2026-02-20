@@ -170,6 +170,9 @@
             <button class="demo-btn" id="demo-flyto">좌표 비행</button>
             <button class="demo-btn" id="demo-patrol">순찰 비행</button>
             <button class="demo-btn" id="demo-path">경로 탐색</button>
+            <button class="demo-btn" id="demo-loop" style="border-color:#44bb77;color:#44bb77;">반복문</button>
+            <button class="demo-btn" id="demo-if" style="border-color:#5b80a5;color:#5b80a5;">조건문</button>
+            <button class="demo-btn" id="demo-func" style="border-color:#995ba5;color:#995ba5;">함수</button>
         </div>
     </div>
 
@@ -228,7 +231,14 @@ await drone.land();
                 <code>drone.getPositionX()</code> - X 좌표<br>
                 <code>drone.getPositionZ()</code> - Z 좌표<br>
                 <code>drone.getDistanceTo(x, z)</code> - 목표까지 거리<br>
-                <code>console.log(값)</code> - 콘솔 출력
+                <code>console.log(값)</code> - 콘솔 출력<br>
+                <br><b style="color:#44bb77;">코딩 기본</b><br>
+                <code>for (let i = 0; i &lt; 횟수; i++) { }</code> - 반복 실행<br>
+                <code>while (조건) { }</code> - 조건이 참인 동안 반복<br>
+                <code>if (조건) { } else { }</code> - 조건 분기<br>
+                <code>let 변수명 = 값;</code> - 변수 선언<br>
+                <code>async function 이름() { }</code> - 함수 정의<br>
+                <code>await 이름();</code> - 함수 실행<br>
             </div>
         </div>
     </div>
@@ -273,7 +283,10 @@ await drone.land();
             square: '// 사각형 비행\n// 4번 반복하여 사각형을 그립니다\n\nawait drone.takeoff();\n\nfor (let i = 0; i < 4; i++) {\n    await drone.moveForward(5);\n    await drone.turnRight(90);\n    console.log("변 " + (i+1) + " 완료!");\n}\n\nconsole.log("사각형 완성!");\nawait drone.land();\n',
             flyto: '// 좌표 비행 (자율비행)\n// flyTo()로 원하는 좌표로 자동 비행합니다\n\nawait drone.takeoff();\nconsole.log("현재 위치: X=" + drone.getPositionX() + " Z=" + drone.getPositionZ());\n\n// 첫 번째 지점으로 비행\nconsole.log(">> 지점 A (10, 3, 0) 으로 비행!");\nawait drone.flyTo(10, 3, 0);\nconsole.log("지점 A 도착! 거리: " + drone.getDistanceTo(0, 0) + "m");\n\n// 두 번째 지점으로 비행\nconsole.log(">> 지점 B (10, 5, 10) 으로 비행!");\nawait drone.flyTo(10, 5, 10);\nconsole.log("지점 B 도착!");\n\n// 홈으로 귀환\nconsole.log(">> 홈으로 귀환!");\nawait drone.returnHome();\nconsole.log("귀환 완료!");\n\nawait drone.land();\n',
             patrol: '// 순찰 비행 (자율비행)\n// 여러 웨이포인트를 순서대로 방문합니다\n\nawait drone.takeoff();\ndrone.setSpeed(4); // 속도 4m/s\n\n// 순찰 경로 정의\nconst route = [\n    {x: 8, y: 3, z: 0},   // 동쪽\n    {x: 8, y: 4, z: -8},  // 북동쪽 (높이 올림)\n    {x: 0, y: 4, z: -8},  // 북쪽\n    {x: -8, y: 3, z: -8}, // 북서쪽\n    {x: -8, y: 3, z: 0},  // 서쪽\n    {x: 0, y: 3, z: 0}    // 출발점\n];\n\nconsole.log("순찰 시작! (" + route.length + "개 지점)");\n\n// followPath로 경로 자동 비행\nawait drone.followPath(route);\n\nconsole.log("순찰 완료!");\nconsole.log("최종 위치: X=" + drone.getPositionX() + " Z=" + drone.getPositionZ());\nawait drone.land();\n',
-            path: '// 지능형 경로 탐색\n// 센서로 위치를 확인하며 목표를 찾아갑니다\n\nawait drone.takeoff();\ndrone.setSpeed(3);\n\n// 탐색할 목표 지점들\nconst targets = [\n    {x: 5, z: 5, name: "기지 A"},\n    {x: -5, z: 10, name: "기지 B"},\n    {x: -10, z: -5, name: "기지 C"}\n];\n\nfor (let i = 0; i < targets.length; i++) {\n    const t = targets[i];\n    let dist = drone.getDistanceTo(t.x, t.z);\n    console.log(">> " + t.name + " 탐색 중... (거리: " + dist + "m)");\n    \n    await drone.flyTo(t.x, 3, t.z);\n    \n    dist = drone.getDistanceTo(t.x, t.z);\n    console.log("도착! " + t.name + " (오차: " + dist + "m)");\n    await drone.hover(1);\n}\n\nconsole.log("모든 기지 탐색 완료! 귀환합니다.");\nawait drone.returnHome();\nawait drone.land();\n'
+            path: '// 지능형 경로 탐색\n// 센서로 위치를 확인하며 목표를 찾아갑니다\n\nawait drone.takeoff();\ndrone.setSpeed(3);\n\n// 탐색할 목표 지점들\nconst targets = [\n    {x: 5, z: 5, name: "기지 A"},\n    {x: -5, z: 10, name: "기지 B"},\n    {x: -10, z: -5, name: "기지 C"}\n];\n\nfor (let i = 0; i < targets.length; i++) {\n    const t = targets[i];\n    let dist = drone.getDistanceTo(t.x, t.z);\n    console.log(">> " + t.name + " 탐색 중... (거리: " + dist + "m)");\n    \n    await drone.flyTo(t.x, 3, t.z);\n    \n    dist = drone.getDistanceTo(t.x, t.z);\n    console.log("도착! " + t.name + " (오차: " + dist + "m)");\n    await drone.hover(1);\n}\n\nconsole.log("모든 기지 탐색 완료! 귀환합니다.");\nawait drone.returnHome();\nawait drone.land();\n',
+            loop_demo: '// 반복문 활용하기\n// for문으로 나선형 비행!\n\nawait drone.takeoff();\n\nfor (let i = 1; i <= 5; i++) {\n    console.log(i + "번째 변 (길이: " + i + "m)");\n    await drone.moveForward(i);\n    await drone.turnRight(90);\n}\n\nconsole.log("나선형 완성!");\nawait drone.land();\n',
+            if_demo: '// 조건문 활용하기\n// 높이에 따라 다른 동작!\n\nawait drone.takeoff();\n\nfor (let i = 0; i < 3; i++) {\n    await drone.moveUp(2);\n    let height = drone.getAltitude();\n    console.log("현재 높이: " + height + "m");\n    \n    if (height > 5) {\n        console.log("높이 5m 초과! 앞으로 이동");\n        await drone.moveForward(3);\n    } else {\n        console.log("아직 5m 이하. 계속 상승");\n    }\n}\n\nawait drone.land();\n',
+            variable_func: '// 변수와 함수 활용하기\n\n// 다각형 비행 함수 정의\nasync function flyPolygon(sides, size) {\n    let angle = 360 / sides;\n    console.log(sides + "각형 비행! (변 길이: " + size + "m)");\n    \n    for (let i = 0; i < sides; i++) {\n        await drone.moveForward(size);\n        await drone.turnRight(angle);\n        console.log("변 " + (i+1) + "/" + sides + " 완료");\n    }\n}\n\nawait drone.takeoff();\n\n// 삼각형 비행\nawait flyPolygon(3, 4);\nawait drone.hover(1);\n\n// 오각형 비행\nawait flyPolygon(5, 3);\n\nawait drone.land();\nconsole.log("다각형 비행 완료!");\n'
         };
 
         function initSimulator() {
@@ -511,6 +524,15 @@ await drone.land();
             });
             document.getElementById('demo-path').addEventListener('click', function () {
                 document.getElementById('code-editor').value = DEMOS.path;
+            });
+            document.getElementById('demo-loop').addEventListener('click', function () {
+                document.getElementById('code-editor').value = DEMOS.loop_demo;
+            });
+            document.getElementById('demo-if').addEventListener('click', function () {
+                document.getElementById('code-editor').value = DEMOS.if_demo;
+            });
+            document.getElementById('demo-func').addEventListener('click', function () {
+                document.getElementById('code-editor').value = DEMOS.variable_func;
             });
 
             // Tab 키 지원 (에디터에서 인덴트)

@@ -202,4 +202,52 @@
         return ['await ' + funcName + '(' + args.join(', ') + ')', gen.ORDER_FUNCTION_CALL];
     };
 
+    // ===== 출력 =====
+    gen.forBlock['drone_print'] = function (block) {
+        var value = gen.valueToCode(block, 'VALUE', gen.ORDER_NONE) || "''";
+        return 'console.log(' + value + ');\n';
+    };
+
+    gen.forBlock['drone_print_text'] = function (block) {
+        var text = block.getFieldValue('TEXT') || '';
+        return 'console.log(' + gen.quote_(text) + ');\n';
+    };
+
+    // ===== 루프 오버라이드 (async/await 호환) =====
+    gen.forBlock['controls_repeat_ext'] = function (block) {
+        var repeats = gen.valueToCode(block, 'TIMES', gen.ORDER_ATOMIC) || '0';
+        var branch = gen.statementToCode(block, 'DO');
+        var loopVar = 'count';
+        if (gen.nameDB_) {
+            loopVar = gen.nameDB_.getDistinctName('count', 'VARIABLE');
+        }
+        return 'for (var ' + loopVar + ' = 0; ' + loopVar + ' < ' + repeats + '; ' + loopVar + '++) {\n' + branch + '}\n';
+    };
+
+    gen.forBlock['controls_whileUntil'] = function (block) {
+        var until = block.getFieldValue('MODE') === 'UNTIL';
+        var argument0 = gen.valueToCode(block, 'BOOL', until ? gen.ORDER_LOGICAL_NOT : gen.ORDER_NONE) || 'false';
+        var branch = gen.statementToCode(block, 'DO');
+        if (until) {
+            argument0 = '!' + argument0;
+        }
+        return 'while (' + argument0 + ') {\n' + branch + '}\n';
+    };
+
+    gen.forBlock['controls_if'] = function (block) {
+        var n = 0;
+        var code = '';
+        do {
+            var conditionCode = gen.valueToCode(block, 'IF' + n, gen.ORDER_NONE) || 'false';
+            var branchCode = gen.statementToCode(block, 'DO' + n);
+            code += (n > 0 ? ' else ' : '') + 'if (' + conditionCode + ') {\n' + branchCode + '}';
+            n++;
+        } while (block.getInput('IF' + n));
+        if (block.getInput('ELSE')) {
+            var branchElse = gen.statementToCode(block, 'ELSE');
+            code += ' else {\n' + branchElse + '}';
+        }
+        return code + '\n';
+    };
+
 })();

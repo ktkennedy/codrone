@@ -247,7 +247,7 @@ class KeyboardControls {
      * 매 프레임 호출 - 현재 입력 상태 반환
      */
     getInput() {
-        const strength = 0.8;
+        const strength = 1.0;
 
         this.input.throttle = 0;
         this.input.pitch = 0;

@@ -325,4 +325,31 @@
         }
     };
 
+    // ===== 출력 블록 =====
+    var PRINT_COLOR = '#e67e22';
+
+    Blockly.Blocks['drone_print'] = {
+        init: function () {
+            this.appendValueInput('VALUE')
+                .appendField('콘솔에 출력');
+            this.setInputsInline(true);
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour(PRINT_COLOR);
+            this.setTooltip('값을 콘솔에 출력합니다.');
+        }
+    };
+
+    Blockly.Blocks['drone_print_text'] = {
+        init: function () {
+            this.appendDummyInput()
+                .appendField('출력하기')
+                .appendField(new Blockly.FieldTextInput('안녕하세요!'), 'TEXT');
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour(PRINT_COLOR);
+            this.setTooltip('텍스트를 콘솔에 출력합니다.');
+        }
+    };
+
 })();

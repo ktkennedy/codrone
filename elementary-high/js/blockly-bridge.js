@@ -451,6 +451,7 @@
             this.onComplete = null;
             this.onError = null;
             this.onCodeGenerated = null;
+            this.onConsoleLog = null;
         }
 
         generateCode() {
@@ -485,10 +486,17 @@
 
             try {
                 var drone = this.drone;
-                var asyncFn = new Function('drone', 'highlightBlock', 'window', 'document', 'localStorage', 'fetch',
+                var self = this;
+                var customConsole = {
+                    log: function() {
+                        var msg = Array.from(arguments).join(' ');
+                        if (self.onConsoleLog) self.onConsoleLog(msg);
+                    }
+                };
+                var asyncFn = new Function('drone', 'highlightBlock', 'console', 'window', 'document', 'localStorage', 'fetch',
                     'return (async function() {\n' + code + '\n})();'
                 );
-                await asyncFn(drone, highlightBlock, undefined, undefined, undefined, undefined);
+                await asyncFn(drone, highlightBlock, customConsole, undefined, undefined, undefined, undefined);
 
                 if (this._highlightedBlock) {
                     this.workspace.highlightBlock(this._highlightedBlock, false);
