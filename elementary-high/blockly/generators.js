@@ -139,4 +139,67 @@
         return ['drone.getDistanceTo(' + x + ', ' + z + ')', gen.ORDER_FUNCTION_CALL];
     };
 
+    // ===== Async 함수 생성 =====
+    // 드론 명령(await)이 사용자 정의 함수 안에서도 작동하도록
+    // Blockly 표준 procedure 생성기를 async function으로 오버라이드
+
+    gen.forBlock['procedures_defnoreturn'] = function (block) {
+        var funcName = gen.nameDB_
+            ? gen.nameDB_.getName(block.getFieldValue('NAME'), 'PROCEDURE')
+            : (block.getFieldValue('NAME') || 'myFunction');
+        var branch = gen.statementToCode(block, 'STACK');
+        var args = [];
+        var vars = block.arguments_ || [];
+        for (var i = 0; i < vars.length; i++) {
+            args.push(gen.nameDB_
+                ? gen.nameDB_.getName(vars[i], 'VARIABLE')
+                : vars[i]);
+        }
+        var code = 'async function ' + funcName + '(' + args.join(', ') + ') {\n' + branch + '}\n';
+        gen.definitions_['%' + funcName] = code;
+        return null;
+    };
+
+    gen.forBlock['procedures_defreturn'] = function (block) {
+        var funcName = gen.nameDB_
+            ? gen.nameDB_.getName(block.getFieldValue('NAME'), 'PROCEDURE')
+            : (block.getFieldValue('NAME') || 'myFunction');
+        var branch = gen.statementToCode(block, 'STACK');
+        var returnValue = gen.valueToCode(block, 'RETURN', gen.ORDER_NONE) || '';
+        var args = [];
+        var vars = block.arguments_ || [];
+        for (var i = 0; i < vars.length; i++) {
+            args.push(gen.nameDB_
+                ? gen.nameDB_.getName(vars[i], 'VARIABLE')
+                : vars[i]);
+        }
+        var code = 'async function ' + funcName + '(' + args.join(', ') + ') {\n' + branch;
+        if (returnValue) code += gen.INDENT + 'return ' + returnValue + ';\n';
+        code += '}\n';
+        gen.definitions_['%' + funcName] = code;
+        return null;
+    };
+
+    gen.forBlock['procedures_callnoreturn'] = function (block) {
+        var funcName = gen.nameDB_
+            ? gen.nameDB_.getName(block.getFieldValue('NAME'), 'PROCEDURE')
+            : (block.getFieldValue('NAME') || 'myFunction');
+        var args = [];
+        for (var i = 0; block.getInput && block.getInput('ARG' + i); i++) {
+            args.push(gen.valueToCode(block, 'ARG' + i, gen.ORDER_NONE) || 'null');
+        }
+        return 'await ' + funcName + '(' + args.join(', ') + ');\n';
+    };
+
+    gen.forBlock['procedures_callreturn'] = function (block) {
+        var funcName = gen.nameDB_
+            ? gen.nameDB_.getName(block.getFieldValue('NAME'), 'PROCEDURE')
+            : (block.getFieldValue('NAME') || 'myFunction');
+        var args = [];
+        for (var i = 0; block.getInput && block.getInput('ARG' + i); i++) {
+            args.push(gen.valueToCode(block, 'ARG' + i, gen.ORDER_NONE) || 'null');
+        }
+        return ['await ' + funcName + '(' + args.join(', ') + ')', gen.ORDER_FUNCTION_CALL];
+    };
+
 })();

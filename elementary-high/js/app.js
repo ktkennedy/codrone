@@ -1,5 +1,5 @@
 /**
- * 고학년 드론 시뮬레이터 앱
+ * 드론 시뮬레이터 앱
  * Three.js 씬 구성, 게임 루프, 키보드 조작, 미션 시스템
  */
 (function () {
@@ -164,7 +164,7 @@
         // 미션 시스템
         initMissions();
 
-        // 고학년 온보딩 튜토리얼
+        // 온보딩 튜토리얼
         if (OnboardingTutorial) {
             var tutorial = new OnboardingTutorial({
                 storageKey: 'drone-high-tutorial-complete',

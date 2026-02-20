@@ -165,6 +165,7 @@
         <div class="right">
             <span id="mode-progress" style="color:#88ccff;font-size:12px;margin-right:6px;"></span>
             <button id="btn-missions" style="background:#4a9eff;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit;">&#x1F3AF; 코딩 과제</button>
+            <button id="btn-sandbox" style="background:#9b59b6;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit;">&#x1F3AE; 자유 코딩</button>
             <button class="demo-btn" id="demo-square">사각형 비행</button>
             <button class="demo-btn" id="demo-flyto">좌표 비행</button>
             <button class="demo-btn" id="demo-patrol">순찰 비행</button>
@@ -671,6 +672,12 @@ await drone.land();
             missionManager.startMission(index);
             missionUI.showMissionHUD(missionManager.currentMission);
 
+            // 스타터 코드 로드
+            if (mission.starterCode) {
+                var editor = document.getElementById('code-editor');
+                if (editor) editor.value = mission.starterCode;
+            }
+
             // 힌트 표시
             if (mission.hint) showHint(mission.hint);
 
@@ -740,6 +747,24 @@ await drone.land();
 
         // 미션 버튼 연결
         document.getElementById('btn-missions').addEventListener('click', showMissionSelect);
+
+        // 자유 코딩 (샌드박스) 모드
+        document.getElementById('btn-sandbox').addEventListener('click', function () {
+            stopActiveMission();
+            hideHint();
+            var editor = document.getElementById('code-editor');
+            if (editor) {
+                editor.value = '// 자유 코딩 모드!\n// 드론 API를 자유롭게 사용해보세요.\n// Ctrl+Enter로 실행할 수 있어요.\n\nawait drone.takeoff();\n\n// 여기에 자유롭게 코드를 작성하세요!\n// 예: for문, if문, function 모두 사용 가능\n\n// async function myPattern(size) {\n//   for (let i = 0; i < 4; i++) {\n//     await drone.moveForward(size);\n//     await drone.turnRight(90);\n//   }\n// }\n// await myPattern(5);\n\nawait drone.land();\n';
+            }
+            var output = document.getElementById('console-output');
+            if (output) {
+                output.innerHTML = '';
+                var line = document.createElement('div');
+                line.className = 'console-info';
+                line.textContent = '자유 코딩 모드! 원하는 코드를 작성하고 실행해보세요.';
+                output.appendChild(line);
+            }
+        });
 
         // animate 루프에서 미션 업데이트 훅
         // window._codingMissionTick 를 animate() 내부에서 호출

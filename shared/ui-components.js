@@ -891,7 +891,10 @@ class PhysicsTuningPanel {
             k_h: physics.k_h,
             maxYawRate: physics.maxYawRate,
             windDragLin: physics.windDragLin,
-            cpOffset: physics.cpOffset
+            cpOffset: physics.cpOffset,
+            maxClimbRate: physics.maxClimbRate,
+            maxVertAccel: physics.maxVertAccel,
+            kp_vel_z: physics.kp_vel_z
         };
 
         this._params = [
@@ -915,7 +918,11 @@ class PhysicsTuningPanel {
             { key: 'c_Dx', label: '기체 항력 X', min: 0, max: 0.1, step: 0.001, fmt: 3 },
             { key: 'c_Dz', label: '기체 항력 Z', min: 0, max: 0.1, step: 0.001, fmt: 3 },
             { key: 'k_d', label: '로터 H-항력', min: 0, max: 0.001, step: 0.00001, fmt: 5 },
-            { key: 'k_h', label: 'Translational Lift', min: 0, max: 0.02, step: 0.0005, fmt: 4 }
+            { key: 'k_h', label: 'Translational Lift', min: 0, max: 0.02, step: 0.0005, fmt: 4 },
+            // 수직 제어
+            { key: 'maxClimbRate', label: '최대 상승속도 (m/s)', min: 1, max: 10, step: 0.5, fmt: 1 },
+            { key: 'maxVertAccel', label: '수직 가속도 (m/s²)', min: 2, max: 15, step: 0.5, fmt: 1 },
+            { key: 'kp_vel_z', label: '속도 감속 게인', min: 1, max: 10, step: 0.5, fmt: 1 }
         ];
 
         this._create();
@@ -1079,6 +1086,7 @@ class PhysicsTuningPanel {
             if (i === 2) html += '<div class="tp-section">자세 제어 (바람 안정성)</div>';
             if (i === 6) html += '<div class="tp-section">바람 반응</div>';
             if (i === 8) html += '<div class="tp-section">공기역학 상세</div>';
+            if (i === 12) html += '<div class="tp-section">수직 제어</div>';
 
             html += '<div class="tp-row">';
             html += '<div class="tp-label"><span>' + p.label + '</span><span class="tp-val" id="tp-val-' + p.key + '">' + displayVal.toFixed(p.fmt) + '</span></div>';
@@ -1146,25 +1154,29 @@ class PhysicsTuningPanel {
                 mass: 0.35, maxTiltAngle: 50 * Math.PI / 180,
                 kp_att: 800, kd_att: 40, tau_m: 0.008,
                 windDragLin: 0.04, cpOffset: 0.02,
-                c_Dx: 0.004, c_Dz: 0.004, k_d: 0.0001, k_h: 0.0034, maxYawRate: 5.0
+                c_Dx: 0.004, c_Dz: 0.004, k_d: 0.0001, k_h: 0.0034, maxYawRate: 5.0,
+                maxClimbRate: 9, maxVertAccel: 12, kp_vel_z: 5
             },
             'stable': {
                 mass: 0.6, maxTiltAngle: 20 * Math.PI / 180,
                 kp_att: 1500, kd_att: 120, tau_m: 0.012,
                 windDragLin: 0.08, cpOffset: 0.015,
-                c_Dx: 0.008, c_Dz: 0.008, k_d: 0.00015, k_h: 0.0034, maxYawRate: 2.0
+                c_Dx: 0.008, c_Dz: 0.008, k_d: 0.00015, k_h: 0.0034, maxYawRate: 2.0,
+                maxClimbRate: 4, maxVertAccel: 5, kp_vel_z: 6
             },
             'heavy': {
                 mass: 1.5, maxTiltAngle: 25 * Math.PI / 180,
                 kp_att: 200, kd_att: 35, tau_m: 0.035,
                 windDragLin: 0.12, cpOffset: 0.04,
-                c_Dx: 0.015, c_Dz: 0.015, k_d: 0.0002, k_h: 0.005, maxYawRate: 1.5
+                c_Dx: 0.015, c_Dz: 0.015, k_d: 0.0002, k_h: 0.005, maxYawRate: 1.5,
+                maxClimbRate: 3, maxVertAccel: 4, kp_vel_z: 3
             },
             'racing': {
                 mass: 0.25, maxTiltAngle: 55 * Math.PI / 180,
                 kp_att: 1200, kd_att: 35, tau_m: 0.005,
                 windDragLin: 0.03, cpOffset: 0.015,
-                c_Dx: 0.002, c_Dz: 0.002, k_d: 0.00008, k_h: 0.002, maxYawRate: 6.0
+                c_Dx: 0.002, c_Dz: 0.002, k_d: 0.00008, k_h: 0.002, maxYawRate: 6.0,
+                maxClimbRate: 10, maxVertAccel: 15, kp_vel_z: 4
             }
         };
         var vals = presets[name];

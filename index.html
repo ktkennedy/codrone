@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>드론 시뮬레이터</title>
+    <title>드론 코딩 시뮬레이터</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -111,13 +111,9 @@
             line-height: 1.6;
         }
 
-        .mode-card.low { border-color: rgba(68, 255, 136, 0.3); }
-        .mode-card.low:hover { border-color: rgba(68, 255, 136, 0.6); }
-        .mode-card.low h2 { color: #44ff88; }
-
-        .mode-card.high { border-color: rgba(74, 158, 255, 0.3); }
-        .mode-card.high:hover { border-color: rgba(74, 158, 255, 0.6); }
-        .mode-card.high h2 { color: #4a9eff; }
+        .mode-card.simulator { border-color: rgba(74, 158, 255, 0.3); }
+        .mode-card.simulator:hover { border-color: rgba(74, 158, 255, 0.6); }
+        .mode-card.simulator h2 { color: #4a9eff; }
 
         .mode-card.curriculum { border-color: rgba(255, 153, 68, 0.3); }
         .mode-card.curriculum:hover { border-color: rgba(255, 153, 68, 0.6); }
@@ -188,40 +184,27 @@
 
     <div class="main-container">
         <div class="drone-icon">&#x1F681;</div>
-        <h1 class="title">드론 시뮬레이터</h1>
-        <p class="subtitle">드론 조종을 배워보세요!</p>
+        <h1 class="title">드론 코딩 시뮬레이터</h1>
+        <p class="subtitle">드론을 조종하고 코딩을 배워보세요!</p>
 
         <div class="mode-cards">
-            <a href="elementary-low/index.html" class="mode-card low">
-                <div class="icon">&#x2B50;</div>
-                <h2>저학년 모드</h2>
-                <p class="grade">1 ~ 3학년</p>
-                <p class="description">
-                    큰 버튼으로 쉽게 조종!<br>
-                    터치로도 조작할 수 있어요.<br>
-                    15가지 미션에 도전해보세요.
-                </p>
-            </a>
-
-            <a href="elementary-high/index.html" class="mode-card high">
+            <a href="elementary-high/index.html" class="mode-card simulator">
                 <div class="icon">&#x1F680;</div>
-                <h2>고학년 모드</h2>
-                <p class="grade">4 ~ 6학년</p>
+                <h2>드론 시뮬레이터</h2>
                 <p class="description">
-                    키보드로 자유롭게 조종!<br>
-                    블록 코딩 &amp; 텍스트 코딩.<br>
-                    15가지 미션 + 자율비행 과제.
+                    비행 미션 · 블록 코딩 · 텍스트 코딩<br>
+                    키보드로 드론을 자유롭게 조종하고<br>
+                    15가지 미션에 도전해보세요!
                 </p>
             </a>
 
             <a href="curriculum.html" class="mode-card curriculum">
                 <div class="icon">&#x1F4DA;</div>
                 <h2>수업자료</h2>
-                <p class="grade">6개월 커리큘럼</p>
                 <p class="description">
-                    매주 수업 PPT 자료<br>
-                    24주 학습 로드맵<br>
-                    단계별 학습 가이드
+                    24주 커리큘럼 · 수업 PPT<br>
+                    단계별 학습 로드맵<br>
+                    매주 수업 자료 제공
                 </p>
             </a>
         </div>

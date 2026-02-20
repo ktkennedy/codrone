@@ -163,6 +163,7 @@
             <button class="tool-btn stop" id="btn-stop">&#x23F9; 정지</button>
             <button class="tool-btn reset" id="btn-reset">&#x21BA; 리셋</button>
             <button class="tool-btn" id="btn-mission" style="background:#4a9eff;color:#fff;">&#x1F3AF; 미션</button>
+            <button class="tool-btn" id="btn-sandbox" style="background:#9b59b6;color:#fff;">&#x1F3AE; 자유 코딩</button>
             <button class="tool-btn" id="btn-export-code" style="background:#ff8844;color:#fff;">&#x1F4DD; 텍스트 코딩으로</button>
         </div>
         <div class="right">
@@ -375,6 +376,9 @@
                 })
             });
 
+            // 워크스페이스 전역 참조 (미션 블록 타입 검증용)
+            window._blocklyWorkspace = workspace;
+
             // 코드 변경 시 실시간 미리보기
             workspace.addChangeListener(function () {
                 if (bridge && !bridge.isRunning) {
@@ -572,6 +576,22 @@
 
             document.getElementById('btn-mission').addEventListener('click', function () {
                 showMissionSelect();
+            });
+
+            document.getElementById('btn-sandbox').addEventListener('click', function () {
+                // 활성 미션 정리
+                if (missionManager && missionManager.isRunning) {
+                    missionManager.stopMission();
+                    if (missionUI) missionUI.hideMissionHUD();
+                    if (currentMissionDef && currentMissionDef._origMission && currentMissionDef._origMission.cleanup) {
+                        currentMissionDef._origMission.cleanup(scene);
+                    }
+                }
+                currentMissionDef = null;
+                physics.reset();
+                bridge.stop();
+                droneModel.updateFromPhysics(physics.getState());
+                messageDisplay.show('자유 코딩 모드! 블록을 자유롭게 조합해보세요.', 'info', 3000);
             });
 
             document.getElementById('btn-export-code').addEventListener('click', function () {

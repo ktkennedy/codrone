@@ -62,9 +62,9 @@ class DronePhysics {
         this.maxYawRate = 3.0;                        // rad/s
 
         // 수직 속도 제어 (rotorpy SE3Control 참고: kp_pos[z]=15, kd_pos[z]=9)
-        this.maxClimbRate = 5.0;                      // m/s 최대 상승/하강 속도
+        this.maxClimbRate = 7.0;                      // m/s 최대 상승/하강 속도 (체감상 빠른 반응)
         this.kp_vel_z = 4.0;                          // 속도제한·자동감속 P 게인
-        this.maxVertAccel = 5.0;                      // m/s² 수직가속 클램프
+        this.maxVertAccel = 8.0;                      // m/s² 수직가속 클램프 (throttle=0.8 → 6.4 m/s²)
 
         // 추력: 모터 물리 한계 기반
         this.maxExtraAccel = 6.0;                     // m/s² (레거시 호환)
