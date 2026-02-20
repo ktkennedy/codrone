@@ -201,23 +201,31 @@
             var direction = yawInput > 0 ? 1 : -1;
             var startYaw = this.physics.rotation.yaw;
 
-            // 목표 yaw 절대값 계산
+            // 목표 yaw 계산
             var goalYaw = startYaw + direction * targetRadians;
             while (goalYaw > Math.PI) goalYaw -= 2 * Math.PI;
             while (goalYaw < -Math.PI) goalYaw += 2 * Math.PI;
 
-            // SE3 위치 유지 + 목표 yaw 설정
-            var pos = this.physics.position;
+            // SE3 위치 고정 좌표
+            var holdX = this.physics.position.x;
+            var holdY = this.physics.position.y;
+            var holdZ = this.physics.position.z;
+
+            // 점진적 yaw 보간: SE3에 작은 yaw 오차만 전달하여 모터 포화 방지
+            var maxYawRate = 1.5;  // rad/s
+            var currentTargetYaw = startYaw;
+            var settleCount = 0;
+            var lastTime = Date.now();
+
+            // 초기 flat output (현재 yaw로 시작)
             this.physics.setFlatOutput({
-                x: [pos.x, pos.y, pos.z],
+                x: [holdX, holdY, holdZ],
                 x_dot: [0, 0, 0],
                 x_ddot: [0, 0, 0],
-                yaw: goalYaw,
+                yaw: currentTargetYaw,
                 yaw_dot: 0
             });
 
-            // yaw 수렴 대기
-            var settleCount = 0;
             await new Promise(function (resolve) {
                 var check = setInterval(function () {
                     if (self._cancelled) {
@@ -227,18 +235,48 @@
                         return;
                     }
 
-                    var currentYaw = self.physics.rotation.yaw;
-                    var error = goalYaw - currentYaw;
-                    while (error > Math.PI) error -= 2 * Math.PI;
-                    while (error < -Math.PI) error += 2 * Math.PI;
+                    // 시간 기반 yaw 보간
+                    var now = Date.now();
+                    var dt = (now - lastTime) / 1000;
+                    lastTime = now;
 
-                    var absError = Math.abs(error);
+                    // 목표까지 남은 오차
+                    var remaining = goalYaw - currentTargetYaw;
+                    while (remaining > Math.PI) remaining -= 2 * Math.PI;
+                    while (remaining < -Math.PI) remaining += 2 * Math.PI;
+
+                    // maxYawRate로 점진 이동
+                    var step = maxYawRate * dt;
+                    var yawDotFF = 0;
+                    if (Math.abs(remaining) <= step) {
+                        currentTargetYaw = goalYaw;
+                    } else {
+                        currentTargetYaw += (remaining > 0 ? step : -step);
+                        yawDotFF = remaining > 0 ? maxYawRate : -maxYawRate;
+                    }
+                    while (currentTargetYaw > Math.PI) currentTargetYaw -= 2 * Math.PI;
+                    while (currentTargetYaw < -Math.PI) currentTargetYaw += 2 * Math.PI;
+
+                    // flat output 업데이트 (점진적 yaw + 속도 피드포워드)
+                    self.physics.setFlatOutput({
+                        x: [holdX, holdY, holdZ],
+                        x_dot: [0, 0, 0],
+                        x_ddot: [0, 0, 0],
+                        yaw: currentTargetYaw,
+                        yaw_dot: yawDotFF
+                    });
+
+                    // 실제 yaw 수렴 확인
+                    var actualYaw = self.physics.rotation.yaw;
+                    var actualError = goalYaw - actualYaw;
+                    while (actualError > Math.PI) actualError -= 2 * Math.PI;
+                    while (actualError < -Math.PI) actualError += 2 * Math.PI;
+
                     var angVel = self.physics.angularVelocity ? self.physics.angularVelocity.yaw : 0;
-                    var absAngVel = Math.abs(angVel);
 
-                    if (absError < 0.03 && absAngVel < 0.05) {
+                    if (Math.abs(actualError) < 0.03 && Math.abs(angVel) < 0.05) {
                         settleCount++;
-                        if (settleCount >= 8) { // 8프레임 연속 안정 = ~240ms
+                        if (settleCount >= 8) {
                             self.physics.clearFlatOutput();
                             clearInterval(check);
                             resolve();
