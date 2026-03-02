@@ -14,21 +14,35 @@ window.DroneSim.StudentAuth = (function () {
         '학생16', '학생17', '학생18', '학생19', '학생20'
     ];
 
-    function getStudents() {
+    // 내부 저장 형식: [{name: '학생01', pin: null}, ...]
+    function getStudentObjects() {
         var stored = localStorage.getItem(STORAGE_KEY);
         if (!stored) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_STUDENTS));
-            return DEFAULT_STUDENTS.slice();
+            var defaultObjs = DEFAULT_STUDENTS.map(function (n) { return { name: n, pin: null }; });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultObjs));
+            return defaultObjs;
         }
         try {
-            return JSON.parse(stored);
+            var parsed = JSON.parse(stored);
+            // 구버전 호환: 문자열 배열이면 객체 배열로 마이그레이션
+            if (parsed.length > 0 && typeof parsed[0] === 'string') {
+                var migrated = parsed.map(function (n) { return { name: n, pin: null }; });
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+                return migrated;
+            }
+            return parsed;
         } catch (e) {
-            return DEFAULT_STUDENTS.slice();
+            return DEFAULT_STUDENTS.map(function (n) { return { name: n, pin: null }; });
         }
     }
 
-    function saveStudents(list) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    function saveStudentObjects(objs) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(objs));
+    }
+
+    // 하위 호환: 이름 문자열 배열 반환 (다른 페이지에서 사용)
+    function getStudents() {
+        return getStudentObjects().map(function (obj) { return obj.name; });
     }
 
     function login(studentName) {
@@ -58,19 +72,23 @@ window.DroneSim.StudentAuth = (function () {
     function addStudent(name) {
         name = name.trim();
         if (!name) return false;
-        var list = getStudents();
-        if (list.indexOf(name) !== -1) return false;
-        list.push(name);
-        saveStudents(list);
+        var objs = getStudentObjects();
+        var names = objs.map(function (o) { return o.name; });
+        if (names.indexOf(name) !== -1) return false;
+        objs.push({ name: name, pin: null });
+        saveStudentObjects(objs);
         return true;
     }
 
     function removeStudent(name) {
-        var list = getStudents();
-        var idx = list.indexOf(name);
+        var objs = getStudentObjects();
+        var idx = -1;
+        for (var i = 0; i < objs.length; i++) {
+            if (objs[i].name === name) { idx = i; break; }
+        }
         if (idx === -1) return false;
-        list.splice(idx, 1);
-        saveStudents(list);
+        objs.splice(idx, 1);
+        saveStudentObjects(objs);
         return true;
     }
 
@@ -78,13 +96,14 @@ window.DroneSim.StudentAuth = (function () {
     function renameStudent(oldName, newName) {
         newName = newName.trim();
         if (!newName || oldName === newName) return false;
-        var list = getStudents();
-        var idx = list.indexOf(oldName);
+        var objs = getStudentObjects();
+        var names = objs.map(function (o) { return o.name; });
+        var idx = names.indexOf(oldName);
         if (idx === -1) return false;
-        if (list.indexOf(newName) !== -1) return false;
+        if (names.indexOf(newName) !== -1) return false;
 
-        list[idx] = newName;
-        saveStudents(list);
+        objs[idx].name = newName;
+        saveStudentObjects(objs);
 
         // localStorage 키 마이그레이션
         var prefix = oldName + '_';
@@ -106,6 +125,72 @@ window.DroneSim.StudentAuth = (function () {
         return true;
     }
 
+    // ===== PIN 관련 함수 =====
+
+    // 4자리 PIN 설정 (처음 설정 또는 변경)
+    function setPin(studentName, pin) {
+        var objs = getStudentObjects();
+        for (var i = 0; i < objs.length; i++) {
+            if (objs[i].name === studentName) {
+                objs[i].pin = String(pin);
+                saveStudentObjects(objs);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // PIN 확인 — 일치하면 true
+    function verifyPin(studentName, pin) {
+        var objs = getStudentObjects();
+        for (var i = 0; i < objs.length; i++) {
+            if (objs[i].name === studentName) {
+                return objs[i].pin === String(pin);
+            }
+        }
+        return false;
+    }
+
+    // 해당 학생이 PIN을 설정했는지 여부
+    function hasPin(studentName) {
+        var objs = getStudentObjects();
+        for (var i = 0; i < objs.length; i++) {
+            if (objs[i].name === studentName) {
+                return !!objs[i].pin;
+            }
+        }
+        return false;
+    }
+
+    // PIN 값 반환 (교사 모드용)
+    function getStudentPin(studentName) {
+        var objs = getStudentObjects();
+        for (var i = 0; i < objs.length; i++) {
+            if (objs[i].name === studentName) {
+                return objs[i].pin;
+            }
+        }
+        return null;
+    }
+
+    // 전체 학생 PIN 목록 반환 (교사 대시보드용)
+    function getAllStudentPins() {
+        return getStudentObjects().map(function (o) { return { name: o.name, pin: o.pin }; });
+    }
+
+    // PIN 초기화 (교사 모드용)
+    function resetPin(studentName) {
+        var objs = getStudentObjects();
+        for (var i = 0; i < objs.length; i++) {
+            if (objs[i].name === studentName) {
+                objs[i].pin = null;
+                saveStudentObjects(objs);
+                return true;
+            }
+        }
+        return false;
+    }
+
     return {
         getStudents: getStudents,
         login: login,
@@ -116,6 +201,12 @@ window.DroneSim.StudentAuth = (function () {
         addStudent: addStudent,
         removeStudent: removeStudent,
         renameStudent: renameStudent,
+        setPin: setPin,
+        verifyPin: verifyPin,
+        hasPin: hasPin,
+        getStudentPin: getStudentPin,
+        getAllStudentPins: getAllStudentPins,
+        resetPin: resetPin,
         DEFAULT_STUDENTS: DEFAULT_STUDENTS
     };
 })();

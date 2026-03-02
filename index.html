@@ -290,6 +290,189 @@
             .student-grid { grid-template-columns: repeat(2, 1fr); }
             #login-screen h1 { font-size: 28px; }
         }
+
+        /* ===== PIN 모달 ===== */
+        #pin-modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.78);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        #pin-modal-overlay.active { display: flex; }
+        #pin-modal {
+            background: linear-gradient(135deg, #1a2a4a 0%, #0d1f3c 100%);
+            border: 2px solid rgba(74,158,255,0.45);
+            border-radius: 28px;
+            padding: 40px 36px 32px;
+            width: 340px;
+            text-align: center;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+        }
+        .pin-emoji { font-size: 60px; margin-bottom: 12px; line-height: 1; }
+        .pin-title { font-size: 24px; font-weight: 900; color: #4a9eff; margin-bottom: 6px; }
+        .pin-student-name { font-size: 17px; color: #88ccff; margin-bottom: 28px; }
+        .pin-boxes {
+            display: flex; gap: 12px; justify-content: center;
+            margin-bottom: 14px;
+        }
+        .pin-box {
+            width: 58px; height: 74px;
+            background: rgba(74,158,255,0.1);
+            border: 2.5px solid rgba(74,158,255,0.35);
+            border-radius: 14px;
+            font-size: 34px; font-weight: 900; color: #fff;
+            text-align: center;
+            outline: none;
+            caret-color: transparent;
+            transition: border-color 0.18s, box-shadow 0.18s;
+            -moz-appearance: textfield;
+        }
+        .pin-box::-webkit-outer-spin-button,
+        .pin-box::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .pin-box:focus {
+            border-color: #4a9eff;
+            box-shadow: 0 0 0 3px rgba(74,158,255,0.28);
+            background: rgba(74,158,255,0.18);
+        }
+        #pin-error {
+            font-size: 14px; color: #ff6666; min-height: 22px;
+            margin-bottom: 18px; font-weight: bold;
+        }
+        .pin-btn-row { display: flex; gap: 12px; justify-content: center; }
+        .pin-confirm-btn {
+            background: linear-gradient(135deg, #4a9eff, #2266cc);
+            color: #fff; border: none; border-radius: 12px;
+            padding: 13px 36px; font-size: 17px; font-weight: 900;
+            cursor: pointer; font-family: inherit; transition: transform 0.15s, opacity 0.15s;
+        }
+        .pin-confirm-btn:hover { transform: scale(1.05); }
+        .pin-cancel-btn {
+            background: rgba(255,255,255,0.08);
+            color: #88aacc; border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 12px; padding: 13px 24px;
+            font-size: 15px; cursor: pointer; font-family: inherit;
+            transition: background 0.15s;
+        }
+        .pin-cancel-btn:hover { background: rgba(255,255,255,0.15); }
+
+        /* 교사 PIN 초기화 영역 */
+        #pin-list-area { margin-top: 10px; }
+        #pin-list-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+        #pin-list-table td { padding: 4px 8px; color: #aaccee; border-bottom: 1px solid rgba(255,255,255,0.07); }
+        #pin-list-table td:last-child { text-align: right; }
+        .pin-reset-btn { background: none; border: 1px solid rgba(255,100,100,0.4); color: #ff8888;
+            font-size: 11px; padding: 2px 8px; border-radius: 6px; cursor: pointer; font-family: inherit; }
+        .pin-reset-btn:hover { background: rgba(255,100,100,0.15); }
+
+        /* ===== 교사 대시보드 ===== */
+        #teacher-dashboard {
+            margin-top: 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        #teacher-dashboard h4 {
+            color: #ffcc66;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .dash-refresh-btn {
+            background: none; border: 1px solid rgba(255,255,255,0.2);
+            color: #88aacc; font-size: 11px; padding: 3px 10px;
+            border-radius: 6px; cursor: pointer; font-family: inherit;
+        }
+        .dash-refresh-btn:hover { background: rgba(255,255,255,0.08); }
+        .dash-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .dash-table th {
+            color: #88aacc;
+            font-weight: bold;
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 2px solid rgba(74,158,255,0.3);
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .dash-table td {
+            padding: 6px 8px;
+            color: #ccddeeff;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            vertical-align: middle;
+        }
+        .dash-table tr:hover td {
+            background: rgba(74,158,255,0.06);
+        }
+        .dash-pin {
+            font-family: 'Courier New', monospace;
+            color: #ff9944;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .dash-pin-none { color: #556677; font-style: italic; }
+        .progress-bar-wrap {
+            width: 80px;
+            height: 12px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 6px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.3s;
+        }
+        .progress-bar-fill.green { background: linear-gradient(90deg, #22cc66, #44ff88); }
+        .progress-bar-fill.yellow { background: linear-gradient(90deg, #cc9922, #ffcc44); }
+        .progress-bar-fill.red { background: linear-gradient(90deg, #cc3333, #ff6666); }
+        .progress-pct {
+            font-size: 11px;
+            color: #88aacc;
+            margin-left: 6px;
+            display: inline-block;
+            width: 32px;
+        }
+        .dash-actions-btn {
+            background: none;
+            border: 1px solid rgba(255,100,100,0.3);
+            color: #ff8888;
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            margin: 1px;
+        }
+        .dash-actions-btn:hover { background: rgba(255,100,100,0.12); }
+        .dash-actions-btn.pin-btn {
+            border-color: rgba(255,153,68,0.4);
+            color: #ff9944;
+        }
+        .dash-actions-btn.pin-btn:hover { background: rgba(255,153,68,0.12); }
+        .dash-overall {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(74,158,255,0.08);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #88ccff;
+        }
+        .dash-overall strong { color: #4a9eff; }
     </style>
 </head>
 <body>
@@ -329,7 +512,33 @@
                         <input type="text" id="rename-new" placeholder="새 이름" style="flex:1;" />
                         <button class="teacher-action-btn rename" id="btn-rename-student">변경</button>
                     </div>
+                    <div class="teacher-input-row">
+                        <input type="text" id="pin-reset-name" placeholder="PIN 초기화할 학생 이름" />
+                        <button class="teacher-action-btn remove" id="btn-reset-pin">PIN 초기화</button>
+                    </div>
                     <div id="teacher-msg"></div>
+
+                    <!-- 학생 진도 대시보드 -->
+                    <div id="teacher-dashboard" style="display:none;">
+                        <h4>
+                            <span>📊 학생 진도 현황</span>
+                            <button class="dash-refresh-btn" id="dash-refresh-btn">🔄 새로고침</button>
+                        </h4>
+                        <table class="dash-table">
+                            <thead>
+                                <tr>
+                                    <th>이름</th>
+                                    <th>PIN</th>
+                                    <th>비행미션</th>
+                                    <th>블록코딩</th>
+                                    <th>텍스트코딩</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-tbody"></tbody>
+                        </table>
+                        <div class="dash-overall" id="dash-overall"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -398,6 +607,26 @@
 
     <div class="footer">드론 시뮬레이터 v2.0 | 초등학생 코딩 교육용</div>
 
+    <!-- ===== PIN 모달 ===== -->
+    <div id="pin-modal-overlay">
+        <div id="pin-modal">
+            <div class="pin-emoji" id="pin-emoji">🔐</div>
+            <div class="pin-title" id="pin-title">비밀번호 설정</div>
+            <div class="pin-student-name" id="pin-student-name"></div>
+            <div class="pin-boxes">
+                <input class="pin-box" id="pin-box-0" type="number" inputmode="numeric" min="0" max="9" />
+                <input class="pin-box" id="pin-box-1" type="number" inputmode="numeric" min="0" max="9" />
+                <input class="pin-box" id="pin-box-2" type="number" inputmode="numeric" min="0" max="9" />
+                <input class="pin-box" id="pin-box-3" type="number" inputmode="numeric" min="0" max="9" />
+            </div>
+            <div id="pin-error"></div>
+            <div class="pin-btn-row">
+                <button class="pin-cancel-btn" id="pin-cancel-btn">취소</button>
+                <button class="pin-confirm-btn" id="pin-confirm-btn">확인 ✓</button>
+            </div>
+        </div>
+    </div>
+
     <script src="shared/student-auth.js"></script>
     <script>
         // 별 배경
@@ -425,10 +654,10 @@
             students.forEach(function (name) {
                 var card = document.createElement('button');
                 card.className = 'student-card';
-                card.textContent = name;
+                var lockIcon = auth.hasPin(name) ? ' 🔒' : ' ✨';
+                card.textContent = name + lockIcon;
                 card.addEventListener('click', function () {
-                    auth.login(name);
-                    showMainScreen();
+                    openPinModal(name);
                 });
                 grid.appendChild(card);
             });
@@ -471,6 +700,7 @@
                 document.getElementById('teacher-controls').style.display = 'block';
                 document.getElementById('teacher-password').closest('.teacher-input-row').style.display = 'none';
                 showTeacherMsg('교사 모드 활성화됨', '#44ff88');
+                renderDashboard();
             } else {
                 showTeacherMsg('비밀번호가 틀렸습니다', '#ff6666');
             }
@@ -525,6 +755,239 @@
             } else {
                 showTeacherMsg('변경 실패 (이름 확인)', '#ff8888');
             }
+        });
+
+        document.getElementById('btn-reset-pin').addEventListener('click', function () {
+            var name = document.getElementById('pin-reset-name').value.trim();
+            if (!name) { showTeacherMsg('이름을 입력하세요', '#ff8888'); return; }
+            if (auth.resetPin(name)) {
+                document.getElementById('pin-reset-name').value = '';
+                renderStudentGrid();
+                showTeacherMsg(name + ' PIN 초기화됨', '#ffcc44');
+            } else {
+                showTeacherMsg('학생을 찾을 수 없습니다', '#ff8888');
+            }
+        });
+
+        // ===== 교사 대시보드 =====
+        function renderDashboard() {
+            var dashboard = document.getElementById('teacher-dashboard');
+            if (!teacherUnlocked) { dashboard.style.display = 'none'; return; }
+            dashboard.style.display = 'block';
+
+            var tbody = document.getElementById('dash-tbody');
+            var students = auth.getStudents();
+            var allPins = auth.getAllStudentPins();
+            tbody.innerHTML = '';
+
+            var totalAll = 0, completedAll = 0;
+
+            students.forEach(function (name, idx) {
+                var pinObj = allPins[idx] || {};
+                var pin = pinObj.pin;
+
+                // 각 영역 진도 읽기
+                var flight = getProgress(name, 'drone-high-progress', 15);
+                var block = getProgress(name, 'drone-blockly-progress', 6);
+                var text = getProgress(name, 'drone-coding-progress', 6);
+
+                totalAll += flight.total + block.total + text.total;
+                completedAll += flight.done + block.done + text.done;
+
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td style="font-weight:bold;color:#cce4ff;">' + name + '</td>' +
+                    '<td>' + (pin ? '<span class="dash-pin">' + pin + '</span>' : '<span class="dash-pin-none">미설정</span>') + '</td>' +
+                    '<td>' + progressBarHTML(flight) + '</td>' +
+                    '<td>' + progressBarHTML(block) + '</td>' +
+                    '<td>' + progressBarHTML(text) + '</td>' +
+                    '<td>' +
+                        '<button class="dash-actions-btn pin-btn" data-name="' + name + '" data-action="reset-pin">PIN초기화</button>' +
+                        '<button class="dash-actions-btn" data-name="' + name + '" data-action="reset-progress">진도초기화</button>' +
+                    '</td>';
+                tbody.appendChild(tr);
+            });
+
+            // 전체 통계
+            var overallPct = totalAll > 0 ? Math.round(completedAll / totalAll * 100) : 0;
+            document.getElementById('dash-overall').innerHTML =
+                '<span>전체 학생 ' + students.length + '명</span>' +
+                '<span>평균 진도율: <strong>' + overallPct + '%</strong></span>';
+
+            // 대시보드 버튼 이벤트
+            tbody.querySelectorAll('.dash-actions-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var sName = btn.getAttribute('data-name');
+                    var action = btn.getAttribute('data-action');
+                    if (action === 'reset-pin') {
+                        if (confirm(sName + '의 PIN을 초기화할까요?')) {
+                            auth.resetPin(sName);
+                            renderStudentGrid();
+                            renderDashboard();
+                            showTeacherMsg(sName + ' PIN 초기화됨', '#ffcc44');
+                        }
+                    } else if (action === 'reset-progress') {
+                        if (confirm(sName + '의 모든 진도를 초기화할까요?')) {
+                            resetStudentProgress(sName);
+                            renderDashboard();
+                            showTeacherMsg(sName + ' 진도 초기화됨', '#ffcc44');
+                        }
+                    }
+                });
+            });
+        }
+
+        function getProgress(studentName, baseKey, totalMissions) {
+            var key = studentName + '_' + baseKey;
+            var stored = localStorage.getItem(key);
+            var done = 0;
+            if (stored) {
+                try {
+                    var data = JSON.parse(stored);
+                    // 형식1: {missions: {m1: {completed:true}, ...}}
+                    if (data.missions) {
+                        var keys = Object.keys(data.missions);
+                        keys.forEach(function (k) {
+                            if (data.missions[k] && data.missions[k].completed) done++;
+                        });
+                    }
+                    // 형식2: {mission-1: {completed:true}, ...}
+                    else {
+                        var keys2 = Object.keys(data);
+                        keys2.forEach(function (k) {
+                            if (data[k] && data[k].completed) done++;
+                        });
+                    }
+                } catch (e) { /* 무시 */ }
+            }
+            return { done: done, total: totalMissions, pct: totalMissions > 0 ? Math.round(done / totalMissions * 100) : 0 };
+        }
+
+        function progressBarHTML(prog) {
+            var colorClass = prog.pct >= 70 ? 'green' : (prog.pct >= 40 ? 'yellow' : 'red');
+            if (prog.done === 0) colorClass = 'red';
+            return '<div class="progress-bar-wrap">' +
+                '<div class="progress-bar-fill ' + colorClass + '" style="width:' + prog.pct + '%;"></div>' +
+                '</div>' +
+                '<span class="progress-pct">' + prog.done + '/' + prog.total + '</span>';
+        }
+
+        function resetStudentProgress(studentName) {
+            var prefix = studentName + '_';
+            var progressKeys = ['drone-high-progress', 'drone-blockly-progress', 'drone-coding-progress'];
+            progressKeys.forEach(function (k) {
+                localStorage.removeItem(prefix + k);
+            });
+        }
+
+        document.getElementById('dash-refresh-btn').addEventListener('click', renderDashboard);
+
+        // ===== PIN 모달 =====
+        var pinModalOverlay = document.getElementById('pin-modal-overlay');
+        var pinBoxes = [
+            document.getElementById('pin-box-0'),
+            document.getElementById('pin-box-1'),
+            document.getElementById('pin-box-2'),
+            document.getElementById('pin-box-3')
+        ];
+        var currentPinStudent = null;
+        var pinMode = 'set'; // 'set' | 'verify'
+
+        function openPinModal(studentName) {
+            currentPinStudent = studentName;
+            pinMode = auth.hasPin(studentName) ? 'verify' : 'set';
+
+            document.getElementById('pin-student-name').textContent = '✏️ ' + studentName;
+            if (pinMode === 'set') {
+                document.getElementById('pin-emoji').textContent = '✨';
+                document.getElementById('pin-title').textContent = '비밀번호 만들기';
+            } else {
+                document.getElementById('pin-emoji').textContent = '🔒';
+                document.getElementById('pin-title').textContent = '비밀번호 입력';
+            }
+            clearPinBoxes();
+            document.getElementById('pin-error').textContent = '';
+            pinModalOverlay.classList.add('active');
+            pinBoxes[0].focus();
+        }
+
+        function closePinModal() {
+            pinModalOverlay.classList.remove('active');
+            clearPinBoxes();
+            currentPinStudent = null;
+        }
+
+        function clearPinBoxes() {
+            pinBoxes.forEach(function (b) { b.value = ''; });
+        }
+
+        function getPinValue() {
+            return pinBoxes.map(function (b) { return b.value; }).join('');
+        }
+
+        // PIN 박스 입력 처리
+        pinBoxes.forEach(function (box, idx) {
+            box.addEventListener('keydown', function (e) {
+                if (e.key === 'Backspace') {
+                    if (box.value === '' && idx > 0) {
+                        pinBoxes[idx - 1].focus();
+                        pinBoxes[idx - 1].value = '';
+                    } else {
+                        box.value = '';
+                    }
+                    e.preventDefault();
+                } else if (e.key === 'Enter') {
+                    document.getElementById('pin-confirm-btn').click();
+                }
+            });
+
+            box.addEventListener('input', function () {
+                // 숫자만 유지, 한 자리만
+                var val = box.value.replace(/[^0-9]/g, '');
+                if (val.length > 1) val = val.slice(-1);
+                box.value = val;
+                if (val && idx < 3) {
+                    pinBoxes[idx + 1].focus();
+                }
+            });
+
+            // 이미 입력된 칸 클릭 시 전체 선택
+            box.addEventListener('focus', function () {
+                box.select();
+            });
+        });
+
+        document.getElementById('pin-confirm-btn').addEventListener('click', function () {
+            var pin = getPinValue();
+            if (pin.length < 4) {
+                document.getElementById('pin-error').textContent = '숫자 4자리를 모두 입력해주세요!';
+                pinBoxes.find(function (b) { return b.value === ''; }).focus();
+                return;
+            }
+            if (pinMode === 'set') {
+                auth.setPin(currentPinStudent, pin);
+                closePinModal();
+                renderStudentGrid();
+                auth.login(currentPinStudent);
+                showMainScreen();
+            } else {
+                if (auth.verifyPin(currentPinStudent, pin)) {
+                    closePinModal();
+                    auth.login(currentPinStudent);
+                    showMainScreen();
+                } else {
+                    document.getElementById('pin-error').textContent = '비밀번호가 틀렸어요! 다시 해보세요 😢';
+                    clearPinBoxes();
+                    pinBoxes[0].focus();
+                }
+            }
+        });
+
+        document.getElementById('pin-cancel-btn').addEventListener('click', closePinModal);
+
+        // 모달 바깥 클릭 시 닫기
+        pinModalOverlay.addEventListener('click', function (e) {
+            if (e.target === pinModalOverlay) closePinModal();
         });
 
         // 초기 진입

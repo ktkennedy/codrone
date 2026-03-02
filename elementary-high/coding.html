@@ -465,6 +465,8 @@ drone.land()
 
                 // JS Promise를 Skulpt suspension으로 변환하는 헬퍼
                 function promiseToSuspension(promise) {
+                    // 방어적 Promise 래핑: undefined나 non-Promise 값도 안전하게 처리
+                    promise = Promise.resolve(promise);
                     var susp = new Sk.misceval.Suspension();
                     susp.resume = function () { return Sk.builtin.none.none$; };
                     susp.data = {
@@ -609,7 +611,14 @@ drone.land()
 
                 var myPromise = Sk.misceval.asyncToPromise(function () {
                     return Sk.importMainWithBody("<stdin>", false, code, true);
-                }, { '*': function () { return !droneAPI._cancelled; } });
+                }, {
+                    // 'Sk.promise' 핸들러: 취소 시 false 반환(SystemExit), 아니면 promise 반환해 정상 await
+                    // '*' 와일드카드 대신 타입별 핸들러를 써야 q.then 오류 방지 (Skulpt는 핸들러 반환값에 .then() 호출)
+                    'Sk.promise': function (susp) {
+                        if (droneAPI._cancelled) return false;
+                        return susp.data.promise;
+                    }
+                });
 
                 await myPromise;
                 logToConsole('프로그램 실행 완료!', 'success');
