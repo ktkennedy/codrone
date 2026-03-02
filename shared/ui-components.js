@@ -324,6 +324,7 @@ class Minimap {
     }
 
     update(droneState, objects) {
+        if (!droneState || !droneState.position || !droneState.rotation) return;
         objects = objects || [];
         var ctx = this.ctx;
         var s = this.size;
