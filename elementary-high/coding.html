@@ -463,79 +463,82 @@ drone.land()
             document.getElementById('console-output').innerHTML = '';
         }
 
-        // Promise queue: Skulpt 내부에서 suspension을 감싸면 susp.data.promise가 사라짐
-        // 이 큐를 통해 '*' 핸들러가 원본 promise를 안전하게 찾을 수 있음
-        var _dronePromiseQueue = [];
+        // Promise chain 방식: 드론 명령을 순차 큐에 등록하고
+        // Python 실행 완료 후 체인을 await하여 순서대로 실행
+        var _commandChain = Promise.resolve();
+        var _commandChainCancelled = false;
+
+        // 드론 명령을 체인에 추가 (즉시 반환, 나중에 순차 실행)
+        function queueCommand(fn) {
+            _commandChain = _commandChain.then(function () {
+                if (_commandChainCancelled) return;
+                return fn();
+            });
+            return Sk.builtin.none.none$;
+        }
 
         // Skulpt drone 모듈 생성
         function createDroneModule() {
             return function () {
                 var mod = {};
 
-                // JS Promise를 Skulpt suspension으로 변환하는 헬퍼
-                function promiseToSuspension(promise) {
-                    promise = Promise.resolve(promise);
-                    var susp = new Sk.misceval.Suspension();
-                    susp.resume = function () {
-                        return susp.data.result || Sk.builtin.none.none$;
-                    };
-                    susp.data = {
-                        type: "Sk.promise",
-                        promise: promise
-                    };
-                    _dronePromiseQueue.push(promise);
-                    return susp;
-                }
-
-                // === 비행 명령 (async -> suspension) ===
+                // === 비행 명령 (Promise chain에 큐잉) ===
                 mod.takeoff = new Sk.builtin.func(function () {
-                    return promiseToSuspension(droneAPI.takeoff());
+                    return queueCommand(function () { return droneAPI.takeoff(); });
                 });
                 mod.land = new Sk.builtin.func(function () {
-                    return promiseToSuspension(droneAPI.land());
+                    return queueCommand(function () { return droneAPI.land(); });
                 });
                 mod.hover = new Sk.builtin.func(function (seconds) {
-                    return promiseToSuspension(droneAPI.hover(Sk.ffi.remapToJs(seconds)));
+                    var s = Sk.ffi.remapToJs(seconds);
+                    return queueCommand(function () { return droneAPI.hover(s); });
                 });
                 mod.wait = new Sk.builtin.func(function (seconds) {
-                    return promiseToSuspension(droneAPI.wait(Sk.ffi.remapToJs(seconds)));
+                    var s = Sk.ffi.remapToJs(seconds);
+                    return queueCommand(function () { return droneAPI.wait(s); });
                 });
                 mod.move_forward = new Sk.builtin.func(function (distance) {
-                    return promiseToSuspension(droneAPI.moveForward(Sk.ffi.remapToJs(distance)));
+                    var d = Sk.ffi.remapToJs(distance);
+                    return queueCommand(function () { return droneAPI.moveForward(d); });
                 });
                 mod.move_backward = new Sk.builtin.func(function (distance) {
-                    return promiseToSuspension(droneAPI.moveBackward(Sk.ffi.remapToJs(distance)));
+                    var d = Sk.ffi.remapToJs(distance);
+                    return queueCommand(function () { return droneAPI.moveBackward(d); });
                 });
                 mod.move_left = new Sk.builtin.func(function (distance) {
-                    return promiseToSuspension(droneAPI.moveLeft(Sk.ffi.remapToJs(distance)));
+                    var d = Sk.ffi.remapToJs(distance);
+                    return queueCommand(function () { return droneAPI.moveLeft(d); });
                 });
                 mod.move_right = new Sk.builtin.func(function (distance) {
-                    return promiseToSuspension(droneAPI.moveRight(Sk.ffi.remapToJs(distance)));
+                    var d = Sk.ffi.remapToJs(distance);
+                    return queueCommand(function () { return droneAPI.moveRight(d); });
                 });
                 mod.move_up = new Sk.builtin.func(function (distance) {
-                    return promiseToSuspension(droneAPI.moveUp(Sk.ffi.remapToJs(distance)));
+                    var d = Sk.ffi.remapToJs(distance);
+                    return queueCommand(function () { return droneAPI.moveUp(d); });
                 });
                 mod.move_down = new Sk.builtin.func(function (distance) {
-                    return promiseToSuspension(droneAPI.moveDown(Sk.ffi.remapToJs(distance)));
+                    var d = Sk.ffi.remapToJs(distance);
+                    return queueCommand(function () { return droneAPI.moveDown(d); });
                 });
                 mod.turn_left = new Sk.builtin.func(function (angle) {
-                    return promiseToSuspension(droneAPI.turnLeft(Sk.ffi.remapToJs(angle)));
+                    var a = Sk.ffi.remapToJs(angle);
+                    return queueCommand(function () { return droneAPI.turnLeft(a); });
                 });
                 mod.turn_right = new Sk.builtin.func(function (angle) {
-                    return promiseToSuspension(droneAPI.turnRight(Sk.ffi.remapToJs(angle)));
+                    var a = Sk.ffi.remapToJs(angle);
+                    return queueCommand(function () { return droneAPI.turnRight(a); });
                 });
                 mod.fly_to = new Sk.builtin.func(function (x, y, z) {
-                    return promiseToSuspension(droneAPI.flyTo(
-                        Sk.ffi.remapToJs(x), Sk.ffi.remapToJs(y), Sk.ffi.remapToJs(z)
-                    ));
+                    var jx = Sk.ffi.remapToJs(x), jy = Sk.ffi.remapToJs(y), jz = Sk.ffi.remapToJs(z);
+                    return queueCommand(function () { return droneAPI.flyTo(jx, jy, jz); });
                 });
                 mod.return_home = new Sk.builtin.func(function () {
-                    return promiseToSuspension(droneAPI.returnHome());
+                    return queueCommand(function () { return droneAPI.returnHome(); });
                 });
                 mod.follow_path = new Sk.builtin.func(function (pyList) {
-                    // Python 리스트[딕셔너리] -> JS 배열[객체] 변환
                     var jsList = Sk.ffi.remapToJs(pyList);
-                    return promiseToSuspension(droneAPI.followPath(jsList));
+                    return queueCommand(function () { return droneAPI.followPath(jsList); });
                 });
 
                 // === 동기 명령 ===
@@ -607,7 +610,8 @@ drone.land()
 
             isRunning = true;
             clearConsole();
-            _dronePromiseQueue = [];
+            _commandChain = Promise.resolve();
+            _commandChainCancelled = false;
             physics.reset();
             droneAPI.reset();
 
@@ -617,11 +621,16 @@ drone.land()
             var code = sanitizeCode(document.getElementById('code-editor').value);
             logToConsole('프로그램 실행 시작...', 'info');
 
-            // Skulpt 설정
+            // Skulpt 설정 — print 출력도 command chain에 큐잉하여 순서 보장
             Sk.configure({
                 output: function (text) {
                     if (text !== '\n') {
-                        logToConsole(text.replace(/\n$/, ''), 'log');
+                        var msg = text.replace(/\n$/, '');
+                        _commandChain = _commandChain.then(function () {
+                            if (!_commandChainCancelled) {
+                                logToConsole(msg, 'log');
+                            }
+                        });
                     }
                 },
                 read: function (filename) {
@@ -646,42 +655,17 @@ drone.land()
                 pyDroneMod.$d.__name__ = new Sk.builtin.str('drone');
                 Sk.builtins.drone = pyDroneMod;
 
+                // Python 코드를 동기적으로 실행 (suspension 불필요)
+                // 드론 명령은 _commandChain에 큐잉만 하고 즉시 반환
                 var myPromise = Sk.misceval.asyncToPromise(function () {
                     return Sk.importMainWithBody("<stdin>", false, code, true);
-                }, {
-                    // 모든 suspension 타입을 단일 핸들러로 처리
-                    // Skulpt가 def/for 안의 suspension을 wrapper로 감싸면
-                    // 타입이 바뀔 수 있으므로 '*'로 통합
-                    '*': function (susp) {
-                        if (droneAPI._cancelled) {
-                            _dronePromiseQueue = [];
-                            return Promise.reject('Cancelled');
-                        }
-                        // 1) 직접 promise가 있는 경우
-                        if (susp.data && susp.data.promise) {
-                            var idx = _dronePromiseQueue.indexOf(susp.data.promise);
-                            if (idx !== -1) _dronePromiseQueue.splice(idx, 1);
-                            return susp.data.promise;
-                        }
-                        // 2) child chain 탐색
-                        var s = susp.child;
-                        while (s) {
-                            if (s.data && s.data.promise) {
-                                var idx2 = _dronePromiseQueue.indexOf(s.data.promise);
-                                if (idx2 !== -1) _dronePromiseQueue.splice(idx2, 1);
-                                return s.data.promise;
-                            }
-                            s = s.child;
-                        }
-                        // 3) 큐 fallback — wrapper가 child chain을 끊은 경우
-                        if (_dronePromiseQueue.length > 0) {
-                            return _dronePromiseQueue.shift();
-                        }
-                        return Promise.resolve();
-                    }
                 });
 
                 await myPromise;
+
+                // Python 실행 완료 → 큐잉된 드론 명령을 순차 실행
+                logToConsole('명령 실행 중...', 'info');
+                await _commandChain;
                 logToConsole('프로그램 실행 완료!', 'success');
             } catch (e) {
                 if (!droneAPI._cancelled) {
@@ -706,6 +690,8 @@ drone.land()
         }
 
         function stopCode() {
+            _commandChainCancelled = true;
+            _commandChain = Promise.resolve();
             droneAPI.cancel();
             if (droneAPI._autopilot) droneAPI._autopilot.stop();
             isRunning = false;
