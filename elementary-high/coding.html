@@ -600,18 +600,15 @@ drone.land()
             var droneModuleFunc = createDroneModule();
 
             try {
-                // drone 모듈을 sys.modules에 미리 삽입
+                // drone 모듈을 Python 빌트인으로 등록 (import 없이 바로 사용 가능)
                 var droneModResult = droneModuleFunc();
                 var pyDroneMod = new Sk.builtin.module();
                 pyDroneMod.$d = droneModResult;
                 pyDroneMod.$d.__name__ = new Sk.builtin.str('drone');
-                Sk.sysmodules.mp$ass_subscript(new Sk.builtin.str('drone'), pyDroneMod);
-
-                // 코드 앞에 import drone 추가 (사용자가 안 써도 되게)
-                var wrappedCode = 'import drone\n' + code;
+                Sk.builtins.drone = pyDroneMod;
 
                 var myPromise = Sk.misceval.asyncToPromise(function () {
-                    return Sk.importMainWithBody("<stdin>", false, wrappedCode, true);
+                    return Sk.importMainWithBody("<stdin>", false, code, true);
                 }, { '*': function () { return !droneAPI._cancelled; } });
 
                 await myPromise;
