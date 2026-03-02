@@ -46,7 +46,7 @@
             if (label) {
                 var nameEl = document.createElement('span');
                 nameEl.style.cssText = 'color:#44ffaa;font-size:13px;margin-left:auto;padding-right:8px;';
-                nameEl.textContent = auth.getCurrentStudent() + '님';
+                nameEl.textContent = (auth.getCurrentStudent() || '학생') + '님';
                 document.getElementById('top-bar').appendChild(nameEl);
             }
         });

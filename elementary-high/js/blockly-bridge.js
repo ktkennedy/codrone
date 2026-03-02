@@ -88,11 +88,13 @@
                 var targetZ = this.physics.position.z + worldDz * distance;
 
                 var prevThreshold = autopilot.arrivalThreshold;
-                autopilot.arrivalThreshold = 0.3;
+                autopilot.arrivalThreshold = 0.8;
                 autopilot.flyTo(targetX, targetY, targetZ);
+                var maxTime = 30000;
+                var startTime = Date.now();
                 await new Promise(function (resolve) {
                     var check = setInterval(function () {
-                        if (self._cancelled || !autopilot.isNavigating) {
+                        if (self._cancelled || !autopilot.isNavigating || (Date.now() - startTime > maxTime)) {
                             clearInterval(check);
                             autopilot.stop();
                             self.physics.holdPosition();
@@ -140,11 +142,13 @@
             var autopilot = this._getAutopilot();
             if (autopilot) {
                 var prevThreshold = autopilot.arrivalThreshold;
-                autopilot.arrivalThreshold = 0.3;
+                autopilot.arrivalThreshold = 0.8;
                 autopilot.flyTo(targetX, targetY, targetZ);
+                var maxTime = 30000;
+                var startTime = Date.now();
                 await new Promise(function (resolve) {
                     var check = setInterval(function () {
-                        if (self._cancelled || !autopilot.isNavigating) {
+                        if (self._cancelled || !autopilot.isNavigating || (Date.now() - startTime > maxTime)) {
                             clearInterval(check);
                             autopilot.stop();
                             self.physics.holdPosition();
@@ -168,11 +172,13 @@
             var autopilot = this._getAutopilot();
             if (autopilot) {
                 var prevThreshold = autopilot.arrivalThreshold;
-                autopilot.arrivalThreshold = 0.3;
+                autopilot.arrivalThreshold = 0.8;
                 autopilot.flyTo(targetX, targetY, targetZ);
+                var maxTime = 30000;
+                var startTime = Date.now();
                 await new Promise(function (resolve) {
                     var check = setInterval(function () {
-                        if (self._cancelled || !autopilot.isNavigating) {
+                        if (self._cancelled || !autopilot.isNavigating || (Date.now() - startTime > maxTime)) {
                             clearInterval(check);
                             autopilot.stop();
                             self.physics.holdPosition();
@@ -229,9 +235,11 @@
                 yaw_dot: 0
             });
 
+            var maxTime = 15000;
+            var startTime = Date.now();
             await new Promise(function (resolve) {
                 var check = setInterval(function () {
-                    if (self._cancelled) {
+                    if (self._cancelled || (Date.now() - startTime > maxTime)) {
                         self.physics.clearFlatOutput();
                         clearInterval(check);
                         resolve();
@@ -311,9 +319,11 @@
 
             autopilot.flyTo(x, y, z);
 
+            var maxTime = 60000;
+            var startTime = Date.now();
             await new Promise(function (resolve) {
                 var check = setInterval(function () {
-                    if (self._cancelled || !autopilot.isNavigating) {
+                    if (self._cancelled || !autopilot.isNavigating || (Date.now() - startTime > maxTime)) {
                         clearInterval(check);
                         autopilot.stop();
                         self.physics.holdPosition();
@@ -333,9 +343,11 @@
             if (autopilot) {
                 autopilot.returnHome();
                 var self = this;
+                var maxTime = 60000;
+                var startTime = Date.now();
                 await new Promise(function (resolve) {
                     var check = setInterval(function () {
-                        if (self._cancelled || !autopilot.isNavigating) {
+                        if (self._cancelled || !autopilot.isNavigating || (Date.now() - startTime > maxTime)) {
                             clearInterval(check);
                             autopilot.stop();
                             self.physics.holdPosition();
@@ -367,6 +379,8 @@
 
             autopilot.followPath(points);
             var self = this;
+            var maxTime = 120000;
+            var startTime = Date.now();
             await new Promise(function (resolve) {
                 var prevOnComplete = autopilot.onNavigationComplete;
                 autopilot.onNavigationComplete = function () {
@@ -374,7 +388,7 @@
                     resolve();
                 };
                 var check = setInterval(function () {
-                    if (self._cancelled) {
+                    if (self._cancelled || (Date.now() - startTime > maxTime)) {
                         clearInterval(check);
                         autopilot.stop();
                         self.physics.holdPosition();
@@ -402,11 +416,13 @@
             var autopilot = this._getAutopilot();
             if (autopilot) {
                 var prevThreshold = autopilot.arrivalThreshold;
-                autopilot.arrivalThreshold = 0.3;
+                autopilot.arrivalThreshold = 0.8;
                 autopilot.flyTo(tx, ty, tz);
+                var maxTime = 30000;
+                var startTime = Date.now();
                 await new Promise(function (resolve) {
                     var check = setInterval(function () {
-                        if (self._cancelled || !autopilot.isNavigating) {
+                        if (self._cancelled || !autopilot.isNavigating || (Date.now() - startTime > maxTime)) {
                             clearInterval(check);
                             autopilot.stop();
                             self.physics.holdPosition();
@@ -419,9 +435,11 @@
                 return;
             }
             // Fallback with input override (no autopilot)
+            var maxTime = 30000;
+            var startTime = Date.now();
             await new Promise(function (resolve) {
                 var interval = setInterval(function () {
-                    if (self._cancelled) { self._inputOverride = null; clearInterval(interval); resolve(); return; }
+                    if (self._cancelled || (Date.now() - startTime > maxTime)) { self._inputOverride = null; clearInterval(interval); resolve(); return; }
                     var dx = tx - self.physics.position.x;
                     var dy = ty - self.physics.position.y;
                     var dz = tz - self.physics.position.z;

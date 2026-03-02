@@ -635,7 +635,7 @@
             // 미션 7: 택배 배달
             {
                 name: '택배 배달',
-                description: 'A지점에서 화물을 싣고 B지점으로 배달하세요.',
+                description: 'A지점(15, 15)에서 화물을 싣고 B지점(-20, -15)으로 배달하세요.\n높이 2m 근처에서 화물 위로 가면 자동으로 실립니다.',
                 timeLimit: 90,
                 collectibles: [],
                 _pickedUp: false,
@@ -725,11 +725,11 @@
                 },
                 objectives: [
                     {
-                        description: 'A 지점에서 화물 싣기',
+                        description: 'A 지점(15, 15)에서 화물 싣기 (높이 2m로 접근)',
                         check: function (s, t, m) { return m._pickedUp; }
                     },
                     {
-                        description: 'B 지점으로 이동',
+                        description: 'B 지점(-20, -15) 방향으로 이동',
                         check: function (state, t, m) {
                             return m._pickedUp && Math.sqrt(
                                 (state.position.x + 20) * (state.position.x + 20) +
@@ -738,7 +738,7 @@
                         }
                     },
                     {
-                        description: 'B 지점에 배달 완료!',
+                        description: 'B 지점에서 고도 3m 이하로 배달 완료!',
                         check: function (s, t, m) { return m._delivered; }
                     }
                 ],

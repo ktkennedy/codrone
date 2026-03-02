@@ -148,6 +148,14 @@
         #debug-overlay .lbl { color: #88aacc; }
         #debug-overlay .tgt { color: #ffcc66; }
         #debug-overlay .inp { color: #cc88ff; }
+
+        /* 미니맵이 코드 에디터 패널과 겹치지 않도록 sim-container 내부에 고정 */
+        #minimap {
+            position: absolute !important;
+            bottom: 5px !important;
+            left: 5px !important;
+            z-index: 15 !important;
+        }
     </style>
 </head>
 <body>
@@ -825,7 +833,7 @@ drone.land()
         (function initStudentFeatures() {
             var auth = window.DroneSim.StudentAuth;
             var nameLabel = document.getElementById('student-name-label');
-            if (nameLabel) nameLabel.textContent = auth.getCurrentStudent() + '님';
+            if (nameLabel) nameLabel.textContent = (auth.getCurrentStudent() || '학생') + '님';
 
             var editor = document.getElementById('code-editor');
             var CODE_KEY = 'drone-editor-code';

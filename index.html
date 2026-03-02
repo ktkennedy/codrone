@@ -665,6 +665,10 @@
 
         function showMainScreen() {
             var name = auth.getCurrentStudent();
+            if (!name) {
+                showLoginScreen();
+                return;
+            }
             document.getElementById('bar-student-name').textContent = name;
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-screen').style.display = 'flex';
@@ -848,14 +852,14 @@
                     if (data.missions) {
                         var keys = Object.keys(data.missions);
                         keys.forEach(function (k) {
-                            if (data.missions[k] && data.missions[k].completed) done++;
+                            if (data.missions[k] && (data.missions[k].completed || data.missions[k].stars > 0)) done++;
                         });
                     }
-                    // 형식2: {mission-1: {completed:true}, ...}
+                    // 형식2: {0: {stars:3, time:45}} (MissionManager 형식) or {mission-1: {completed:true}, ...}
                     else {
                         var keys2 = Object.keys(data);
                         keys2.forEach(function (k) {
-                            if (data[k] && data[k].completed) done++;
+                            if (data[k] && (data[k].completed || data[k].stars > 0)) done++;
                         });
                     }
                 } catch (e) { /* 무시 */ }

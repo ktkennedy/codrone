@@ -753,7 +753,7 @@
         (function() {
             var auth = window.DroneSim.StudentAuth;
             var nameLabel = document.getElementById('student-name-label');
-            if (nameLabel) nameLabel.textContent = auth.getCurrentStudent() + '님';
+            if (nameLabel) nameLabel.textContent = (auth.getCurrentStudent() || '학생') + '님';
         })();
     })();
     </script>
@@ -764,7 +764,7 @@
         // 학생 이름 표시
         var auth = window.DroneSim.StudentAuth;
         var nameLabel = document.getElementById('student-name-label');
-        if (nameLabel) nameLabel.textContent = auth.getCurrentStudent() + '님';
+        if (nameLabel) nameLabel.textContent = (auth.getCurrentStudent() || '학생') + '님';
 
         function updateModeProgress() {
             var data = JSON.parse(localStorage.getItem(auth.getKey('drone-blockly-progress')) || '{}');
