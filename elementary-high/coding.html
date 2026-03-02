@@ -692,18 +692,20 @@ drone.land()
                         return Promise.resolve();
                     },
                     // '*' 와일드카드: Sk.promise가 아닌 다른 suspension 타입 처리
-                    // 주의: 큐에서 꺼내지 않음 — 비드론 suspension이 드론 promise를 소비하는 것 방지
+                    // 함수 호출/for문 안의 드론 명령은 Skulpt가 wrapper suspension으로 감싸므로
+                    // child chain 탐색 후 큐 fallback 필요
                     '*': function (susp) {
                         if (droneAPI._cancelled) {
                             _dronePromiseQueue = [];
                             return Promise.reject('Cancelled');
                         }
-                        // 직접 promise가 있는 경우에만 처리
+                        // 직접 promise가 있는 경우
                         if (susp.data && susp.data.promise) {
                             var idx = _dronePromiseQueue.indexOf(susp.data.promise);
                             if (idx !== -1) _dronePromiseQueue.splice(idx, 1);
                             return susp.data.promise;
                         }
+                        // child chain 탐색
                         var s = susp.child;
                         while (s) {
                             if (s.data && s.data.promise) {
@@ -713,7 +715,13 @@ drone.land()
                             }
                             s = s.child;
                         }
-                        // 비드론 suspension (yield, input 등)은 큐 소비 없이 즉시 resolve
+                        // Fallback: 큐에 드론 promise가 있으면 소비
+                        // (def/for 안의 드론 명령이 wrapper suspension으로 감싸져
+                        //  child chain에서 찾을 수 없는 경우)
+                        if (_dronePromiseQueue.length > 0) {
+                            return _dronePromiseQueue.shift();
+                        }
+                        // 드론 관련 아닌 순수 suspension은 즉시 resolve
                         return Promise.resolve();
                     }
                 });
