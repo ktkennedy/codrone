@@ -639,11 +639,17 @@ drone.land()
                 var myPromise = Sk.misceval.asyncToPromise(function () {
                     return Sk.importMainWithBody("<stdin>", false, code, true);
                 }, {
-                    // 'Sk.promise' 핸들러: 취소 시 false 반환(SystemExit), 아니면 promise 반환해 정상 await
-                    // '*' 와일드카드 대신 타입별 핸들러를 써야 q.then 오류 방지 (Skulpt는 핸들러 반환값에 .then() 호출)
-                    'Sk.promise': function (susp) {
-                        if (droneAPI._cancelled) return false;
-                        return susp.data.promise;
+                    // '*' 와일드카드: 모든 suspension 타입(Sk.promise, yield 등) 처리
+                    // skulpt.org CDN은 핸들러 반환값에 항상 .then() 호출하므로 반드시 Promise 반환
+                    '*': function (susp) {
+                        if (droneAPI._cancelled) {
+                            return Promise.reject('Cancelled');
+                        }
+                        if (susp.data && susp.data.promise) {
+                            return susp.data.promise;
+                        }
+                        // yield 등 비동기가 아닌 suspension은 즉시 resolve
+                        return Promise.resolve();
                     }
                 });
 
