@@ -33,12 +33,171 @@
             to { opacity: 1; }
         }
 
-        .main-container {
+        /* ===== 공통 ===== */
+        .screen {
             position: relative; z-index: 1;
-            text-align: center;
-            max-width: 800px; width: 90%;
+            width: 100%; display: flex;
+            flex-direction: column; align-items: center;
         }
 
+        /* ===== 로그인 화면 ===== */
+        #login-screen {
+            max-width: 900px;
+            padding: 20px;
+        }
+        #login-screen .drone-icon {
+            font-size: 72px;
+            animation: float 3s ease-in-out infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        #login-screen h1 {
+            font-size: 40px;
+            font-weight: 900;
+            margin-bottom: 8px;
+            background: linear-gradient(to right, #4a9eff, #44ffaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        #login-screen .subtitle {
+            font-size: 16px;
+            color: #88aacc;
+            margin-bottom: 30px;
+        }
+
+        .login-box {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            padding: 28px 32px;
+            width: 100%;
+        }
+        .login-box h2 {
+            font-size: 18px;
+            color: #88ccff;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        /* 학생 카드 그리드 4열 x 5행 */
+        .student-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .student-card {
+            background: rgba(74,158,255,0.1);
+            border: 1.5px solid rgba(74,158,255,0.25);
+            border-radius: 12px;
+            padding: 14px 8px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            color: #cce4ff;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .student-card:hover {
+            background: rgba(74,158,255,0.3);
+            border-color: rgba(74,158,255,0.7);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(74,158,255,0.25);
+        }
+
+        .teacher-area {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .teacher-btn {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #556677;
+            font-size: 12px;
+            padding: 6px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .teacher-btn:hover { color: #88aacc; border-color: rgba(255,255,255,0.3); }
+
+        /* 교사 모드 패널 */
+        #teacher-panel {
+            display: none;
+            margin-top: 16px;
+            background: rgba(255,180,50,0.07);
+            border: 1px solid rgba(255,180,50,0.25);
+            border-radius: 12px;
+            padding: 18px;
+        }
+        #teacher-panel h3 {
+            color: #ffcc66;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .teacher-input-row {
+            display: flex; gap: 8px; margin-bottom: 10px;
+        }
+        .teacher-input-row input {
+            flex: 1; padding: 8px 12px; border-radius: 8px;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; font-size: 13px; font-family: inherit;
+        }
+        .teacher-input-row input::placeholder { color: #556677; }
+        .teacher-action-btn {
+            padding: 8px 16px; border-radius: 8px; border: none;
+            font-size: 13px; cursor: pointer; font-family: inherit; font-weight: bold;
+        }
+        .teacher-action-btn.add { background: #4a9eff; color: #fff; }
+        .teacher-action-btn.remove { background: #da3633; color: #fff; }
+        .teacher-action-btn.rename { background: #ff8844; color: #fff; }
+        #teacher-msg { font-size: 12px; color: #88ccff; min-height: 18px; margin-top: 4px; }
+
+        /* ===== 메인 화면 (로그인 후) ===== */
+        #main-screen {
+            display: none;
+            max-width: 800px;
+            padding: 20px;
+        }
+
+        /* 상단 학생 바 */
+        #student-bar {
+            position: fixed; top: 0; left: 0; right: 0;
+            z-index: 100;
+            background: rgba(10,22,40,0.92);
+            border-bottom: 1px solid rgba(74,158,255,0.2);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px;
+            height: 48px;
+        }
+        #student-bar .greeting {
+            color: #88ccff; font-size: 14px;
+        }
+        #student-bar .greeting strong { color: #4a9eff; }
+        #logout-btn {
+            background: none; border: 1px solid rgba(255,255,255,0.2);
+            color: #88aacc; font-size: 12px; padding: 5px 14px;
+            border-radius: 8px; cursor: pointer; font-family: inherit;
+            transition: all 0.2s;
+        }
+        #logout-btn:hover { border-color: rgba(255,100,100,0.5); color: #ff8888; }
+
+        #main-screen .main-container {
+            margin-top: 60px;
+            text-align: center;
+        }
+        .drone-icon-main {
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: float 3s ease-in-out infinite;
+            display: block;
+        }
         .title {
             font-size: 48px;
             font-weight: 900;
@@ -47,23 +206,11 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: none;
         }
-
         .subtitle {
             font-size: 18px;
             color: #88aacc;
             margin-bottom: 50px;
-        }
-
-        .drone-icon {
-            font-size: 80px;
-            margin-bottom: 30px;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
         }
 
         .mode-cards {
@@ -72,7 +219,6 @@
             justify-content: center;
             flex-wrap: wrap;
         }
-
         .mode-card {
             background: rgba(255,255,255,0.08);
             border: 2px solid rgba(255,255,255,0.15);
@@ -91,30 +237,16 @@
             border-color: rgba(255,255,255,0.4);
             box-shadow: 0 15px 40px rgba(0,0,0,0.3);
         }
-
-        .mode-card .icon {
-            font-size: 50px;
-            margin-bottom: 15px;
-        }
-        .mode-card h2 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        .mode-card .grade {
-            font-size: 14px;
-            color: #88aacc;
-            margin-bottom: 15px;
-        }
+        .mode-card .icon { font-size: 50px; margin-bottom: 15px; }
+        .mode-card h2 { font-size: 24px; margin-bottom: 10px; }
         .mode-card .description {
             font-size: 13px;
             color: #aabbcc;
             line-height: 1.6;
         }
-
         .mode-card.simulator { border-color: rgba(74, 158, 255, 0.3); }
         .mode-card.simulator:hover { border-color: rgba(74, 158, 255, 0.6); }
         .mode-card.simulator h2 { color: #4a9eff; }
-
         .mode-card.curriculum { border-color: rgba(255, 153, 68, 0.3); }
         .mode-card.curriculum:hover { border-color: rgba(255, 153, 68, 0.6); }
         .mode-card.curriculum h2 { color: #ff9944; }
@@ -126,126 +258,154 @@
             border-radius: 15px;
             border: 1px solid rgba(255,255,255,0.1);
         }
-        .curriculum-info h3 {
-            color: #88aacc;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
+        .curriculum-info h3 { color: #88aacc; font-size: 14px; margin-bottom: 15px; }
         .steps {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            flex-wrap: wrap;
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; flex-wrap: wrap;
         }
         .step {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: flex; align-items: center; gap: 8px;
             background: rgba(74,158,255,0.1);
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 8px 16px; border-radius: 20px;
             border: 1px solid rgba(74,158,255,0.2);
         }
         .step-num {
-            background: #4a9eff;
-            color: #fff;
-            width: 22px; height: 22px;
-            border-radius: 50%;
+            background: #4a9eff; color: #fff;
+            width: 22px; height: 22px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: 12px; font-weight: bold;
         }
-        .step-text {
-            color: #ccddeeff;
-            font-size: 13px;
-        }
-        .step-arrow {
-            color: #556677;
-            font-size: 18px;
-        }
+        .step-text { color: #ccddeeff; font-size: 13px; }
+        .step-arrow { color: #556677; font-size: 18px; }
 
         .footer {
-            position: fixed;
-            bottom: 20px;
-            color: #556677;
-            font-size: 12px;
-            z-index: 1;
+            position: fixed; bottom: 20px;
+            color: #556677; font-size: 12px; z-index: 1;
         }
 
         @media (max-width: 680px) {
             .title { font-size: 32px; }
             .mode-cards { flex-direction: column; align-items: center; }
             .mode-card { width: 280px; padding: 30px 20px; }
+            .student-grid { grid-template-columns: repeat(2, 1fr); }
+            #login-screen h1 { font-size: 28px; }
         }
     </style>
 </head>
 <body>
     <div class="stars" id="stars"></div>
 
-    <div class="main-container">
+    <!-- ===== 로그인 화면 ===== -->
+    <div id="login-screen" class="screen">
         <div class="drone-icon">&#x1F681;</div>
-        <h1 class="title">드론 코딩 시뮬레이터</h1>
-        <p class="subtitle">드론을 조종하고 코딩을 배워보세요!</p>
+        <h1>드론 코딩 시뮬레이터</h1>
+        <p class="subtitle">이름을 클릭해서 시작하세요!</p>
 
-        <div class="mode-cards">
-            <a href="elementary-high/index.html" class="mode-card simulator">
-                <div class="icon">&#x1F680;</div>
-                <h2>드론 시뮬레이터</h2>
-                <p class="description">
-                    비행 미션 · 블록 코딩 · 텍스트 코딩<br>
-                    키보드로 드론을 자유롭게 조종하고<br>
-                    15가지 미션에 도전해보세요!
-                </p>
-            </a>
+        <div class="login-box">
+            <h2>&#x1F464; 학생 선택</h2>
+            <div class="student-grid" id="student-grid"></div>
 
-            <a href="curriculum.html" class="mode-card curriculum">
-                <div class="icon">&#x1F4DA;</div>
-                <h2>수업자료</h2>
-                <p class="description">
-                    24주 커리큘럼 · 수업 PPT<br>
-                    단계별 학습 로드맵<br>
-                    매주 수업 자료 제공
-                </p>
-            </a>
-        </div>
+            <div class="teacher-area">
+                <button class="teacher-btn" id="teacher-toggle-btn">교사 모드</button>
+            </div>
 
-        <div class="curriculum-info">
-            <h3>학습 단계</h3>
-            <div class="steps">
-                <div class="step">
-                    <span class="step-num">1</span>
-                    <span class="step-text">드론 조종 익히기</span>
+            <div id="teacher-panel">
+                <h3>&#x1F4BC; 교사 모드</h3>
+                <div class="teacher-input-row">
+                    <input type="text" id="teacher-password" placeholder="비밀번호 입력" />
+                    <button class="teacher-action-btn add" id="teacher-login-btn">확인</button>
                 </div>
-                <div class="step-arrow">&rarr;</div>
-                <div class="step">
-                    <span class="step-num">2</span>
-                    <span class="step-text">미션 수행하기</span>
-                </div>
-                <div class="step-arrow">&rarr;</div>
-                <div class="step">
-                    <span class="step-num">3</span>
-                    <span class="step-text">블록 코딩</span>
-                </div>
-                <div class="step-arrow">&rarr;</div>
-                <div class="step">
-                    <span class="step-num">4</span>
-                    <span class="step-text">텍스트 코딩</span>
+                <div id="teacher-controls" style="display:none;">
+                    <div class="teacher-input-row">
+                        <input type="text" id="new-student-name" placeholder="추가할 학생 이름" />
+                        <button class="teacher-action-btn add" id="btn-add-student">추가</button>
+                    </div>
+                    <div class="teacher-input-row">
+                        <input type="text" id="remove-student-name" placeholder="삭제할 학생 이름" />
+                        <button class="teacher-action-btn remove" id="btn-remove-student">삭제</button>
+                    </div>
+                    <div class="teacher-input-row">
+                        <input type="text" id="rename-old" placeholder="기존 이름" style="flex:1;" />
+                        <input type="text" id="rename-new" placeholder="새 이름" style="flex:1;" />
+                        <button class="teacher-action-btn rename" id="btn-rename-student">변경</button>
+                    </div>
+                    <div id="teacher-msg"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="footer">
-        드론 시뮬레이터 v2.0 | 초등학생 코딩 교육용
+    <!-- ===== 메인 화면 (로그인 후) ===== -->
+    <div id="main-screen" class="screen">
+        <div id="student-bar">
+            <span class="greeting"><strong id="bar-student-name"></strong>님 환영합니다!</span>
+            <button id="logout-btn">&#x1F6AA; 로그아웃</button>
+        </div>
+
+        <div class="main-container">
+            <span class="drone-icon-main">&#x1F681;</span>
+            <h1 class="title">드론 코딩 시뮬레이터</h1>
+            <p class="subtitle">드론을 조종하고 코딩을 배워보세요!</p>
+
+            <div class="mode-cards">
+                <a href="elementary-high/index.html" class="mode-card simulator">
+                    <div class="icon">&#x1F680;</div>
+                    <h2>드론 시뮬레이터</h2>
+                    <p class="description">
+                        비행 미션 · 블록 코딩 · 텍스트 코딩<br>
+                        키보드로 드론을 자유롭게 조종하고<br>
+                        15가지 미션에 도전해보세요!
+                    </p>
+                </a>
+
+                <a href="curriculum.html" class="mode-card curriculum">
+                    <div class="icon">&#x1F4DA;</div>
+                    <h2>수업자료</h2>
+                    <p class="description">
+                        24주 커리큘럼 · 수업 PPT<br>
+                        단계별 학습 로드맵<br>
+                        매주 수업 자료 제공
+                    </p>
+                </a>
+            </div>
+
+            <div class="curriculum-info">
+                <h3>학습 단계</h3>
+                <div class="steps">
+                    <div class="step">
+                        <span class="step-num">1</span>
+                        <span class="step-text">드론 조종 익히기</span>
+                    </div>
+                    <div class="step-arrow">&rarr;</div>
+                    <div class="step">
+                        <span class="step-num">2</span>
+                        <span class="step-text">미션 수행하기</span>
+                    </div>
+                    <div class="step-arrow">&rarr;</div>
+                    <div class="step">
+                        <span class="step-num">3</span>
+                        <span class="step-text">블록 코딩</span>
+                    </div>
+                    <div class="step-arrow">&rarr;</div>
+                    <div class="step">
+                        <span class="step-num">4</span>
+                        <span class="step-text">텍스트 코딩</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <div class="footer">드론 시뮬레이터 v2.0 | 초등학생 코딩 교육용</div>
+
+    <script src="shared/student-auth.js"></script>
     <script>
-        // 별 배경 효과
-        const starsContainer = document.getElementById('stars');
-        for (let i = 0; i < 80; i++) {
-            const star = document.createElement('div');
+        // 별 배경
+        var starsContainer = document.getElementById('stars');
+        for (var i = 0; i < 80; i++) {
+            var star = document.createElement('div');
             star.className = 'star';
-            const size = Math.random() * 3 + 1;
+            var size = Math.random() * 3 + 1;
             star.style.width = size + 'px';
             star.style.height = size + 'px';
             star.style.left = Math.random() * 100 + '%';
@@ -253,6 +413,125 @@
             star.style.animationDelay = Math.random() * 2 + 's';
             star.style.animationDuration = (1.5 + Math.random() * 2) + 's';
             starsContainer.appendChild(star);
+        }
+
+        var auth = window.DroneSim.StudentAuth;
+
+        // 학생 그리드 렌더링
+        function renderStudentGrid() {
+            var grid = document.getElementById('student-grid');
+            var students = auth.getStudents();
+            grid.innerHTML = '';
+            students.forEach(function (name) {
+                var card = document.createElement('button');
+                card.className = 'student-card';
+                card.textContent = name;
+                card.addEventListener('click', function () {
+                    auth.login(name);
+                    showMainScreen();
+                });
+                grid.appendChild(card);
+            });
+        }
+
+        function showMainScreen() {
+            var name = auth.getCurrentStudent();
+            document.getElementById('bar-student-name').textContent = name;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-screen').style.display = 'flex';
+        }
+
+        function showLoginScreen() {
+            auth.logout();
+            document.getElementById('main-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+            renderStudentGrid();
+        }
+
+        // 로그아웃
+        document.getElementById('logout-btn').addEventListener('click', showLoginScreen);
+
+        // 교사 모드 토글
+        var teacherUnlocked = false;
+        document.getElementById('teacher-toggle-btn').addEventListener('click', function () {
+            var panel = document.getElementById('teacher-panel');
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+                teacherUnlocked = false;
+            } else {
+                panel.style.display = 'block';
+                document.getElementById('teacher-password').focus();
+            }
+        });
+
+        document.getElementById('teacher-login-btn').addEventListener('click', function () {
+            var pw = document.getElementById('teacher-password').value;
+            if (pw === 'teacher') {
+                teacherUnlocked = true;
+                document.getElementById('teacher-controls').style.display = 'block';
+                document.getElementById('teacher-password').closest('.teacher-input-row').style.display = 'none';
+                showTeacherMsg('교사 모드 활성화됨', '#44ff88');
+            } else {
+                showTeacherMsg('비밀번호가 틀렸습니다', '#ff6666');
+            }
+        });
+
+        document.getElementById('teacher-password').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') document.getElementById('teacher-login-btn').click();
+        });
+
+        function showTeacherMsg(msg, color) {
+            var el = document.getElementById('teacher-msg');
+            el.textContent = msg;
+            el.style.color = color || '#88ccff';
+            setTimeout(function () { el.textContent = ''; }, 3000);
+        }
+
+        document.getElementById('btn-add-student').addEventListener('click', function () {
+            var name = document.getElementById('new-student-name').value.trim();
+            if (!name) { showTeacherMsg('이름을 입력하세요', '#ff8888'); return; }
+            if (auth.addStudent(name)) {
+                document.getElementById('new-student-name').value = '';
+                renderStudentGrid();
+                showTeacherMsg(name + ' 추가됨', '#44ff88');
+            } else {
+                showTeacherMsg('이미 있는 이름입니다', '#ff8888');
+            }
+        });
+
+        document.getElementById('btn-remove-student').addEventListener('click', function () {
+            var name = document.getElementById('remove-student-name').value.trim();
+            if (!name) { showTeacherMsg('이름을 입력하세요', '#ff8888'); return; }
+            if (confirm(name + ' 학생을 삭제하시겠습니까?')) {
+                if (auth.removeStudent(name)) {
+                    document.getElementById('remove-student-name').value = '';
+                    renderStudentGrid();
+                    showTeacherMsg(name + ' 삭제됨', '#ffcc44');
+                } else {
+                    showTeacherMsg('학생을 찾을 수 없습니다', '#ff8888');
+                }
+            }
+        });
+
+        document.getElementById('btn-rename-student').addEventListener('click', function () {
+            var oldName = document.getElementById('rename-old').value.trim();
+            var newName = document.getElementById('rename-new').value.trim();
+            if (!oldName || !newName) { showTeacherMsg('이름을 입력하세요', '#ff8888'); return; }
+            if (auth.renameStudent(oldName, newName)) {
+                document.getElementById('rename-old').value = '';
+                document.getElementById('rename-new').value = '';
+                renderStudentGrid();
+                showTeacherMsg(oldName + ' → ' + newName + ' 변경됨', '#44ff88');
+            } else {
+                showTeacherMsg('변경 실패 (이름 확인)', '#ff8888');
+            }
+        });
+
+        // 초기 진입
+        if (auth.isLoggedIn()) {
+            showMainScreen();
+        } else {
+            renderStudentGrid();
         }
     </script>
 </body>

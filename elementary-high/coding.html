@@ -72,7 +72,7 @@
             font-family: 'Courier New', 'Menlo', monospace;
             font-size: 14px; line-height: 1.7;
             resize: none; outline: none;
-            tab-size: 2;
+            tab-size: 4;
         }
         /* 출력 콘솔 */
         #console-panel {
@@ -163,6 +163,7 @@
             <button class="tool-btn reset" id="btn-reset">&#x21BA; 리셋</button>
         </div>
         <div class="right">
+            <span id="student-name-label" style="color:#44ffaa;font-size:12px;margin-right:10px;"></span>
             <span id="mode-progress" style="color:#88ccff;font-size:12px;margin-right:6px;"></span>
             <button id="btn-missions" style="background:#4a9eff;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit;">&#x1F3AF; 코딩 과제</button>
             <button id="btn-sandbox" style="background:#9b59b6;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit;">&#x1F3AE; 자유 코딩</button>
@@ -179,18 +180,18 @@
     <div id="main-container">
         <div id="editor-panel">
             <div id="editor-header">
-                <span class="tab">main.js</span>
+                <span class="tab">main.py</span>
                 <span class="api-hint">drone.함수명() 으로 드론을 조종하세요</span>
             </div>
-            <textarea id="code-editor" spellcheck="false">// 드론 텍스트 코딩
-// 아래 코드를 수정해서 드론을 조종해보세요!
+            <textarea id="code-editor" spellcheck="false"># 드론 텍스트 코딩
+# 아래 코드를 수정해서 드론을 조종해보세요!
 
-await drone.takeoff();
-await drone.moveForward(5);
-await drone.turnRight(90);
-await drone.moveForward(3);
-await drone.hover(2);
-await drone.land();
+drone.takeoff()
+drone.move_forward(5)
+drone.turn_right(90)
+drone.move_forward(3)
+drone.hover(2)
+drone.land()
 </textarea>
             <div id="console-panel">
                 <div id="console-header">콘솔 출력</div>
@@ -207,41 +208,52 @@ await drone.land();
             <div id="api-panel">
                 <h4>드론 API 레퍼런스</h4>
                 <b style="color:#4a9eff;">기본 조작</b><br>
-                <code>await drone.takeoff()</code> - 이륙<br>
-                <code>await drone.land()</code> - 착륙<br>
-                <code>await drone.moveForward(거리)</code> - 앞으로 이동 (m)<br>
-                <code>await drone.moveBackward(거리)</code> - 뒤로 이동<br>
-                <code>await drone.moveLeft(거리)</code> - 왼쪽 이동<br>
-                <code>await drone.moveRight(거리)</code> - 오른쪽 이동<br>
-                <code>await drone.moveUp(높이)</code> - 위로 이동<br>
-                <code>await drone.moveDown(높이)</code> - 아래로 이동<br>
-                <code>await drone.turnLeft(각도)</code> - 왼쪽 회전 (도)<br>
-                <code>await drone.turnRight(각도)</code> - 오른쪽 회전 (도)<br>
-                <code>await drone.hover(초)</code> - 호버링<br>
-                <code>await drone.wait(초)</code> - 대기<br>
+                <code>drone.takeoff()</code> - 이륙<br>
+                <code>drone.land()</code> - 착륙<br>
+                <code>drone.move_forward(거리)</code> - 앞으로 이동 (m)<br>
+                <code>drone.move_backward(거리)</code> - 뒤로 이동<br>
+                <code>drone.move_left(거리)</code> - 왼쪽 이동<br>
+                <code>drone.move_right(거리)</code> - 오른쪽 이동<br>
+                <code>drone.move_up(높이)</code> - 위로 이동<br>
+                <code>drone.move_down(높이)</code> - 아래로 이동<br>
+                <code>drone.turn_left(각도)</code> - 왼쪽 회전 (도)<br>
+                <code>drone.turn_right(각도)</code> - 오른쪽 회전 (도)<br>
+                <code>drone.hover(초)</code> - 호버링<br>
+                <code>drone.wait(초)</code> - 대기<br>
                 <br><b style="color:#ff8844;">자율비행</b><br>
-                <code>await drone.flyTo(x, y, z)</code> - 좌표로 자동 비행<br>
-                <code>await drone.returnHome()</code> - 홈으로 귀환<br>
-                <code>await drone.followPath([{x,y,z}, ...])</code> - 경로 비행<br>
-                <code>drone.setSpeed(속도)</code> - 비행 속도 설정 (1~10)<br>
+                <code>drone.fly_to(x, y, z)</code> - 좌표로 자동 비행<br>
+                <code>drone.return_home()</code> - 홈으로 귀환<br>
+                <code>drone.follow_path([{"x":0,"y":3,"z":0}, ...])</code> - 경로 비행<br>
+                <code>drone.set_speed(속도)</code> - 비행 속도 설정 (1~10)<br>
                 <br><b style="color:#bb44aa;">센서</b><br>
-                <code>drone.getAltitude()</code> - 현재 높이<br>
-                <code>drone.getSpeed()</code> - 현재 속도<br>
-                <code>drone.getBattery()</code> - 배터리 잔량<br>
-                <code>drone.getPositionX()</code> - X 좌표<br>
-                <code>drone.getPositionZ()</code> - Z 좌표<br>
-                <code>drone.getDistanceTo(x, z)</code> - 목표까지 거리<br>
-                <code>console.log(값)</code> - 콘솔 출력<br>
+                <code>drone.get_altitude()</code> - 현재 높이<br>
+                <code>drone.get_speed()</code> - 현재 속도<br>
+                <code>drone.get_battery()</code> - 배터리 잔량<br>
+                <code>drone.get_position_x()</code> - X 좌표<br>
+                <code>drone.get_position_z()</code> - Z 좌표<br>
+                <code>drone.get_distance_to(x, z)</code> - 목표까지 거리<br>
+                <code>print(값)</code> - 콘솔 출력<br>
                 <br><b style="color:#44bb77;">코딩 기본</b><br>
-                <code>for (let i = 0; i &lt; 횟수; i++) { }</code> - 반복 실행<br>
-                <code>while (조건) { }</code> - 조건이 참인 동안 반복<br>
-                <code>if (조건) { } else { }</code> - 조건 분기<br>
-                <code>let 변수명 = 값;</code> - 변수 선언<br>
-                <code>async function 이름() { }</code> - 함수 정의<br>
-                <code>await 이름();</code> - 함수 실행<br>
+                <code>for i in range(횟수):</code> - 반복 실행<br>
+                <code>while 조건:</code> - 조건이 참인 동안 반복<br>
+                <code>if 조건:</code> / <code>else:</code> - 조건 분기<br>
+                <code>변수명 = 값</code> - 변수 선언<br>
+                <code>def 이름():</code> - 함수 정의<br>
+                <code>이름()</code> - 함수 실행<br>
             </div>
         </div>
     </div>
+
+    <!-- 학생 인증 -->
+    <script src="../shared/student-auth.js"></script>
+    <script>
+    (function() {
+        var auth = window.DroneSim.StudentAuth;
+        if (!auth.isLoggedIn()) {
+            window.location.href = '../index.html';
+        }
+    })();
+    </script>
 
     <!-- 에러 핸들러 -->
     <script>
@@ -254,6 +266,8 @@ await drone.land();
     </script>
 
     <!-- Libraries -->
+    <script src="https://skulpt.org/js/skulpt.min.js"></script>
+    <script src="https://skulpt.org/js/skulpt-stdlib.js"></script>
     <script src="../shared/three.min.js?v=5"></script>
 
     <!-- Shared -->
@@ -280,13 +294,13 @@ await drone.land();
 
         // 데모 코드
         var DEMOS = {
-            square: '// 사각형 비행\n// 4번 반복하여 사각형을 그립니다\n\nawait drone.takeoff();\n\nfor (let i = 0; i < 4; i++) {\n    await drone.moveForward(5);\n    await drone.turnRight(90);\n    console.log("변 " + (i+1) + " 완료!");\n}\n\nconsole.log("사각형 완성!");\nawait drone.land();\n',
-            flyto: '// 좌표 비행 (자율비행)\n// flyTo()로 원하는 좌표로 자동 비행합니다\n\nawait drone.takeoff();\nconsole.log("현재 위치: X=" + drone.getPositionX() + " Z=" + drone.getPositionZ());\n\n// 첫 번째 지점으로 비행\nconsole.log(">> 지점 A (10, 3, 0) 으로 비행!");\nawait drone.flyTo(10, 3, 0);\nconsole.log("지점 A 도착! 거리: " + drone.getDistanceTo(0, 0) + "m");\n\n// 두 번째 지점으로 비행\nconsole.log(">> 지점 B (10, 5, 10) 으로 비행!");\nawait drone.flyTo(10, 5, 10);\nconsole.log("지점 B 도착!");\n\n// 홈으로 귀환\nconsole.log(">> 홈으로 귀환!");\nawait drone.returnHome();\nconsole.log("귀환 완료!");\n\nawait drone.land();\n',
-            patrol: '// 순찰 비행 (자율비행)\n// 여러 웨이포인트를 순서대로 방문합니다\n\nawait drone.takeoff();\ndrone.setSpeed(4); // 속도 4m/s\n\n// 순찰 경로 정의\nconst route = [\n    {x: 8, y: 3, z: 0},   // 동쪽\n    {x: 8, y: 4, z: -8},  // 북동쪽 (높이 올림)\n    {x: 0, y: 4, z: -8},  // 북쪽\n    {x: -8, y: 3, z: -8}, // 북서쪽\n    {x: -8, y: 3, z: 0},  // 서쪽\n    {x: 0, y: 3, z: 0}    // 출발점\n];\n\nconsole.log("순찰 시작! (" + route.length + "개 지점)");\n\n// followPath로 경로 자동 비행\nawait drone.followPath(route);\n\nconsole.log("순찰 완료!");\nconsole.log("최종 위치: X=" + drone.getPositionX() + " Z=" + drone.getPositionZ());\nawait drone.land();\n',
-            path: '// 지능형 경로 탐색\n// 센서로 위치를 확인하며 목표를 찾아갑니다\n\nawait drone.takeoff();\ndrone.setSpeed(3);\n\n// 탐색할 목표 지점들\nconst targets = [\n    {x: 5, z: 5, name: "기지 A"},\n    {x: -5, z: 10, name: "기지 B"},\n    {x: -10, z: -5, name: "기지 C"}\n];\n\nfor (let i = 0; i < targets.length; i++) {\n    const t = targets[i];\n    let dist = drone.getDistanceTo(t.x, t.z);\n    console.log(">> " + t.name + " 탐색 중... (거리: " + dist + "m)");\n    \n    await drone.flyTo(t.x, 3, t.z);\n    \n    dist = drone.getDistanceTo(t.x, t.z);\n    console.log("도착! " + t.name + " (오차: " + dist + "m)");\n    await drone.hover(1);\n}\n\nconsole.log("모든 기지 탐색 완료! 귀환합니다.");\nawait drone.returnHome();\nawait drone.land();\n',
-            loop_demo: '// 반복문 활용하기\n// for문으로 나선형 비행!\n\nawait drone.takeoff();\n\nfor (let i = 1; i <= 5; i++) {\n    console.log(i + "번째 변 (길이: " + i + "m)");\n    await drone.moveForward(i);\n    await drone.turnRight(90);\n}\n\nconsole.log("나선형 완성!");\nawait drone.land();\n',
-            if_demo: '// 조건문 활용하기\n// 높이에 따라 다른 동작!\n\nawait drone.takeoff();\n\nfor (let i = 0; i < 3; i++) {\n    await drone.moveUp(2);\n    let height = drone.getAltitude();\n    console.log("현재 높이: " + height + "m");\n    \n    if (height > 5) {\n        console.log("높이 5m 초과! 앞으로 이동");\n        await drone.moveForward(3);\n    } else {\n        console.log("아직 5m 이하. 계속 상승");\n    }\n}\n\nawait drone.land();\n',
-            variable_func: '// 변수와 함수 활용하기\n\n// 다각형 비행 함수 정의\nasync function flyPolygon(sides, size) {\n    let angle = 360 / sides;\n    console.log(sides + "각형 비행! (변 길이: " + size + "m)");\n    \n    for (let i = 0; i < sides; i++) {\n        await drone.moveForward(size);\n        await drone.turnRight(angle);\n        console.log("변 " + (i+1) + "/" + sides + " 완료");\n    }\n}\n\nawait drone.takeoff();\n\n// 삼각형 비행\nawait flyPolygon(3, 4);\nawait drone.hover(1);\n\n// 오각형 비행\nawait flyPolygon(5, 3);\n\nawait drone.land();\nconsole.log("다각형 비행 완료!");\n'
+            square: '# 사각형 비행\n# 4번 반복하여 사각형을 그립니다\n\ndrone.takeoff()\n\nfor i in range(4):\n    drone.move_forward(5)\n    drone.turn_right(90)\n    print("변 " + str(i + 1) + " 완료!")\n\nprint("사각형 완성!")\ndrone.land()\n',
+            flyto: '# 좌표 비행 (자율비행)\n# fly_to()로 원하는 좌표로 자동 비행합니다\n\ndrone.takeoff()\nprint("현재 위치: X=" + str(drone.get_position_x()) + " Z=" + str(drone.get_position_z()))\n\n# 첫 번째 지점으로 비행\nprint(">> 지점 A (10, 3, 0) 으로 비행!")\ndrone.fly_to(10, 3, 0)\nprint("지점 A 도착! 거리: " + str(drone.get_distance_to(0, 0)) + "m")\n\n# 두 번째 지점으로 비행\nprint(">> 지점 B (10, 5, 10) 으로 비행!")\ndrone.fly_to(10, 5, 10)\nprint("지점 B 도착!")\n\n# 홈으로 귀환\nprint(">> 홈으로 귀환!")\ndrone.return_home()\nprint("귀환 완료!")\n\ndrone.land()\n',
+            patrol: '# 순찰 비행 (자율비행)\n# 여러 웨이포인트를 순서대로 방문합니다\n\ndrone.takeoff()\ndrone.set_speed(4)  # 속도 4m/s\n\n# 순찰 경로 정의\nroute = [\n    {"x": 8, "y": 3, "z": 0},    # 동쪽\n    {"x": 8, "y": 4, "z": -8},   # 북동쪽 (높이 올림)\n    {"x": 0, "y": 4, "z": -8},   # 북쪽\n    {"x": -8, "y": 3, "z": -8},  # 북서쪽\n    {"x": -8, "y": 3, "z": 0},   # 서쪽\n    {"x": 0, "y": 3, "z": 0}     # 출발점\n]\n\nprint("순찰 시작! (" + str(len(route)) + "개 지점)")\n\n# follow_path로 경로 자동 비행\ndrone.follow_path(route)\n\nprint("순찰 완료!")\nprint("최종 위치: X=" + str(drone.get_position_x()) + " Z=" + str(drone.get_position_z()))\ndrone.land()\n',
+            path: '# 지능형 경로 탐색\n# 센서로 위치를 확인하며 목표를 찾아갑니다\n\ndrone.takeoff()\ndrone.set_speed(3)\n\n# 탐색할 목표 지점들\ntargets = [\n    {"x": 5, "z": 5, "name": "기지 A"},\n    {"x": -5, "z": 10, "name": "기지 B"},\n    {"x": -10, "z": -5, "name": "기지 C"}\n]\n\nfor t in targets:\n    dist = drone.get_distance_to(t["x"], t["z"])\n    print(">> " + t["name"] + " 탐색 중... (거리: " + str(dist) + "m)")\n\n    drone.fly_to(t["x"], 3, t["z"])\n\n    dist = drone.get_distance_to(t["x"], t["z"])\n    print("도착! " + t["name"] + " (오차: " + str(dist) + "m)")\n    drone.hover(1)\n\nprint("모든 기지 탐색 완료! 귀환합니다.")\ndrone.return_home()\ndrone.land()\n',
+            loop_demo: '# 반복문 활용하기\n# for문으로 나선형 비행!\n\ndrone.takeoff()\n\nfor i in range(1, 6):\n    print(str(i) + "번째 변 (길이: " + str(i) + "m)")\n    drone.move_forward(i)\n    drone.turn_right(90)\n\nprint("나선형 완성!")\ndrone.land()\n',
+            if_demo: '# 조건문 활용하기\n# 높이에 따라 다른 동작!\n\ndrone.takeoff()\n\nfor i in range(3):\n    drone.move_up(2)\n    height = drone.get_altitude()\n    print("현재 높이: " + str(height) + "m")\n\n    if height > 5:\n        print("높이 5m 초과! 앞으로 이동")\n        drone.move_forward(3)\n    else:\n        print("아직 5m 이하. 계속 상승")\n\ndrone.land()\n',
+            variable_func: '# 변수와 함수 활용하기\n\n# 다각형 비행 함수 정의\ndef fly_polygon(sides, size):\n    angle = 360 / sides\n    print(str(sides) + "각형 비행! (변 길이: " + str(size) + "m)")\n\n    for i in range(sides):\n        drone.move_forward(size)\n        drone.turn_right(angle)\n        print("변 " + str(i + 1) + "/" + str(sides) + " 완료")\n\ndrone.takeoff()\n\n# 삼각형 비행\nfly_polygon(3, 4)\ndrone.hover(1)\n\n# 오각형 비행\nfly_polygon(5, 3)\n\ndrone.land()\nprint("다각형 비행 완료!")\n'
         };
 
         function initSimulator() {
@@ -348,69 +362,72 @@ await drone.land();
             });
         }
 
-        function translateError(error) {
-            var message = error.message || String(error);
-            var stack = error.stack || '';
+        function translatePythonError(e) {
+            var message = String(e);
+            var koreanMsg = '';
             var lineNumber = null;
 
-            // Extract line number from stack trace
-            var lineMatch = stack.match(/<anonymous>:(\d+):/);
+            // Extract line number from Skulpt error
+            var lineMatch = message.match(/on line (\d+)/);
             if (lineMatch) {
-                lineNumber = parseInt(lineMatch[1]) - 1; // Adjust for wrapper function
+                lineNumber = parseInt(lineMatch[1]);
             }
 
-            var koreanMsg = '';
-            var errorType = error.name || 'Error';
-
-            // TypeError translations
-            if (errorType === 'TypeError') {
-                if (message.includes('Cannot read properties of undefined')) {
-                    koreanMsg = '타입 오류: 아직 준비되지 않은 값을 사용하려고 했어요';
-                } else if (message.includes('Cannot read properties of null')) {
-                    koreanMsg = '타입 오류: 비어있는 값을 사용하려고 했어요';
-                } else if (message.includes('is not a function')) {
-                    var funcName = message.match(/(\w+) is not a function/);
-                    if (funcName) {
-                        koreanMsg = '타입 오류: \'' + funcName[1] + '\'은(는) 실행할 수 있는 명령이 아니에요';
-                    } else {
-                        koreanMsg = '타입 오류: 실행할 수 없는 것을 실행하려고 했어요';
-                    }
+            // NameError
+            if (message.indexOf('NameError') !== -1) {
+                var nameMatch = message.match(/name '([^']+)' is not defined/);
+                if (nameMatch) {
+                    koreanMsg = "이름 오류: '" + nameMatch[1] + "'을(를) 찾을 수 없어요. 철자를 확인해보세요!";
                 } else {
-                    koreanMsg = '타입 오류: ' + message;
+                    koreanMsg = '이름 오류: 정의되지 않은 이름을 사용했어요';
                 }
             }
-            // ReferenceError translations
-            else if (errorType === 'ReferenceError') {
-                if (message.includes('is not defined')) {
-                    var varName = message.match(/(\w+) is not defined/);
-                    if (varName) {
-                        koreanMsg = '이름 오류: \'' + varName[1] + '\'을(를) 찾을 수 없어요. 철자를 확인해보세요!';
-                    } else {
-                        koreanMsg = '이름 오류: 정의되지 않은 이름을 사용했어요';
-                    }
-                } else {
-                    koreanMsg = '이름 오류: ' + message;
-                }
-            }
-            // SyntaxError translations
-            else if (errorType === 'SyntaxError') {
-                if (message.includes('Unexpected token')) {
-                    koreanMsg = '문법 오류: 예상하지 못한 글자가 있어요. 괄호나 세미콜론을 확인해보세요!';
-                } else if (message.includes('Unexpected end of input')) {
-                    koreanMsg = '문법 오류: 코드가 완성되지 않았어요. 닫는 괄호 }를 확인해보세요!';
-                } else if (message.includes('Unexpected identifier')) {
-                    koreanMsg = '문법 오류: 잘못된 위치에 단어가 있어요. 앞 줄에 세미콜론이 빠졌나요?';
+            // SyntaxError
+            else if (message.indexOf('SyntaxError') !== -1) {
+                if (message.indexOf('invalid syntax') !== -1) {
+                    koreanMsg = '문법 오류: 코드 작성 규칙에 맞지 않아요. 콜론(:)이나 괄호를 확인해보세요!';
+                } else if (message.indexOf('unexpected EOF') !== -1 || message.indexOf('unexpected end') !== -1) {
+                    koreanMsg = '문법 오류: 코드가 완성되지 않았어요. 들여쓰기나 콜론을 확인해보세요!';
+                } else if (message.indexOf('expected an indented block') !== -1) {
+                    koreanMsg = '문법 오류: 들여쓰기가 필요해요! if, for, def 다음 줄은 들여쓰기(스페이스 4칸)를 해주세요.';
                 } else {
                     koreanMsg = '문법 오류: 코드 작성 규칙에 맞지 않아요. ' + message;
                 }
             }
-            // RangeError translations
-            else if (errorType === 'RangeError') {
-                if (message.includes('Maximum call stack')) {
-                    koreanMsg = '범위 오류: 코드가 무한 반복되고 있어요! 반복 조건을 확인해보세요.';
+            // IndentationError
+            else if (message.indexOf('IndentationError') !== -1) {
+                koreanMsg = '들여쓰기 오류: 탭이나 스페이스를 확인해보세요! if, for, def 다음 줄은 같은 칸수로 들여쓰기해야 해요.';
+            }
+            // TypeError
+            else if (message.indexOf('TypeError') !== -1) {
+                if (message.indexOf('is not a function') !== -1 || message.indexOf('is not callable') !== -1) {
+                    koreanMsg = '타입 오류: 실행할 수 없는 것을 실행하려고 했어요';
+                } else if (message.indexOf('argument') !== -1) {
+                    koreanMsg = '타입 오류: 함수에 전달한 값의 개수나 종류가 맞지 않아요';
                 } else {
-                    koreanMsg = '범위 오류: 숫자가 너무 크거나 작아요';
+                    koreanMsg = '타입 오류: ' + message;
                 }
+            }
+            // AttributeError
+            else if (message.indexOf('AttributeError') !== -1) {
+                var attrMatch = message.match(/has no attribute '([^']+)'/);
+                if (attrMatch) {
+                    koreanMsg = "속성 오류: '" + attrMatch[1] + "' 명령을 찾을 수 없어요. API 레퍼런스를 확인해보세요!";
+                } else {
+                    koreanMsg = '속성 오류: 존재하지 않는 속성을 사용했어요';
+                }
+            }
+            // ValueError
+            else if (message.indexOf('ValueError') !== -1) {
+                koreanMsg = '값 오류: 올바르지 않은 값을 사용했어요';
+            }
+            // ZeroDivisionError
+            else if (message.indexOf('ZeroDivisionError') !== -1) {
+                koreanMsg = '나누기 오류: 0으로 나눌 수 없어요!';
+            }
+            // RecursionError
+            else if (message.indexOf('RecursionError') !== -1 || message.indexOf('maximum recursion') !== -1) {
+                koreanMsg = '반복 오류: 코드가 무한 반복되고 있어요! 반복 조건을 확인해보세요.';
             }
             // Generic fallback
             else {
@@ -424,7 +441,7 @@ await drone.land();
 
             return {
                 korean: koreanMsg,
-                original: errorType + ': ' + message
+                original: message
             };
         }
 
@@ -441,8 +458,115 @@ await drone.land();
             document.getElementById('console-output').innerHTML = '';
         }
 
+        // Skulpt drone 모듈 생성
+        function createDroneModule() {
+            return function () {
+                var mod = {};
+
+                // JS Promise를 Skulpt suspension으로 변환하는 헬퍼
+                function promiseToSuspension(promise) {
+                    var susp = new Sk.misceval.Suspension();
+                    susp.resume = function () { return Sk.builtin.none.none$; };
+                    susp.data = {
+                        type: "Sk.promise",
+                        promise: promise.then(function () { return Sk.builtin.none.none$; })
+                    };
+                    return susp;
+                }
+
+                // === 비행 명령 (async -> suspension) ===
+                mod.takeoff = new Sk.builtin.func(function () {
+                    return promiseToSuspension(droneAPI.takeoff());
+                });
+                mod.land = new Sk.builtin.func(function () {
+                    return promiseToSuspension(droneAPI.land());
+                });
+                mod.hover = new Sk.builtin.func(function (seconds) {
+                    return promiseToSuspension(droneAPI.hover(Sk.ffi.remapToJs(seconds)));
+                });
+                mod.wait = new Sk.builtin.func(function (seconds) {
+                    return promiseToSuspension(droneAPI.wait(Sk.ffi.remapToJs(seconds)));
+                });
+                mod.move_forward = new Sk.builtin.func(function (distance) {
+                    return promiseToSuspension(droneAPI.moveForward(Sk.ffi.remapToJs(distance)));
+                });
+                mod.move_backward = new Sk.builtin.func(function (distance) {
+                    return promiseToSuspension(droneAPI.moveBackward(Sk.ffi.remapToJs(distance)));
+                });
+                mod.move_left = new Sk.builtin.func(function (distance) {
+                    return promiseToSuspension(droneAPI.moveLeft(Sk.ffi.remapToJs(distance)));
+                });
+                mod.move_right = new Sk.builtin.func(function (distance) {
+                    return promiseToSuspension(droneAPI.moveRight(Sk.ffi.remapToJs(distance)));
+                });
+                mod.move_up = new Sk.builtin.func(function (distance) {
+                    return promiseToSuspension(droneAPI.moveUp(Sk.ffi.remapToJs(distance)));
+                });
+                mod.move_down = new Sk.builtin.func(function (distance) {
+                    return promiseToSuspension(droneAPI.moveDown(Sk.ffi.remapToJs(distance)));
+                });
+                mod.turn_left = new Sk.builtin.func(function (angle) {
+                    return promiseToSuspension(droneAPI.turnLeft(Sk.ffi.remapToJs(angle)));
+                });
+                mod.turn_right = new Sk.builtin.func(function (angle) {
+                    return promiseToSuspension(droneAPI.turnRight(Sk.ffi.remapToJs(angle)));
+                });
+                mod.fly_to = new Sk.builtin.func(function (x, y, z) {
+                    return promiseToSuspension(droneAPI.flyTo(
+                        Sk.ffi.remapToJs(x), Sk.ffi.remapToJs(y), Sk.ffi.remapToJs(z)
+                    ));
+                });
+                mod.return_home = new Sk.builtin.func(function () {
+                    return promiseToSuspension(droneAPI.returnHome());
+                });
+                mod.follow_path = new Sk.builtin.func(function (pyList) {
+                    // Python 리스트[딕셔너리] -> JS 배열[객체] 변환
+                    var jsList = Sk.ffi.remapToJs(pyList);
+                    return promiseToSuspension(droneAPI.followPath(jsList));
+                });
+
+                // === 동기 명령 ===
+                mod.set_speed = new Sk.builtin.func(function (speed) {
+                    droneAPI.setSpeed(Sk.ffi.remapToJs(speed));
+                    return Sk.builtin.none.none$;
+                });
+
+                // === 센서 (동기, 반환값 있음) ===
+                mod.get_altitude = new Sk.builtin.func(function () {
+                    return new Sk.builtin.float_(droneAPI.getAltitude());
+                });
+                mod.get_speed = new Sk.builtin.func(function () {
+                    return new Sk.builtin.float_(droneAPI.getSpeed());
+                });
+                mod.get_battery = new Sk.builtin.func(function () {
+                    return new Sk.builtin.int_(droneAPI.getBattery());
+                });
+                mod.get_position_x = new Sk.builtin.func(function () {
+                    return new Sk.builtin.float_(droneAPI.getPositionX());
+                });
+                mod.get_position_z = new Sk.builtin.func(function () {
+                    return new Sk.builtin.float_(droneAPI.getPositionZ());
+                });
+                mod.get_distance_to = new Sk.builtin.func(function (x, z) {
+                    return new Sk.builtin.float_(droneAPI.getDistanceTo(
+                        Sk.ffi.remapToJs(x), Sk.ffi.remapToJs(z)
+                    ));
+                });
+
+                return mod;
+            };
+        }
+
         async function runCode() {
             if (isRunning) return;
+
+            // Skulpt 로드 확인
+            if (typeof Sk === 'undefined') {
+                clearConsole();
+                logToConsole('Skulpt 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.', 'error');
+                return;
+            }
+
             isRunning = true;
             clearConsole();
             physics.reset();
@@ -454,35 +578,59 @@ await drone.land();
             var code = document.getElementById('code-editor').value;
             logToConsole('프로그램 실행 시작...', 'info');
 
-            // console.log 오버라이드
-            var origLog = console.log;
-            console.log = function () {
-                var msg = Array.from(arguments).join(' ');
-                logToConsole(msg, 'log');
-                origLog.apply(console, arguments);
-            };
+            // Skulpt 설정
+            Sk.configure({
+                output: function (text) {
+                    if (text !== '\n') {
+                        logToConsole(text.replace(/\n$/, ''), 'log');
+                    }
+                },
+                read: function (filename) {
+                    if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
+                        throw "File not found: '" + filename + "'";
+                    }
+                    return Sk.builtinFiles["files"][filename];
+                },
+                __future__: Sk.python3,
+                execLimit: null,
+                yieldLimit: null
+            });
+
+            // drone 모듈을 Skulpt에 등록
+            var droneModuleFunc = createDroneModule();
 
             try {
-                var drone = droneAPI;
-                var asyncFn = new Function('drone', 'console', 'window', 'document', 'localStorage', 'fetch',
-                    'return (async function() {\n' + code + '\n})();'
-                );
-                await asyncFn(drone, console, undefined, undefined, undefined, undefined);
+                // drone 모듈을 sys.modules에 미리 삽입
+                var droneModResult = droneModuleFunc();
+                var pyDroneMod = new Sk.builtin.module();
+                pyDroneMod.$d = droneModResult;
+                pyDroneMod.$d.__name__ = new Sk.builtin.str('drone');
+                Sk.sysmodules.mp$ass_subscript(new Sk.builtin.str('drone'), pyDroneMod);
+
+                // 코드 앞에 import drone 추가 (사용자가 안 써도 되게)
+                var wrappedCode = 'import drone\n' + code;
+
+                var myPromise = Sk.misceval.asyncToPromise(function () {
+                    return Sk.importMainWithBody("<stdin>", false, wrappedCode, true);
+                }, { '*': function () { return !droneAPI._cancelled; } });
+
+                await myPromise;
                 logToConsole('프로그램 실행 완료!', 'success');
             } catch (e) {
-                var translated = translateError(e);
-                logToConsole(translated.korean, 'error');
+                if (!droneAPI._cancelled) {
+                    var translated = translatePythonError(e);
+                    logToConsole(translated.korean, 'error');
 
-                // Log original error in smaller gray text for teachers
-                var output = document.getElementById('console-output');
-                var detail = document.createElement('div');
-                detail.className = 'console-error-detail';
-                detail.textContent = '원본: ' + translated.original;
-                output.appendChild(detail);
-                output.parentElement.scrollTop = output.parentElement.scrollHeight;
+                    // Log original error in smaller gray text for teachers
+                    var output = document.getElementById('console-output');
+                    var detail = document.createElement('div');
+                    detail.className = 'console-error-detail';
+                    detail.textContent = '원본: ' + translated.original;
+                    output.appendChild(detail);
+                    output.parentElement.scrollTop = output.parentElement.scrollHeight;
+                }
             }
 
-            console.log = origLog;
             isRunning = false;
             document.getElementById('btn-run').textContent = '▶ 실행';
             setTimeout(function () {
@@ -541,15 +689,15 @@ await drone.land();
                     e.preventDefault();
                     var start = this.selectionStart;
                     var end = this.selectionEnd;
-                    this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
-                    this.selectionStart = this.selectionEnd = start + 2;
+                    this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                    this.selectionStart = this.selectionEnd = start + 4;
                 }
                 // Ctrl+Enter로 실행
                 if (e.ctrlKey && e.key === 'Enter') {
                     e.preventDefault();
                     runCode();
                 }
-                // Ctrl+/ 주석 토글
+                // Ctrl+/ 주석 토글 (Python # 주석)
                 if (e.ctrlKey && e.key === '/') {
                     e.preventDefault();
                     var val = this.value;
@@ -561,12 +709,12 @@ await drone.land();
                     if (lineEnd === -1) lineEnd = val.length;
                     var lines = val.substring(lineStart, lineEnd).split('\n');
                     // 모든 줄이 주석이면 해제, 아니면 추가
-                    var allCommented = lines.every(function (l) { return l.trimStart().indexOf('//') === 0; });
+                    var allCommented = lines.every(function (l) { return l.trimStart().indexOf('#') === 0; });
                     var newLines = lines.map(function (l) {
                         if (allCommented) {
-                            return l.replace(/^(\s*)\/\/ ?/, '$1');
+                            return l.replace(/^(\s*)# ?/, '$1');
                         } else {
-                            return l.replace(/^(\s*)/, '$1// ');
+                            return l.replace(/^(\s*)/, '$1# ');
                         }
                     });
                     var replacement = newLines.join('\n');
@@ -633,6 +781,38 @@ await drone.land();
 
         initSimulator();
         bindButtons();
+
+        // 학생 이름 표시 + 코드 자동 저장/복원
+        (function initStudentFeatures() {
+            var auth = window.DroneSim.StudentAuth;
+            var nameLabel = document.getElementById('student-name-label');
+            if (nameLabel) nameLabel.textContent = auth.getCurrentStudent() + '님';
+
+            var editor = document.getElementById('code-editor');
+            var CODE_KEY = 'drone-editor-code';
+
+            // 저장된 코드 복원 (blockly import가 없을 경우에만)
+            var urlParams = new URLSearchParams(window.location.search);
+            var fromBlockly = urlParams.get('from') === 'blockly';
+            if (!fromBlockly) {
+                var saved = localStorage.getItem(auth.getKey(CODE_KEY));
+                if (saved) editor.value = saved;
+            }
+
+            // 5초마다 자동 저장
+            setInterval(function () {
+                if (auth.isLoggedIn()) {
+                    localStorage.setItem(auth.getKey(CODE_KEY), editor.value);
+                }
+            }, 5000);
+
+            // 실행 시에도 저장
+            document.getElementById('btn-run').addEventListener('click', function () {
+                if (auth.isLoggedIn()) {
+                    localStorage.setItem(auth.getKey(CODE_KEY), editor.value);
+                }
+            }, true);
+        })();
 
         // 블록 코딩에서 가져온 코드 확인
         (function checkBlocklyImport() {
@@ -703,7 +883,7 @@ await drone.land();
             stopActiveMission();
 
             var missions = window.DroneSim.createCodingMissions();
-            missionManager = new window.DroneSim.MissionManager('drone-coding-progress');
+            missionManager = new window.DroneSim.MissionManager(window.DroneSim.StudentAuth.getKey('drone-coding-progress'));
             missions.forEach(function(m) { missionManager.addMission(m); });
 
             missionUI = new window.DroneSim.MissionSelectUI(missionManager, null, null);
@@ -782,7 +962,7 @@ await drone.land();
 
         function showMissionSelect() {
             var missions = window.DroneSim.createCodingMissions();
-            missionManager = new window.DroneSim.MissionManager('drone-coding-progress');
+            missionManager = new window.DroneSim.MissionManager(window.DroneSim.StudentAuth.getKey('drone-coding-progress'));
             missions.forEach(function(m) { missionManager.addMission(m); });
             missionUI = new window.DroneSim.MissionSelectUI(
                 missionManager,
@@ -801,7 +981,7 @@ await drone.land();
             hideHint();
             var editor = document.getElementById('code-editor');
             if (editor) {
-                editor.value = '// 자유 코딩 모드!\n// 드론 API를 자유롭게 사용해보세요.\n// Ctrl+Enter로 실행할 수 있어요.\n\nawait drone.takeoff();\n\n// 여기에 자유롭게 코드를 작성하세요!\n// 예: for문, if문, function 모두 사용 가능\n\n// async function myPattern(size) {\n//   for (let i = 0; i < 4; i++) {\n//     await drone.moveForward(size);\n//     await drone.turnRight(90);\n//   }\n// }\n// await myPattern(5);\n\nawait drone.land();\n';
+                editor.value = '# 자유 코딩 모드!\n# 드론 API를 자유롭게 사용해보세요.\n# Ctrl+Enter로 실행할 수 있어요.\n\ndrone.takeoff()\n\n# 여기에 자유롭게 코드를 작성하세요!\n# 예: for문, if문, def 모두 사용 가능\n\n# def my_pattern(size):\n#     for i in range(4):\n#         drone.move_forward(size)\n#         drone.turn_right(90)\n# my_pattern(5)\n\ndrone.land()\n';
             }
             var output = document.getElementById('console-output');
             if (output) {
@@ -830,7 +1010,7 @@ await drone.land();
 
         // 초기 진행도 표시
         (function initProgress() {
-            var mgr = new window.DroneSim.MissionManager('drone-coding-progress');
+            var mgr = new window.DroneSim.MissionManager(window.DroneSim.StudentAuth.getKey('drone-coding-progress'));
             var missions = window.DroneSim.createCodingMissions();
             missions.forEach(function(m) { mgr.addMission(m); });
             var completed = 0;

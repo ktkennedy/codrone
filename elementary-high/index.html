@@ -31,6 +31,28 @@
     <!-- 버전 표시 (디버깅용) -->
     <div style="position:fixed;bottom:2px;left:2px;color:rgba(255,255,255,0.3);font-size:9px;z-index:99999;pointer-events:none;font-family:monospace;">v5-high</div>
 
+    <!-- 학생 인증 -->
+    <script src="../shared/student-auth.js"></script>
+    <script>
+    (function() {
+        var auth = window.DroneSim.StudentAuth;
+        if (!auth.isLoggedIn()) {
+            window.location.href = '../index.html';
+            return;
+        }
+        // 상단 바에 학생 이름 표시
+        window.addEventListener('DOMContentLoaded', function() {
+            var label = document.querySelector('#top-bar .mode-label');
+            if (label) {
+                var nameEl = document.createElement('span');
+                nameEl.style.cssText = 'color:#44ffaa;font-size:13px;margin-left:auto;padding-right:8px;';
+                nameEl.textContent = auth.getCurrentStudent() + '님';
+                document.getElementById('top-bar').appendChild(nameEl);
+            }
+        });
+    })();
+    </script>
+
     <!-- 에러 핸들러 -->
     <script>
     window.onerror = function(msg, url, line, col, error) {
@@ -66,11 +88,12 @@
     <!-- 학습 진행도 패널 스크립트 -->
     <script>
     (function() {
+        var auth = window.DroneSim.StudentAuth;
         function updateProgressPanel() {
             var modes = [
-                { name: '비행 미션', key: 'drone-high-progress', total: 15, icon: '&#x1F681;', link: '#' },
-                { name: '블록 코딩', key: 'drone-blockly-progress', total: 6, icon: '&#x1F9E9;', link: 'blockly.html' },
-                { name: '텍스트 코딩', key: 'drone-coding-progress', total: 6, icon: '&#x1F4BB;', link: 'coding.html' }
+                { name: '비행 미션', key: auth.getKey('drone-high-progress'), total: 15, icon: '&#x1F681;', link: '#' },
+                { name: '블록 코딩', key: auth.getKey('drone-blockly-progress'), total: 6, icon: '&#x1F9E9;', link: 'blockly.html' },
+                { name: '텍스트 코딩', key: auth.getKey('drone-coding-progress'), total: 6, icon: '&#x1F4BB;', link: 'coding.html' }
             ];
 
             var container = document.getElementById('progress-content');

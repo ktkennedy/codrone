@@ -167,6 +167,7 @@
             <button class="tool-btn" id="btn-export-code" style="background:#ff8844;color:#fff;">&#x1F4DD; 텍스트 코딩으로</button>
         </div>
         <div class="right">
+            <span id="student-name-label" style="color:#44ffaa;font-size:12px;margin-right:10px;"></span>
             <span id="mode-progress" style="color:#88ccff;font-size:12px;margin-right:6px;"></span>
             <div class="speed-control">
                 <span>속도:</span>
@@ -205,6 +206,17 @@
             </div>
         </div>
     </div>
+
+    <!-- 학생 인증 -->
+    <script src="../shared/student-auth.js"></script>
+    <script>
+    (function() {
+        var auth = window.DroneSim.StudentAuth;
+        if (!auth.isLoggedIn()) {
+            window.location.href = '../index.html';
+        }
+    })();
+    </script>
 
     <!-- 에러 핸들러 -->
     <script>
@@ -462,7 +474,7 @@
         function initMissions() {
             if (!DroneSim.MissionManager || !DroneSim.createBlocklyMissions || !DroneSim.MissionSelectUI) return;
 
-            missionManager = new DroneSim.MissionManager('drone-blockly-progress');
+            missionManager = new DroneSim.MissionManager(window.DroneSim.StudentAuth.getKey('drone-blockly-progress'));
             var missions = DroneSim.createBlocklyMissions();
             missions.forEach(function (m) { missionManager.addMission(m); });
 
@@ -736,14 +748,26 @@
         initMissions();
         bindButtons();
         animate();
+
+        // 학생 이름 표시 (toolbar)
+        (function() {
+            var auth = window.DroneSim.StudentAuth;
+            var nameLabel = document.getElementById('student-name-label');
+            if (nameLabel) nameLabel.textContent = auth.getCurrentStudent() + '님';
+        })();
     })();
     </script>
 
     <!-- 블록 코딩 진행도 표시 -->
     <script>
     (function() {
+        // 학생 이름 표시
+        var auth = window.DroneSim.StudentAuth;
+        var nameLabel = document.getElementById('student-name-label');
+        if (nameLabel) nameLabel.textContent = auth.getCurrentStudent() + '님';
+
         function updateModeProgress() {
-            var data = JSON.parse(localStorage.getItem('drone-blockly-progress') || '{}');
+            var data = JSON.parse(localStorage.getItem(auth.getKey('drone-blockly-progress')) || '{}');
             var completed = 0;
             for (var i = 0; i < 6; i++) {
                 if (data['mission_' + i] && data['mission_' + i].completed) completed++;

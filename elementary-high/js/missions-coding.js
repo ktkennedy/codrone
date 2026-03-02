@@ -103,8 +103,8 @@
             {
                 name: '첫 프로그래밍',
                 description: '명령을 순서대로 작성해 이륙, 이동, 착륙하세요!',
-                hint: 'await drone.takeoff(); await drone.moveForward(10); await drone.land();',
-                starterCode: '// 미션 1: 첫 프로그래밍\n// 명령을 순서대로 작성하세요!\n\nawait drone.takeoff();\n\n// TODO: 앞으로 10m 이동하세요\n\n\nawait drone.land();\n',
+                hint: 'drone.takeoff()  drone.move_forward(10)  drone.land()',
+                starterCode: '# 미션 1: 첫 프로그래밍\n# 명령을 순서대로 작성하세요!\n\ndrone.takeoff()\n\n# TODO: 앞으로 10m 이동하세요\n\n\ndrone.land()\n',
                 timeLimit: 60,
                 collectibles: [],
                 _extraVisuals: [],
@@ -143,8 +143,8 @@
             {
                 name: 'for 반복문',
                 description: 'for 반복문을 사용해 사각형으로 비행하세요! (for문 필수)',
-                hint: 'for (let i = 0; i < 4; i++) { await drone.moveForward(8); await drone.turnRight(90); }',
-                starterCode: '// 미션 2: for 반복문\n// for 반복문으로 사각형을 그리세요!\n\nawait drone.takeoff();\n\n// TODO: for 반복문으로 사각형 비행\n// for (let i = 0; i < 4; i++) {\n//   await drone.moveForward(8);\n//   await drone.turnRight(90);\n// }\n\n\nawait drone.land();\n',
+                hint: 'for i in range(4):  drone.move_forward(8)  drone.turn_right(90)',
+                starterCode: '# 미션 2: for 반복문\n# for 반복문으로 사각형을 그리세요!\n\ndrone.takeoff()\n\n# TODO: for 반복문으로 사각형 비행\n# for i in range(4):\n#     drone.move_forward(8)\n#     drone.turn_right(90)\n\n\ndrone.land()\n',
                 timeLimit: 120,
                 collectibles: [],
                 _extraVisuals: [],
@@ -188,7 +188,7 @@
                 objectives: [
                     {
                         description: 'for 반복문 사용하기',
-                        check: function () { return codeContains(/\bfor\s*\(/); }
+                        check: function () { return codeContains(/\bfor\s+\w+\s+in\b/); }
                     },
                     {
                         description: '4개 모서리 모두 방문',
@@ -209,8 +209,8 @@
             {
                 name: '조건문 활용',
                 description: 'if/else 조건문과 센서로 3개 높이에 도달하세요! (if문 필수)',
-                hint: 'if (drone.getAltitude() < 5) { await drone.moveUp(3); } 처럼 센서값으로 판단하세요.',
-                starterCode: '// 미션 3: 조건문 활용\n// if/else와 센서로 높이를 조절하세요!\n\nawait drone.takeoff();\n\n// TODO: 조건문으로 높이 조절\n// let alt = drone.getAltitude();\n// console.log("현재 높이: " + alt);\n// if (alt < 5) {\n//   await drone.moveUp(3);\n// }\n\n\nawait drone.land();\n',
+                hint: 'if drone.get_altitude() < 5:  drone.move_up(3) 처럼 센서값으로 판단하세요.',
+                starterCode: '# 미션 3: 조건문 활용\n# if/else와 센서로 높이를 조절하세요!\n\ndrone.takeoff()\n\n# TODO: 조건문으로 높이 조절\n# alt = drone.get_altitude()\n# print("현재 높이:", alt)\n# if alt < 5:\n#     drone.move_up(3)\n\n\ndrone.land()\n',
                 timeLimit: 90,
                 collectibles: [],
                 _extraVisuals: [],
@@ -253,7 +253,7 @@
                 objectives: [
                     {
                         description: 'if 조건문 사용하기',
-                        check: function () { return codeContains(/\bif\s*\(/); }
+                        check: function () { return codeContains(/\bif\s+/); }
                     },
                     {
                         description: '3m, 6m 높이 링 통과',
@@ -274,8 +274,8 @@
             {
                 name: '함수 만들기',
                 description: '나만의 함수를 정의하고 호출하세요! (function 정의 필수)',
-                hint: 'async function myFly() { await drone.moveForward(5); } 처럼 함수를 만들고 await myFly(); 로 호출하세요.',
-                starterCode: '// 미션 4: 함수 만들기\n// 나만의 비행 함수를 정의하고 호출하세요!\n\n// TODO: 함수 정의\n// async function flyAndTurn() {\n//   await drone.moveForward(5);\n//   await drone.turnRight(90);\n// }\n\nawait drone.takeoff();\n\n// TODO: 함수를 여러 번 호출해서 비행하세요\n\n\nawait drone.land();\n',
+                hint: 'def my_fly():  drone.move_forward(5) 처럼 함수를 만들고 my_fly()로 호출하세요.',
+                starterCode: '# 미션 4: 함수 만들기\n# 나만의 비행 함수를 정의하고 호출하세요!\n\n# TODO: 함수 정의\n# def fly_and_turn():\n#     drone.move_forward(5)\n#     drone.turn_right(90)\n\ndrone.takeoff()\n\n# TODO: 함수를 여러 번 호출해서 비행하세요\n\n\ndrone.land()\n',
                 timeLimit: 120,
                 collectibles: [],
                 _extraVisuals: [],
@@ -319,8 +319,8 @@
                 },
                 objectives: [
                     {
-                        description: 'function 정의하기',
-                        check: function () { return codeContains(/\bfunction\s+\w+/); }
+                        description: '함수(def) 정의하기',
+                        check: function () { return codeContains(/\bdef\s+\w+/); }
                     },
                     {
                         description: '4개 지점 방문',
@@ -341,8 +341,8 @@
             {
                 name: '매개변수와 반환값',
                 description: '매개변수가 있는 함수로 다양한 크기의 비행! (매개변수 함수 필수)',
-                hint: 'async function flySquare(size) { for(...) { moveForward(size); turnRight(90); } } 처럼 크기를 매개변수로!',
-                starterCode: '// 미션 5: 매개변수와 반환값\n// 매개변수를 받는 함수를 만들어보세요!\n\n// TODO: 매개변수가 있는 함수 정의\n// async function flySquare(size) {\n//   for (let i = 0; i < 4; i++) {\n//     await drone.moveForward(size);\n//     await drone.turnRight(90);\n//   }\n// }\n\nawait drone.takeoff();\n\n// TODO: 다른 크기로 함수 호출\n// await flySquare(3);\n// await flySquare(5);\n\nawait drone.land();\n',
+                hint: 'def fly_square(size): for i in range(4): drone.move_forward(size) 처럼 크기를 매개변수로!',
+                starterCode: '# 미션 5: 매개변수와 반환값\n# 매개변수를 받는 함수를 만들어보세요!\n\n# TODO: 매개변수가 있는 함수 정의\n# def fly_square(size):\n#     for i in range(4):\n#         drone.move_forward(size)\n#         drone.turn_right(90)\n\ndrone.takeoff()\n\n# TODO: 다른 크기로 함수 호출\n# fly_square(3)\n# fly_square(5)\n\ndrone.land()\n',
                 timeLimit: 150,
                 collectibles: [],
                 _extraVisuals: [],
@@ -404,7 +404,7 @@
                 objectives: [
                     {
                         description: '매개변수 있는 함수 정의',
-                        check: function () { return codeContains(/\bfunction\s+\w+\s*\([^)]+\)/); }
+                        check: function () { return codeContains(/\bdef\s+\w+\s*\([^)]+\)/); }
                     },
                     {
                         description: '작은 사각형 (3m) 완성',
@@ -425,8 +425,8 @@
             {
                 name: '자율비행 알고리즘',
                 description: '모든 개념을 조합해 자율비행 알고리즘을 완성하세요!',
-                hint: 'for문, if문, function, 센서를 모두 활용하세요! flyTo(), followPath()도 사용 가능합니다.',
-                starterCode: '// 미션 6: 자율비행 알고리즘\n// 배운 모든 개념을 활용하세요!\n\nawait drone.takeoff();\ndrone.setSpeed(4);\n\n// TODO: 반복문, 조건문, 함수, 센서를 조합하여\n// 4개의 웨이포인트를 방문하고\n// 2개의 링을 통과한 뒤\n// 착륙 패드에 착륙하세요!\n\n// 웨이포인트 좌표:\n// (10, 5, 0), (10, 6, -10), (0, 7, -15), (-10, 5, -10)\n// 링 위치: (-5, 6, -15), (-5, 5, -5)\n// 착륙 패드: (0, 0, 0)\n\n\nawait drone.land();\n',
+                hint: 'for문, if문, def 함수, 센서를 모두 활용하세요! drone.fly_to(), drone.follow_path()도 사용 가능합니다.',
+                starterCode: '# 미션 6: 자율비행 알고리즘\n# 배운 모든 개념을 활용하세요!\n\ndrone.takeoff()\ndrone.set_speed(4)\n\n# TODO: 반복문, 조건문, 함수, 센서를 조합하여\n# 4개의 웨이포인트를 방문하고\n# 2개의 링을 통과한 뒤\n# 착륙 패드에 착륙하세요!\n\n# 웨이포인트 좌표:\n# (10, 5, 0), (10, 6, -10), (0, 7, -15), (-10, 5, -10)\n# 링 위치: (-5, 6, -15), (-5, 5, -5)\n# 착륙 패드: (0, 0, 0)\n\n\ndrone.land()\n',
                 timeLimit: 180,
                 collectibles: [],
                 _extraVisuals: [],
