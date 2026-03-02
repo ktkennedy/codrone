@@ -770,7 +770,8 @@
             var data = JSON.parse(localStorage.getItem(auth.getKey('drone-blockly-progress')) || '{}');
             var completed = 0;
             for (var i = 0; i < 6; i++) {
-                if (data['mission_' + i] && data['mission_' + i].completed) completed++;
+                var m = data[i] || data[String(i)] || data['mission_' + i];
+                if (m && (m.completed || m.stars > 0)) completed++;
             }
             var el = document.getElementById('mode-progress');
             if (el) el.textContent = '&#x1F3AF; 과제 ' + completed + '/6 완료';

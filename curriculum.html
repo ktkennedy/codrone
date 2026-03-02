@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>수업자료 - 드론 시뮬레이터</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
             background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0d2137 100%);
@@ -15,22 +21,35 @@
         }
 
         .stars {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            pointer-events: none; z-index: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
         }
+
         .star {
             position: absolute;
             background: #fff;
             border-radius: 50%;
             animation: twinkle 2s infinite alternate;
         }
+
         @keyframes twinkle {
-            from { opacity: 0.3; }
-            to { opacity: 1; }
+            from {
+                opacity: 0.3;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .main-container {
-            position: relative; z-index: 1;
+            position: relative;
+            z-index: 1;
             max-width: 900px;
             margin: 0 auto;
             padding: 40px 20px 80px;
@@ -46,12 +65,13 @@
             margin-bottom: 30px;
             padding: 8px 16px;
             border-radius: 20px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
         }
+
         .back-btn:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             color: #fff;
         }
 
@@ -59,10 +79,12 @@
             text-align: center;
             margin-bottom: 50px;
         }
+
         .page-header .icon {
             font-size: 60px;
             margin-bottom: 15px;
         }
+
         .page-header h1 {
             font-size: 40px;
             font-weight: 900;
@@ -72,21 +94,23 @@
             background-clip: text;
             margin-bottom: 10px;
         }
+
         .page-header p {
             color: #88aacc;
             font-size: 16px;
         }
 
         .phase-card {
-            background: rgba(255,255,255,0.06);
+            background: rgba(255, 255, 255, 0.06);
             border: 2px solid rgba(255, 153, 68, 0.2);
             border-radius: 20px;
             padding: 30px;
             margin-bottom: 30px;
             transition: all 0.3s ease;
         }
+
         .phase-card:hover {
-            background: rgba(255,255,255,0.09);
+            background: rgba(255, 255, 255, 0.09);
             border-color: rgba(255, 153, 68, 0.4);
         }
 
@@ -96,22 +120,29 @@
             gap: 15px;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
+
         .phase-number {
             background: linear-gradient(135deg, #ff9944, #ff6622);
             color: #fff;
-            width: 44px; height: 44px;
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 18px; font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 900;
             flex-shrink: 0;
         }
+
         .phase-title {
             font-size: 22px;
             font-weight: 700;
             color: #ff9944;
         }
+
         .phase-weeks {
             font-size: 13px;
             color: #88aacc;
@@ -130,13 +161,14 @@
             align-items: center;
             gap: 15px;
             padding: 14px 18px;
-            background: rgba(255,255,255,0.04);
+            background: rgba(255, 255, 255, 0.04);
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.06);
+            border: 1px solid rgba(255, 255, 255, 0.06);
             transition: all 0.2s ease;
         }
+
         .week-item:hover {
-            background: rgba(255,255,255,0.08);
+            background: rgba(255, 255, 255, 0.08);
             border-color: rgba(255, 153, 68, 0.3);
         }
 
@@ -156,12 +188,14 @@
             flex: 1;
             min-width: 0;
         }
+
         .week-topic {
             font-size: 15px;
             font-weight: 600;
             color: #ddeeff;
             margin-bottom: 3px;
         }
+
         .week-desc {
             font-size: 12px;
             color: #8899aa;
@@ -193,6 +227,7 @@
             color: #ff9944;
             border: 1px solid rgba(255, 153, 68, 0.3);
         }
+
         .ppt-btn.view:hover {
             background: rgba(255, 153, 68, 0.35);
         }
@@ -202,14 +237,15 @@
             color: #4a9eff;
             border: 1px solid rgba(74, 158, 255, 0.25);
         }
+
         .ppt-btn.download:hover {
             background: rgba(74, 158, 255, 0.3);
         }
 
         .ppt-btn.preparing {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             color: #556677;
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             cursor: default;
             pointer-events: none;
         }
@@ -222,15 +258,37 @@
         }
 
         @media (max-width: 680px) {
-            .page-header h1 { font-size: 28px; }
-            .phase-header { flex-wrap: wrap; }
-            .phase-weeks { margin-left: 0; margin-top: 5px; width: 100%; }
-            .week-item { flex-wrap: wrap; }
-            .week-actions { width: 100%; margin-top: 8px; }
-            .ppt-btn { flex: 1; justify-content: center; }
+            .page-header h1 {
+                font-size: 28px;
+            }
+
+            .phase-header {
+                flex-wrap: wrap;
+            }
+
+            .phase-weeks {
+                margin-left: 0;
+                margin-top: 5px;
+                width: 100%;
+            }
+
+            .week-item {
+                flex-wrap: wrap;
+            }
+
+            .week-actions {
+                width: 100%;
+                margin-top: 8px;
+            }
+
+            .ppt-btn {
+                flex: 1;
+                justify-content: center;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="stars" id="stars"></div>
 
@@ -523,7 +581,7 @@
         }
 
         // 학습 진행도 배지 표시
-        (function() {
+        (function () {
             // localStorage 진행도 읽기
             var lowData = JSON.parse(localStorage.getItem('drone-low-progress') || '{}');
             var highData = JSON.parse(localStorage.getItem('drone-high-progress') || '{}');
@@ -533,7 +591,8 @@
             function countCompleted(data, total) {
                 var c = 0;
                 for (var i = 0; i < total; i++) {
-                    if (data['mission_' + i] && data['mission_' + i].completed) c++;
+                    var m = data[i] || data[String(i)] || data['mission_' + i];
+                    if (m && (m.completed || m.stars > 0)) c++;
                 }
                 return c;
             }
@@ -555,11 +614,11 @@
             // 13~17주: 블록 코딩
             // 18~21주: 텍스트 코딩
             var weekBadges = {
-                5:  flightBadge(1),
-                6:  flightBadge(3),
-                7:  flightBadge(5),
-                8:  flightBadge(8),
-                9:  flightBadge(10),
+                5: flightBadge(1),
+                6: flightBadge(3),
+                7: flightBadge(5),
+                8: flightBadge(8),
+                9: flightBadge(10),
                 10: flightBadge(12),
                 11: flightBadge(14),
                 12: flightBadge(15),
@@ -574,7 +633,7 @@
                 21: { done: codingDone >= 6, label: '텍스트 코딩' }
             };
 
-            document.querySelectorAll('.week-item[data-week]').forEach(function(item) {
+            document.querySelectorAll('.week-item[data-week]').forEach(function (item) {
                 var week = parseInt(item.dataset.week);
                 var badge = weekBadges[week];
                 if (!badge) return;
@@ -595,7 +654,7 @@
         })();
 
         // PPT 파일 존재 여부 확인 후 버튼 생성
-        const BASE_URL = 'https://ktkennedy.github.io/codrone/materials/';
+        const BASE_URL = 'https://ktkennedy.github.io/codrone/materials/PPT';
         const VIEWER_URL = 'https://view.officeapps.live.com/op/embed.aspx?src=';
 
         document.querySelectorAll('.week-item').forEach(item => {
@@ -622,4 +681,5 @@
         });
     </script>
 </body>
+
 </html>

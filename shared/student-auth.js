@@ -46,6 +46,7 @@ window.DroneSim.StudentAuth = (function () {
     }
 
     function login(studentName) {
+        if (!studentName) return;
         sessionStorage.setItem(SESSION_KEY, studentName);
     }
 
@@ -54,7 +55,9 @@ window.DroneSim.StudentAuth = (function () {
     }
 
     function getCurrentStudent() {
-        return sessionStorage.getItem(SESSION_KEY);
+        var val = sessionStorage.getItem(SESSION_KEY);
+        if (!val || val === 'null') return null;
+        return val;
     }
 
     function isLoggedIn() {

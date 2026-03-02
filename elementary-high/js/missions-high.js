@@ -635,13 +635,15 @@
             // 미션 7: 택배 배달
             {
                 name: '택배 배달',
-                description: 'A지점(15, 15)에서 화물을 싣고 B지점(-20, -15)으로 배달하세요.\n높이 2m 근처에서 화물 위로 가면 자동으로 실립니다.',
+                description: '초록 깃발(A)에서 화물을 싣고, 빨간 깃발(B)로 배달하세요!\n높이 2m 정도에서 화물 위로 가면 자동으로 실립니다.\nA→오른쪽 앞 / B→왼쪽 뒤 방향입니다.',
                 timeLimit: 90,
                 collectibles: [],
                 _pickedUp: false,
                 _delivered: false,
+                _extraVisuals: [],
                 setup: function (scene) {
                     this.collectibles = [];
+                    this._extraVisuals = [];
                     this._pickedUp = false;
                     this._delivered = false;
                     // A 지점 (화물)
@@ -658,6 +660,21 @@
                     // B 지점 마커
                     var markerB = this._createMarker(scene, -20, -15, 0xff4444, 'B');
                     this.collectibles.push(markerB);
+                    // A→B 지면 경로선 (점선 느낌의 밝은 선)
+                    var pathPoints = [new THREE.Vector3(15, 0.15, 15), new THREE.Vector3(-20, 0.15, -15)];
+                    var pathGeo = new THREE.BufferGeometry().setFromPoints(pathPoints);
+                    var pathMat = new THREE.LineDashedMaterial({ color: 0x00ccff, dashSize: 1, gapSize: 0.5, transparent: true, opacity: 0.5 });
+                    var pathLine = new THREE.Line(pathGeo, pathMat);
+                    pathLine.computeLineDistances();
+                    scene.add(pathLine);
+                    this._extraVisuals.push(pathLine);
+                    // A/B 지면 원형 마커
+                    var ringA = new THREE.Mesh(new THREE.RingGeometry(1.5, 2.0, 32), new THREE.MeshBasicMaterial({ color: 0x44ff88, side: THREE.DoubleSide, transparent: true, opacity: 0.5 }));
+                    ringA.position.set(15, 0.02, 15); ringA.rotation.x = -Math.PI / 2;
+                    scene.add(ringA); this._extraVisuals.push(ringA);
+                    var ringB = new THREE.Mesh(new THREE.RingGeometry(1.5, 2.0, 32), new THREE.MeshBasicMaterial({ color: 0xff4444, side: THREE.DoubleSide, transparent: true, opacity: 0.5 }));
+                    ringB.position.set(-20, 0.02, -15); ringB.rotation.x = -Math.PI / 2;
+                    scene.add(ringB); this._extraVisuals.push(ringB);
                 },
                 _createMarker: function (scene, x, z, color, label) {
                     var group = new THREE.Group();
@@ -687,7 +704,9 @@
                             }
                         }
                     });
+                    cleanupVisuals(scene, this._extraVisuals || []);
                     this.collectibles = [];
+                    this._extraVisuals = [];
                 },
                 frameUpdate: function (state) {
                     // 화물 픽업
@@ -725,11 +744,11 @@
                 },
                 objectives: [
                     {
-                        description: 'A 지점(15, 15)에서 화물 싣기 (높이 2m로 접근)',
+                        description: '초록 깃발(A)에서 화물 싣기 — 높이 2m로 접근!',
                         check: function (s, t, m) { return m._pickedUp; }
                     },
                     {
-                        description: 'B 지점(-20, -15) 방향으로 이동',
+                        description: '빨간 깃발(B) 방향으로 이동 중...',
                         check: function (state, t, m) {
                             return m._pickedUp && Math.sqrt(
                                 (state.position.x + 20) * (state.position.x + 20) +
@@ -738,7 +757,7 @@
                         }
                     },
                     {
-                        description: 'B 지점에서 고도 3m 이하로 배달 완료!',
+                        description: '빨간 깃발(B)에서 낮게 날아 배달 완료!',
                         check: function (s, t, m) { return m._delivered; }
                     }
                 ],

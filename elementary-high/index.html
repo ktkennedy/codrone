@@ -107,8 +107,8 @@
                 var data = JSON.parse(localStorage.getItem(mode.key) || '{}');
                 var completed = 0;
                 for (var i = 0; i < mode.total; i++) {
-                    var m = data['mission_' + i];
-                    if (m && m.completed) completed++;
+                    var m = data[i] || data[String(i)] || data['mission_' + i];
+                    if (m && (m.completed || m.stars > 0)) completed++;
                 }
                 totalCompleted += completed;
                 totalMissions += mode.total;

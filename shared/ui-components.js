@@ -256,7 +256,7 @@ class Minimap {
         style.textContent = `
             #minimap {
                 position: fixed;
-                bottom: 15px; left: 10px;
+                bottom: 15px; right: 10px;
                 border: 1px solid rgba(255,255,255,0.15);
                 border-radius: 6px;
                 background: rgba(0,0,0,0.3);
@@ -264,7 +264,7 @@ class Minimap {
                 opacity: 0.35;
                 transition: opacity 0.3s, transform 0.3s;
                 cursor: pointer;
-                transform-origin: bottom left;
+                transform-origin: bottom right;
             }
             #minimap:hover {
                 opacity: 0.8;

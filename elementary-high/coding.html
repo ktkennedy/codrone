@@ -468,6 +468,10 @@ drone.land()
             document.getElementById('console-output').innerHTML = '';
         }
 
+        // Promise queue: Skulpt 내부에서 suspension을 감싸면 susp.data.promise가 사라짐
+        // 이 큐를 통해 '*' 핸들러가 원본 promise를 안전하게 찾을 수 있음
+        var _dronePromiseQueue = [];
+
         // Skulpt drone 모듈 생성
         function createDroneModule() {
             return function () {
@@ -477,11 +481,13 @@ drone.land()
                 function promiseToSuspension(promise) {
                     // 방어적 Promise 래핑: undefined나 non-Promise 값도 안전하게 처리
                     promise = Promise.resolve(promise);
+                    var wrappedPromise = promise.then(function () { return Sk.builtin.none.none$; });
+                    _dronePromiseQueue.push(wrappedPromise);
                     var susp = new Sk.misceval.Suspension();
                     susp.resume = function () { return Sk.builtin.none.none$; };
                     susp.data = {
                         type: "Sk.promise",
-                        promise: promise.then(function () { return Sk.builtin.none.none$; })
+                        promise: wrappedPromise
                     };
                     return susp;
                 }
@@ -606,6 +612,7 @@ drone.land()
 
             isRunning = true;
             clearConsole();
+            _dronePromiseQueue = [];
             physics.reset();
             droneAPI.reset();
 
@@ -648,15 +655,35 @@ drone.land()
                     return Sk.importMainWithBody("<stdin>", false, code, true);
                 }, {
                     // '*' 와일드카드: 모든 suspension 타입(Sk.promise, yield 등) 처리
-                    // skulpt.org CDN은 핸들러 반환값에 항상 .then() 호출하므로 반드시 Promise 반환
+                    // Skulpt이 suspension을 내부적으로 감싸면 susp.data.promise가 사라질 수 있음
+                    // → child chain 탐색 + promise queue fallback으로 안전하게 처리
                     '*': function (susp) {
                         if (droneAPI._cancelled) {
+                            _dronePromiseQueue = [];
                             return Promise.reject('Cancelled');
                         }
+                        // 1) 직접 promise가 있는 경우
                         if (susp.data && susp.data.promise) {
+                            // 큐에서도 제거 (중복 실행 방지)
+                            var idx = _dronePromiseQueue.indexOf(susp.data.promise);
+                            if (idx !== -1) _dronePromiseQueue.splice(idx, 1);
                             return susp.data.promise;
                         }
-                        // yield 등 비동기가 아닌 suspension은 즉시 resolve
+                        // 2) child chain 탐색 — Skulpt 내부 wrapper suspension 처리
+                        var s = susp.child;
+                        while (s) {
+                            if (s.data && s.data.promise) {
+                                var idx2 = _dronePromiseQueue.indexOf(s.data.promise);
+                                if (idx2 !== -1) _dronePromiseQueue.splice(idx2, 1);
+                                return s.data.promise;
+                            }
+                            s = s.child;
+                        }
+                        // 3) Fallback: promise queue에서 꺼내기
+                        if (_dronePromiseQueue.length > 0) {
+                            return _dronePromiseQueue.shift();
+                        }
+                        // 4) yield 등 비동기가 아닌 suspension은 즉시 resolve
                         return Promise.resolve();
                     }
                 });
