@@ -149,15 +149,6 @@
         #debug-overlay .tgt { color: #ffcc66; }
         #debug-overlay .inp { color: #cc88ff; }
 
-        /* 미니맵이 코드 에디터 패널과 겹치지 않도록 sim-container 내부에 고정 */
-        #minimap {
-            position: absolute !important;
-            bottom: 5px !important;
-            left: 5px !important;
-            right: auto !important;
-            transform-origin: bottom left !important;
-            z-index: 15 !important;
-        }
     </style>
 </head>
 <body>
@@ -298,7 +289,7 @@ drone.land()
 
         var DroneSim = window.DroneSim;
         var scene, renderer, camera, clock;
-        var physics, droneModel, world, cameraSystem, sensors, codingMinimap;
+        var physics, droneModel, world, cameraSystem, sensors;
         var droneAPI;
         var isRunning = false;
 
@@ -363,11 +354,7 @@ drone.land()
                 status.classList.add('active');
             };
 
-            // 코딩 페이지 미니맵 생성
-            var simContainer = document.getElementById('sim-container');
-            if (window.DroneSim.Minimap && simContainer) {
-                codingMinimap = new window.DroneSim.Minimap(simContainer, 60);
-            }
+            // 코딩 페이지에서는 미니맵 비활성화
 
             window.addEventListener('resize', function () {
                 var w = container.clientWidth;
@@ -489,14 +476,14 @@ drone.land()
                 function promiseToSuspension(promise) {
                     promise = Promise.resolve(promise);
                     var susp = new Sk.misceval.Suspension();
-                    susp.resume = function () { return susp.data.result; };
+                    susp.resume = function () {
+                        return susp.data.result || Sk.builtin.none.none$;
+                    };
                     susp.data = {
                         type: "Sk.promise",
-                        promise: promise.then(function () {
-                            susp.data.result = Sk.builtin.none.none$;
-                        })
+                        promise: promise
                     };
-                    _dronePromiseQueue.push(susp.data.promise);
+                    _dronePromiseQueue.push(promise);
                     return susp;
                 }
 
@@ -662,8 +649,10 @@ drone.land()
                 var myPromise = Sk.misceval.asyncToPromise(function () {
                     return Sk.importMainWithBody("<stdin>", false, code, true);
                 }, {
-                    // 표준 Sk.promise 핸들러 — 드론 async 명령 처리
-                    "Sk.promise": function (susp) {
+                    // 모든 suspension 타입을 단일 핸들러로 처리
+                    // Skulpt가 def/for 안의 suspension을 wrapper로 감싸면
+                    // 타입이 바뀔 수 있으므로 '*'로 통합
+                    '*': function (susp) {
                         if (droneAPI._cancelled) {
                             _dronePromiseQueue = [];
                             return Promise.reject('Cancelled');
@@ -674,7 +663,7 @@ drone.land()
                             if (idx !== -1) _dronePromiseQueue.splice(idx, 1);
                             return susp.data.promise;
                         }
-                        // 2) child chain 탐색 — Skulpt 내부 wrapper suspension 처리
+                        // 2) child chain 탐색
                         var s = susp.child;
                         while (s) {
                             if (s.data && s.data.promise) {
@@ -684,44 +673,10 @@ drone.land()
                             }
                             s = s.child;
                         }
-                        // 3) Fallback: promise queue에서 꺼내기
+                        // 3) 큐 fallback — wrapper가 child chain을 끊은 경우
                         if (_dronePromiseQueue.length > 0) {
                             return _dronePromiseQueue.shift();
                         }
-                        // 4) promise 없는 Sk.promise suspension은 즉시 resolve
-                        return Promise.resolve();
-                    },
-                    // '*' 와일드카드: Sk.promise가 아닌 다른 suspension 타입 처리
-                    // 함수 호출/for문 안의 드론 명령은 Skulpt가 wrapper suspension으로 감싸므로
-                    // child chain 탐색 후 큐 fallback 필요
-                    '*': function (susp) {
-                        if (droneAPI._cancelled) {
-                            _dronePromiseQueue = [];
-                            return Promise.reject('Cancelled');
-                        }
-                        // 직접 promise가 있는 경우
-                        if (susp.data && susp.data.promise) {
-                            var idx = _dronePromiseQueue.indexOf(susp.data.promise);
-                            if (idx !== -1) _dronePromiseQueue.splice(idx, 1);
-                            return susp.data.promise;
-                        }
-                        // child chain 탐색
-                        var s = susp.child;
-                        while (s) {
-                            if (s.data && s.data.promise) {
-                                var idx2 = _dronePromiseQueue.indexOf(s.data.promise);
-                                if (idx2 !== -1) _dronePromiseQueue.splice(idx2, 1);
-                                return s.data.promise;
-                            }
-                            s = s.child;
-                        }
-                        // Fallback: 큐에 드론 promise가 있으면 소비
-                        // (def/for 안의 드론 명령이 wrapper suspension으로 감싸져
-                        //  child chain에서 찾을 수 없는 경우)
-                        if (_dronePromiseQueue.length > 0) {
-                            return _dronePromiseQueue.shift();
-                        }
-                        // 드론 관련 아닌 순수 suspension은 즉시 resolve
                         return Promise.resolve();
                     }
                 });
@@ -863,8 +818,7 @@ drone.land()
             droneModel.updatePropellers(dt, physics.isFlying ? 0.5 : 0);
             cameraSystem.update(dt);
 
-            // 미니맵 업데이트
-            if (codingMinimap) codingMinimap.update(state);
+            // 미니맵 비활성화됨
 
             // 미션 업데이트
             if (window._codingMissionTick) window._codingMissionTick(dt, state);

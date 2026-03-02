@@ -157,8 +157,7 @@ class MissionManager {
      * 미션 잠금 해제 여부
      */
     isMissionUnlocked(index) {
-        if (index === 0) return true;
-        return this.progress[index - 1] && this.progress[index - 1].stars > 0;
+        return true;
     }
 
     /**
