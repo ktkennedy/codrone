@@ -1334,13 +1334,14 @@ drone.land()
                     {type:'code', content:'drone.takeoff()    # 이륙\ndrone.hover(2)      # 2초 호버링\ndrone.land()        # 착륙'},
                     {type:'text', content:'모든 드론 프로그램은 takeoff()로 시작하고 land()로 끝나요.'},
                     {type:'tip', content:'오른쪽 3D 화면에서 드론이 움직이는 걸 확인해보세요!'},
-                    {type:'text', content:'🔍 함수 내부 구조 — takeoff()는 어떻게 동작할까?'},
-                    {type:'code', content:'# drone.takeoff() 내부 동작 순서:\n# 1. 물리엔진에 "목표 높이 3m" 전달\n# 2. 물리엔진이 모터 출력을 자동 계산\n# 3. 프로펠러 회전 → 양력 발생 → 상승\n# 4. 2초 동안 대기 (안정화)\n# 5. 목표 높이에 도달하면 호버링 유지'},
-                    {type:'text', content:'🔍 hover()와 land()의 내부 구조:'},
-                    {type:'code', content:'# drone.hover(3) 내부:\n# → 3초 동안 아무 명령 없이 대기\n# → 물리엔진이 자동으로 자세/고도 유지!\n\n# drone.land() 내부:\n# 1. 물리엔진에 "착륙" 명령 전달\n# 2. 모터 출력 점진적 감소 → 하강\n# 3. 2.5초 대기 (안전한 착지)'},
-                    {type:'tip', content:'핵심: 모든 함수는 "물리엔진에 명령 → 대기 → 완료" 패턴이에요! 명령을 큐(대기열)에 넣고 순서대로 실행합니다.'}
+                    {type:'text', content:'🔧 직접 만들어보자 — 나만의 비행 함수!'},
+                    {type:'text', content:'drone.takeoff() 안에는 여러 단계가 숨어있어요. 우리도 함수로 만들어봅시다:'},
+                    {type:'code', content:'# 나만의 비행 함수 만들기!\ndef my_flight(hover_time):\n    print("=== 이륙! ===")\n    drone.takeoff()\n    h = drone.get_altitude()\n    print("높이: " + str(h) + "m")\n\n    print("=== " + str(hover_time) + "초 대기 ===")\n    drone.hover(hover_time)\n\n    print("=== 착륙! ===")\n    drone.land()\n    print("비행 완료!")\n\n# 함수 실행! 숫자를 바꿔보세요\nmy_flight(3)'},
+                    {type:'text', content:'높이 확인 함수도 만들 수 있어요:'},
+                    {type:'code', content:'# 높이를 확인하는 함수\ndef check_height():\n    h = drone.get_altitude()\n    if h > 2:\n        print("높이 " + str(h) + "m - 충분히 높아요!")\n    else:\n        print("높이 " + str(h) + "m - 좀 더 올라가야 해요!")\n    return h'},
+                    {type:'tip', content:'패턴: def로 함수를 만들고 → 안에 drone 명령을 넣고 → 함수를 호출하면 실행!\n이게 바로 drone.takeoff()도 내부에서 하는 일이에요!'}
                 ],
-                exampleCode: '# 드론 기본 비행\ndrone.takeoff()\nprint("이륙 완료!")\n\ndrone.hover(2)\nprint("호버링 중...")\n\ndrone.land()\nprint("착륙 완료!")',
+                exampleCode: '# 나만의 비행 함수 만들기!\ndef my_flight(hover_time):\n    print("=== 이륙! ===")\n    drone.takeoff()\n    h = drone.get_altitude()\n    print("높이: " + str(h) + "m")\n\n    print("=== " + str(hover_time) + "초 대기 ===")\n    drone.hover(hover_time)\n\n    print("=== 착륙! ===")\n    drone.land()\n    print("비행 완료!")\n\n# 숫자를 바꿔서 실행해보세요!\nmy_flight(3)',
                 practice: {
                     prompt: '드론을 이륙시키고, 3초 호버링한 후 착륙시켜보세요.',
                     starterCode: '# 드론을 이륙 -> 3초 호버링 -> 착륙 시켜보세요\n\n',
@@ -1359,15 +1360,14 @@ drone.land()
                     {type:'text', content:'회전 명령으로 드론의 방향을 바꿀 수 있어요.'},
                     {type:'code', content:'drone.turn_right(90)   # 오른쪽 90도 회전\ndrone.turn_left(45)    # 왼쪽 45도 회전'},
                     {type:'tip', content:'괄호 안의 숫자가 이동 거리(미터) 또는 회전 각도(도)예요!'},
-                    {type:'text', content:'🔍 함수 내부 구조 — move_forward(5)는 어떻게 동작할까?'},
-                    {type:'code', content:'# drone.move_forward(5) 내부 동작:\n# 1. 드론이 바라보는 방향(yaw 각도) 확인\n# 2. 방향을 세계 좌표로 변환 (cos/sin 사용)\n#    → "앞"이 실제 어느 방향인지 계산!\n# 3. 목표 위치 = 현재 위치 + 방향 × 5m\n# 4. 오토파일럿에게 목표 좌표 전달\n# 5. 0.1초마다 "도착했나?" 확인 반복\n# 6. 목표 근처(0.8m 이내) 도착 → 위치 고정!'},
-                    {type:'text', content:'🔍 turn_right(90)의 내부 구조:'},
-                    {type:'code', content:'# drone.turn_right(90) 내부 동작:\n# 1. 현재 방향 + 90도 = 목표 방향 계산\n# 2. 급회전 방지! 최대 속도 제한 (1.5 rad/s)\n# 3. 0.03초마다 조금씩 목표 방향으로 회전\n# 4. 위치는 그대로 고정 (제자리 회전!)\n# 5. 목표 방향 도달 확인 (오차 < 2도)\n# 6. 8번 연속 확인 통과 → 회전 완료!'},
-                    {type:'text', content:'🔍 센서 함수의 내부 구조:'},
-                    {type:'code', content:'# drone.get_altitude() 내부:\n# → 물리엔진에서 현재 Y좌표 읽기\n# → 소수점 한 자리로 반올림\n# → 값 돌려주기 (return)\n\n# drone.get_distance_to(x, z) 내부:\n# → dx = 목표x - 현재x\n# → dz = 목표z - 현재z\n# → 거리 = √(dx² + dz²)  ← 피타고라스!'},
-                    {type:'tip', content:'핵심 패턴: 이동 = "좌표 계산 → 오토파일럿 비행 → 도착 확인 반복"\n회전 = "목표 각도 → 천천히 회전 → 수렴 확인 반복"\n센서 = "물리엔진에서 값 읽기 → 반올림 → 반환"'}
+                    {type:'text', content:'🔧 직접 만들어보자 — 거리 계산 함수!'},
+                    {type:'text', content:'drone.get_distance_to()는 피타고라스 정리를 써요. 직접 만들어서 비교해볼까요?'},
+                    {type:'code', content:'import math\n\n# 피타고라스로 거리 계산!\ndef my_distance(x1, z1, x2, z2):\n    dx = x2 - x1\n    dz = z2 - z1\n    return round(math.sqrt(dx*dx + dz*dz), 1)\n\n# 테스트!\ndrone.takeoff()\ndrone.move_forward(5)\n\nx = drone.get_position_x()\nz = drone.get_position_z()\nmy_dist = my_distance(0, 0, x, z)\ndrone_dist = drone.get_distance_to(0, 0)\n\nprint("내가 계산: " + str(my_dist) + "m")\nprint("드론 계산: " + str(drone_dist) + "m")\ndrone.land()'},
+                    {type:'text', content:'🔧 경로 비행 함수도 만들어보자!'},
+                    {type:'code', content:'# L자 비행 함수\ndef fly_L(forward, right):\n    drone.move_forward(forward)\n    drone.turn_right(90)\n    drone.move_forward(right)\n    dist = drone.get_distance_to(0, 0)\n    print("출발점까지 거리: " + str(dist) + "m")\n\ndrone.takeoff()\nfly_L(3, 4)  # 3m + 4m = 대각선 5m!\ndrone.land()'},
+                    {type:'tip', content:'3m 전진 + 4m 우측 → 출발점까지 5m!\n3 x 3 + 4 x 4 = 25, 루트(25) = 5 ← 피타고라스!\n직접 만든 함수와 드론 함수가 같은 답이 나오는지 확인해보세요!'}
                 ],
-                exampleCode: '# 드론 이동 연습\ndrone.takeoff()\n\ndrone.move_forward(5)\nprint("앞으로 5m!")\n\ndrone.turn_right(90)\nprint("오른쪽 90도 회전!")\n\ndrone.move_forward(3)\nprint("앞으로 3m!")\n\ndrone.land()\nprint("비행 완료!")',
+                exampleCode: 'import math\n\n# 피타고라스 거리 계산 함수!\ndef my_distance(x1, z1, x2, z2):\n    dx = x2 - x1\n    dz = z2 - z1\n    return round(math.sqrt(dx*dx + dz*dz), 1)\n\n# L자 비행 후 거리 확인!\ndrone.takeoff()\ndrone.move_forward(3)\ndrone.turn_right(90)\ndrone.move_forward(4)\n\n# 내 함수 vs 드론 함수 비교!\nx = drone.get_position_x()\nz = drone.get_position_z()\nprint("내 계산: " + str(my_distance(0,0,x,z)) + "m")\nprint("드론: " + str(drone.get_distance_to(0,0)) + "m")\ndrone.land()',
                 practice: {
                     prompt: '드론을 이륙 후 앞으로 3m, 왼쪽으로 2m 이동한 후 착륙하세요.',
                     starterCode: '# 드론: 이륙 -> 앞으로 3m -> 왼쪽 2m -> 착륙\ndrone.takeoff()\n\n\ndrone.land()',
