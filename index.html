@@ -969,15 +969,17 @@
                 return;
             }
             if (pinMode === 'set') {
-                auth.setPin(currentPinStudent, pin);
+                var studentName = currentPinStudent;
+                auth.setPin(studentName, pin);
                 closePinModal();
                 renderStudentGrid();
-                auth.login(currentPinStudent);
+                auth.login(studentName);
                 showMainScreen();
             } else {
                 if (auth.verifyPin(currentPinStudent, pin)) {
+                    var studentName = currentPinStudent;
                     closePinModal();
-                    auth.login(currentPinStudent);
+                    auth.login(studentName);
                     showMainScreen();
                 } else {
                     document.getElementById('pin-error').textContent = '비밀번호가 틀렸어요! 다시 해보세요 😢';
