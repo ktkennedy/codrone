@@ -669,7 +669,7 @@
                 showLoginScreen();
                 return;
             }
-            document.getElementById('bar-student-name').textContent = name;
+            document.getElementById('bar-student-name').textContent = name || '학생';
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-screen').style.display = 'flex';
         }

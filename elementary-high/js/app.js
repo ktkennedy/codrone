@@ -208,7 +208,8 @@
     function initMissions() {
         if (!MissionManager || !createHighMissions || !MissionSelectUI) return;
 
-        missionManager = new MissionManager('drone-high-progress');
+        var auth = window.DroneSim.StudentAuth;
+        missionManager = new MissionManager(auth.getKey('drone-high-progress'));
         var missions = createHighMissions();
         missions.forEach(function (m) { missionManager.addMission(m); });
 

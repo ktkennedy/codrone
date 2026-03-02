@@ -296,7 +296,7 @@ drone.land()
 
         var DroneSim = window.DroneSim;
         var scene, renderer, camera, clock;
-        var physics, droneModel, world, cameraSystem, sensors;
+        var physics, droneModel, world, cameraSystem, sensors, codingMinimap;
         var droneAPI;
         var isRunning = false;
 
@@ -360,6 +360,12 @@ drone.land()
                 status.textContent = action;
                 status.classList.add('active');
             };
+
+            // 코딩 페이지 미니맵 생성
+            var simContainer = document.getElementById('sim-container');
+            if (window.DroneSim.Minimap && simContainer) {
+                codingMinimap = new window.DroneSim.Minimap(simContainer, 60);
+            }
 
             window.addEventListener('resize', function () {
                 var w = container.clientWidth;
@@ -479,16 +485,16 @@ drone.land()
 
                 // JS Promise를 Skulpt suspension으로 변환하는 헬퍼
                 function promiseToSuspension(promise) {
-                    // 방어적 Promise 래핑: undefined나 non-Promise 값도 안전하게 처리
                     promise = Promise.resolve(promise);
-                    var wrappedPromise = promise.then(function () { return Sk.builtin.none.none$; });
-                    _dronePromiseQueue.push(wrappedPromise);
                     var susp = new Sk.misceval.Suspension();
-                    susp.resume = function () { return Sk.builtin.none.none$; };
+                    susp.resume = function () { return susp.data.result; };
                     susp.data = {
                         type: "Sk.promise",
-                        promise: wrappedPromise
+                        promise: promise.then(function () {
+                            susp.data.result = Sk.builtin.none.none$;
+                        })
                     };
+                    _dronePromiseQueue.push(susp.data.promise);
                     return susp;
                 }
 
@@ -654,17 +660,14 @@ drone.land()
                 var myPromise = Sk.misceval.asyncToPromise(function () {
                     return Sk.importMainWithBody("<stdin>", false, code, true);
                 }, {
-                    // '*' 와일드카드: 모든 suspension 타입(Sk.promise, yield 등) 처리
-                    // Skulpt이 suspension을 내부적으로 감싸면 susp.data.promise가 사라질 수 있음
-                    // → child chain 탐색 + promise queue fallback으로 안전하게 처리
-                    '*': function (susp) {
+                    // 표준 Sk.promise 핸들러 — 드론 async 명령 처리
+                    "Sk.promise": function (susp) {
                         if (droneAPI._cancelled) {
                             _dronePromiseQueue = [];
                             return Promise.reject('Cancelled');
                         }
                         // 1) 직접 promise가 있는 경우
                         if (susp.data && susp.data.promise) {
-                            // 큐에서도 제거 (중복 실행 방지)
                             var idx = _dronePromiseQueue.indexOf(susp.data.promise);
                             if (idx !== -1) _dronePromiseQueue.splice(idx, 1);
                             return susp.data.promise;
@@ -683,7 +686,34 @@ drone.land()
                         if (_dronePromiseQueue.length > 0) {
                             return _dronePromiseQueue.shift();
                         }
-                        // 4) yield 등 비동기가 아닌 suspension은 즉시 resolve
+                        // 4) promise 없는 Sk.promise suspension은 즉시 resolve
+                        return Promise.resolve();
+                    },
+                    // '*' 와일드카드: Sk.promise가 아닌 다른 suspension 타입 처리
+                    '*': function (susp) {
+                        if (droneAPI._cancelled) {
+                            _dronePromiseQueue = [];
+                            return Promise.reject('Cancelled');
+                        }
+                        // Sk.promise가 아닌 suspension에서도 드론 promise를 찾는 fallback
+                        if (susp.data && susp.data.promise) {
+                            var idx = _dronePromiseQueue.indexOf(susp.data.promise);
+                            if (idx !== -1) _dronePromiseQueue.splice(idx, 1);
+                            return susp.data.promise;
+                        }
+                        var s = susp.child;
+                        while (s) {
+                            if (s.data && s.data.promise) {
+                                var idx2 = _dronePromiseQueue.indexOf(s.data.promise);
+                                if (idx2 !== -1) _dronePromiseQueue.splice(idx2, 1);
+                                return s.data.promise;
+                            }
+                            s = s.child;
+                        }
+                        if (_dronePromiseQueue.length > 0) {
+                            return _dronePromiseQueue.shift();
+                        }
+                        // yield 등 비동기가 아닌 suspension은 즉시 resolve
                         return Promise.resolve();
                     }
                 });
@@ -824,6 +854,9 @@ drone.land()
             droneModel.updateFromPhysics(state);
             droneModel.updatePropellers(dt, physics.isFlying ? 0.5 : 0);
             cameraSystem.update(dt);
+
+            // 미니맵 업데이트
+            if (codingMinimap) codingMinimap.update(state.position, state.rotation);
 
             // 미션 업데이트
             if (window._codingMissionTick) window._codingMissionTick(dt, state);

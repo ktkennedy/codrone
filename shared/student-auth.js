@@ -56,7 +56,7 @@ window.DroneSim.StudentAuth = (function () {
 
     function getCurrentStudent() {
         var val = sessionStorage.getItem(SESSION_KEY);
-        if (!val || val === 'null') return null;
+        if (!val || val === 'null' || val === 'undefined') return null;
         return val;
     }
 
