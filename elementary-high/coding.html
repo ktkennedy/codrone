@@ -154,6 +154,8 @@
             position: absolute !important;
             bottom: 5px !important;
             left: 5px !important;
+            right: auto !important;
+            transform-origin: bottom left !important;
             z-index: 15 !important;
         }
     </style>
@@ -690,12 +692,13 @@ drone.land()
                         return Promise.resolve();
                     },
                     // '*' 와일드카드: Sk.promise가 아닌 다른 suspension 타입 처리
+                    // 주의: 큐에서 꺼내지 않음 — 비드론 suspension이 드론 promise를 소비하는 것 방지
                     '*': function (susp) {
                         if (droneAPI._cancelled) {
                             _dronePromiseQueue = [];
                             return Promise.reject('Cancelled');
                         }
-                        // Sk.promise가 아닌 suspension에서도 드론 promise를 찾는 fallback
+                        // 직접 promise가 있는 경우에만 처리
                         if (susp.data && susp.data.promise) {
                             var idx = _dronePromiseQueue.indexOf(susp.data.promise);
                             if (idx !== -1) _dronePromiseQueue.splice(idx, 1);
@@ -710,10 +713,7 @@ drone.land()
                             }
                             s = s.child;
                         }
-                        if (_dronePromiseQueue.length > 0) {
-                            return _dronePromiseQueue.shift();
-                        }
-                        // yield 등 비동기가 아닌 suspension은 즉시 resolve
+                        // 비드론 suspension (yield, input 등)은 큐 소비 없이 즉시 resolve
                         return Promise.resolve();
                     }
                 });
