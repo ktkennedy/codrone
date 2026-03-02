@@ -633,24 +633,7 @@
                 21: { done: codingDone >= 6, label: '텍스트 코딩' }
             };
 
-            document.querySelectorAll('.week-item[data-week]').forEach(function (item) {
-                var week = parseInt(item.dataset.week);
-                var badge = weekBadges[week];
-                if (!badge) return;
-
-                var weekInfo = item.querySelector('.week-info');
-                if (!weekInfo) return;
-
-                var badgeEl = document.createElement('span');
-                if (badge.done) {
-                    badgeEl.style.cssText = 'display:inline-block;background:rgba(68,187,119,0.2);color:#44bb77;border:1px solid rgba(68,187,119,0.4);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;margin-top:4px;';
-                    badgeEl.textContent = '✓ 완료';
-                } else {
-                    badgeEl.style.cssText = 'display:inline-block;background:rgba(74,158,255,0.1);color:#4a9eff;border:1px solid rgba(74,158,255,0.2);border-radius:6px;padding:2px 8px;font-size:11px;margin-top:4px;';
-                    badgeEl.textContent = '진행 중';
-                }
-                weekInfo.appendChild(badgeEl);
-            });
+            // 진행 배지 표시 제거됨
         })();
 
         // PPT 파일 존재 여부 확인 후 버튼 생성
