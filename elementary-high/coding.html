@@ -149,6 +149,82 @@
         #debug-overlay .tgt { color: #ffcc66; }
         #debug-overlay .inp { color: #cc88ff; }
 
+        /* 튜토리얼 패널 */
+        #tutorial-panel {
+            display: none; flex-direction: column;
+            height: 300px; flex-shrink: 0;
+            border-bottom: 2px solid #f0883e;
+            background: #0d1117;
+        }
+        #tutorial-panel.active { display: flex; }
+        #tutorial-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 12px; background: #161b22;
+            border-bottom: 1px solid #30363d; flex-shrink: 0;
+        }
+        #tutorial-nav button {
+            padding: 5px 14px; border: 1px solid #444; border-radius: 5px;
+            background: #21262d; color: #c9d1d9; cursor: pointer;
+            font-size: 12px; font-family: inherit;
+        }
+        #tutorial-nav button:hover { background: #30363d; }
+        #tutorial-nav button:disabled { opacity: 0.4; cursor: default; }
+        #tutorial-nav .nav-title { color: #f0883e; font-size: 13px; font-weight: bold; }
+        #tutorial-nav .nav-dots { display: flex; gap: 4px; align-items: center; }
+        .nav-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #30363d; transition: all 0.2s; display: inline-block;
+        }
+        .nav-dot.done { background: #3fb950; }
+        .nav-dot.current { background: #f0883e; transform: scale(1.3); }
+        #tutorial-progress-bar { height: 3px; background: #21262d; flex-shrink: 0; }
+        #tutorial-progress-fill { height: 100%; background: #f0883e; transition: width 0.3s; width: 0; }
+        #tutorial-content {
+            flex: 1; overflow-y: auto; padding: 12px 16px;
+            color: #c9d1d9; font-size: 13px; line-height: 1.7;
+        }
+        .lesson-phase {
+            display: inline-block; padding: 2px 8px; border-radius: 10px;
+            font-size: 11px; font-weight: bold; margin-bottom: 6px;
+        }
+        .lesson-phase.python { background: #1a3a1a; color: #3fb950; }
+        .lesson-phase.drone { background: #3a2a1a; color: #f0883e; }
+        .lesson-title { font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 10px; }
+        .lesson-text { margin-bottom: 8px; }
+        .lesson-code {
+            background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+            padding: 8px 12px; margin: 6px 0;
+            font-family: 'Courier New', monospace; font-size: 13px;
+            color: #79c0ff; white-space: pre-wrap; line-height: 1.5;
+        }
+        .lesson-tip {
+            background: #1a2a3a; border-left: 3px solid #58a6ff;
+            padding: 6px 10px; margin: 6px 0; border-radius: 0 6px 6px 0;
+            color: #88ccff; font-size: 12px;
+        }
+        #tutorial-actions {
+            display: flex; gap: 8px; padding: 8px 12px;
+            background: #161b22; border-top: 1px solid #30363d;
+            flex-shrink: 0; flex-wrap: wrap;
+        }
+        .tut-btn {
+            padding: 7px 16px; border: none; border-radius: 6px;
+            font-size: 12px; font-weight: bold; cursor: pointer;
+            font-family: inherit; transition: all 0.2s;
+        }
+        .tut-btn.example { background: #238636; color: #fff; }
+        .tut-btn.example:hover { background: #2ea043; }
+        .tut-btn.practice { background: #1f6feb; color: #fff; }
+        .tut-btn.practice:hover { background: #388bfd; }
+        .tut-btn.check { background: #f0883e; color: #fff; }
+        .tut-btn.check:hover { background: #db7c37; }
+        .tut-btn.hint-btn { background: #30363d; color: #c9d1d9; border: 1px solid #444; }
+        .tut-btn.hint-btn:hover { background: #3d444d; }
+        #tutorial-result {
+            padding: 8px 12px; font-size: 13px; font-weight: bold;
+            display: none; flex-shrink: 0; white-space: pre-wrap;
+        }
+
     </style>
 </head>
 <body>
@@ -166,6 +242,7 @@
         <div class="right">
             <span id="student-name-label" style="color:#44ffaa;font-size:12px;margin-right:10px;"></span>
             <span id="mode-progress" style="color:#88ccff;font-size:12px;margin-right:6px;"></span>
+            <button id="btn-tutorial" style="background:#f0883e;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit;">&#x1F4DA; 학습</button>
             <button id="btn-missions" style="background:#4a9eff;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit;">&#x1F3AF; 코딩 과제</button>
             <button id="btn-sandbox" style="background:#9b59b6;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit;">&#x1F3AE; 자유 코딩</button>
             <button class="demo-btn" id="demo-square">사각형 비행</button>
@@ -183,6 +260,26 @@
             <div id="editor-header">
                 <span class="tab">main.py</span>
                 <span class="api-hint">drone.함수명() 으로 드론을 조종하세요</span>
+            </div>
+            <div id="tutorial-panel">
+                <div id="tutorial-nav">
+                    <div style="display:flex;gap:6px;">
+                        <button id="tut-prev">&#x25C0; 이전</button>
+                        <button id="tut-next">다음 &#x25B6;</button>
+                    </div>
+                    <span class="nav-title" id="tut-nav-title">레슨 1/12</span>
+                    <div class="nav-dots" id="tut-dots"></div>
+                    <button id="tut-close">&#x2715; 닫기</button>
+                </div>
+                <div id="tutorial-progress-bar"><div id="tutorial-progress-fill"></div></div>
+                <div id="tutorial-content"></div>
+                <div id="tutorial-result"></div>
+                <div id="tutorial-actions">
+                    <button class="tut-btn example" id="tut-example">&#x1F4CB; 예제 실행</button>
+                    <button class="tut-btn practice" id="tut-practice">&#x270F;&#xFE0F; 연습문제</button>
+                    <button class="tut-btn check" id="tut-check" style="display:none">&#x2705; 정답 확인</button>
+                    <button class="tut-btn hint-btn" id="tut-hint" style="display:none">&#x1F4A1; 힌트</button>
+                </div>
             </div>
             <textarea id="code-editor" spellcheck="false"># 드론 텍스트 코딩
 # 아래 코드를 수정해서 드론을 조종해보세요!
@@ -1075,6 +1172,460 @@ drone.land()
             var el = document.getElementById('mode-progress');
             if (el) el.textContent = '&#x1F4BB; 과제 ' + completed + '/6 완료';
         })();
+    })();
+    </script>
+
+    <!-- 튜토리얼 시스템 (파이썬 기초 → 드론 코딩) -->
+    <script>
+    (function() {
+        'use strict';
+        var auth = window.DroneSim.StudentAuth;
+        var TUT_KEY = 'drone-tutorial-progress';
+
+        // ====== 12개 레슨 데이터 ======
+        var LESSONS = [
+            // --- 1단계: 파이썬 기초 (레슨 1-7) ---
+            {
+                title: 'print() - 화면에 출력하기',
+                phase: 'python',
+                explanation: [
+                    {type:'text', content:'파이썬(Python)은 전 세계에서 가장 인기 있는 프로그래밍 언어예요!'},
+                    {type:'text', content:'print()는 화면에 글자를 보여주는 명령어예요.'},
+                    {type:'code', content:'print("안녕하세요!")'},
+                    {type:'text', content:'따옴표(" ") 안에 보여주고 싶은 글자를 넣으면 됩니다.'},
+                    {type:'tip', content:'따옴표를 빼먹으면 오류가 나요! 꼭 " "로 감싸주세요.'}
+                ],
+                exampleCode: 'print("안녕하세요!")\nprint("나는 드론 조종사입니다!")\nprint("파이썬 코딩 시작!")',
+                practice: {
+                    prompt: 'print()를 사용해서 "드론 출발!" 이라고 출력해보세요.',
+                    starterCode: '# print()를 사용해서 "드론 출발!"을 출력해보세요\n\n',
+                    validate: function(t) { return t.indexOf('드론 출발!') !== -1; },
+                    successMsg: '잘했어요! print() 사용법을 배웠습니다!',
+                    hintMsg: 'print("드론 출발!") 이라고 입력해보세요.'
+                },
+                usesDrone: false
+            },
+            {
+                title: '변수 - 값 저장하기',
+                phase: 'python',
+                explanation: [
+                    {type:'text', content:'변수는 값을 저장하는 상자와 같아요. 이름을 지어주고 = 으로 값을 넣을 수 있습니다.'},
+                    {type:'code', content:'name = "코딩드론"\nprint(name)'},
+                    {type:'text', content:'나중에 변수 이름만 쓰면 저장된 값이 나옵니다.'},
+                    {type:'code', content:'age = 10\nprint("나이: " + str(age) + "살")'},
+                    {type:'tip', content:'숫자와 글자를 함께 출력하려면 str()로 숫자를 글자로 바꿔주세요!'}
+                ],
+                exampleCode: 'name = "코딩드론"\nage = 10\n\nprint("이름: " + name)\nprint("나이: " + str(age) + "살")\n\n# 변수 값을 바꿀 수도 있어요\nage = 11\nprint("내년 나이: " + str(age) + "살")',
+                practice: {
+                    prompt: '변수 animal에 좋아하는 동물 이름을 저장하고 print()로 출력해보세요.',
+                    starterCode: '# 변수 animal에 좋아하는 동물을 저장하세요\nanimal = ""\n\nprint(animal)',
+                    validate: function(t) { var lines = t.split('\n'); for(var i=0;i<lines.length;i++){if(lines[i].trim().length>0 && lines[i].indexOf('실행')!==-1===false && lines[i].indexOf('오류')===-1) return true;} return false; },
+                    successMsg: '훌륭해요! 변수 사용법을 배웠습니다!',
+                    hintMsg: 'animal = "고양이" 처럼 따옴표 안에 동물 이름을 넣어보세요.'
+                },
+                usesDrone: false
+            },
+            {
+                title: '자료형 - 숫자와 문자열',
+                phase: 'python',
+                explanation: [
+                    {type:'text', content:'파이썬에는 여러 종류의 값이 있어요:'},
+                    {type:'code', content:'정수(int): 1, 2, 100, -5\n소수(float): 3.14, 0.5\n문자열(str): "안녕", "드론"'},
+                    {type:'text', content:'type()으로 값의 종류를 확인할 수 있어요.'},
+                    {type:'code', content:'print(type(10))     # <class \'int\'>\nprint(type(3.14))   # <class \'float\'>\nprint(type("드론"))  # <class \'str\'>'},
+                    {type:'tip', content:'숫자끼리는 계산할 수 있지만, 문자열과 숫자는 바로 더할 수 없어요!'}
+                ],
+                exampleCode: '# 정수 (int) - 소수점 없는 숫자\ncount = 5\nprint("개수: " + str(count))\n\n# 소수 (float) - 소수점 있는 숫자\nheight = 3.5\nprint("높이: " + str(height) + "m")\n\n# 문자열 (str) - 글자\nname = "파이썬"\nprint("언어: " + name)\n\n# 타입 확인\nprint(type(count))\nprint(type(height))\nprint(type(name))',
+                practice: {
+                    prompt: '정수, 소수, 문자열 변수를 각각 만들고 출력해보세요.',
+                    starterCode: '# 정수 변수\nspeed = 5\n\n# 소수 변수 (소수점 있는 숫자를 넣어보세요)\ndistance = \n\n# 문자열 변수 (따옴표로 감싼 글자를 넣어보세요)\npilot = \n\nprint("속도: " + str(speed))\nprint("거리: " + str(distance))\nprint("조종사: " + pilot)',
+                    validate: function(t) { return t.indexOf('속도:') !== -1 && t.indexOf('거리:') !== -1 && t.indexOf('조종사:') !== -1; },
+                    successMsg: '완벽해요! 자료형의 차이를 이해했습니다!',
+                    hintMsg: 'distance = 3.5 처럼 소수를, pilot = "나" 처럼 문자열을 넣어보세요.'
+                },
+                usesDrone: false
+            },
+            {
+                title: '연산 - 계산하기',
+                phase: 'python',
+                explanation: [
+                    {type:'text', content:'파이썬은 계산기처럼 사용할 수 있어요!'},
+                    {type:'code', content:'+ 더하기    - 빼기\n* 곱하기    / 나누기\n% 나머지    ** 거듭제곱'},
+                    {type:'text', content:'계산 결과를 변수에 저장할 수도 있어요.'},
+                    {type:'code', content:'a = 10\nb = 3\nprint(a + b)   # 13\nprint(a * b)   # 30'},
+                    {type:'tip', content:'문자열도 +로 연결하고 *로 반복할 수 있어요! "Go! " * 3 = "Go! Go! Go! "'}
+                ],
+                exampleCode: 'a = 10\nb = 3\n\nprint("더하기: " + str(a + b))\nprint("빼기: " + str(a - b))\nprint("곱하기: " + str(a * b))\nprint("나누기: " + str(a / b))\nprint("나머지: " + str(a % b))\n\n# 문자열 연산\nprint("드론" + " " + "출발!")\nprint("Go! " * 3)',
+                practice: {
+                    prompt: 'width=4, height=3인 사각형의 둘레와 넓이를 계산해서 출력해보세요.',
+                    starterCode: '# 사각형의 둘레와 넓이를 계산해보세요\nwidth = 4\nheight = 3\n\n# 둘레 = (가로 + 세로) * 2\nperimeter = \nprint("둘레: " + str(perimeter))\n\n# 넓이 = 가로 * 세로\narea = \nprint("넓이: " + str(area))',
+                    validate: function(t) { return t.indexOf('14') !== -1 && t.indexOf('12') !== -1; },
+                    successMsg: '정확해요! 둘레 14, 넓이 12를 잘 계산했습니다!',
+                    hintMsg: 'perimeter = (width + height) * 2\narea = width * height'
+                },
+                usesDrone: false
+            },
+            {
+                title: 'for 반복문 - 반복하기',
+                phase: 'python',
+                explanation: [
+                    {type:'text', content:'같은 일을 여러 번 반복할 때 for문을 사용해요.'},
+                    {type:'code', content:'for i in range(5):\n    print(i)'},
+                    {type:'text', content:'range(5)는 0,1,2,3,4 다섯 개의 숫자를 만들어요.\nfor문 안의 코드는 반드시 들여쓰기(스페이스 4칸)를 해야 합니다!'},
+                    {type:'code', content:'for i in range(1, 6):\n    print(str(i) + "번!")'},
+                    {type:'tip', content:'range(시작, 끝)에서 끝 숫자는 포함되지 않아요! range(1,6)은 1~5입니다.'}
+                ],
+                exampleCode: '# 0부터 4까지 출력\nfor i in range(5):\n    print("숫자: " + str(i))\n\nprint("---")\n\n# 1부터 5까지 출력\nfor i in range(1, 6):\n    print(str(i) + "번 반복!")\n\nprint("---")\n\n# 구구단 3단\nfor i in range(1, 10):\n    print("3 x " + str(i) + " = " + str(3 * i))',
+                practice: {
+                    prompt: 'for문으로 1부터 5까지의 합을 구해서 출력해보세요. (정답: 15)',
+                    starterCode: '# 1부터 5까지의 합을 구해보세요\ntotal = 0\n\nfor i in range(1, 6):\n    total = total + i\n\nprint("합계: " + str(total))',
+                    validate: function(t) { return t.indexOf('15') !== -1; },
+                    successMsg: '잘했어요! for 반복문을 배웠습니다!',
+                    hintMsg: '코드가 완성되어 있어요. 실행해보고, 숫자를 바꿔서 실험해보세요!'
+                },
+                usesDrone: false
+            },
+            {
+                title: 'if/else 조건문 - 판단하기',
+                phase: 'python',
+                explanation: [
+                    {type:'text', content:'조건에 따라 다른 행동을 할 수 있어요.'},
+                    {type:'code', content:'score = 85\nif score >= 80:\n    print("합격!")\nelse:\n    print("다시 도전!")'},
+                    {type:'text', content:'비교: == (같다), != (다르다), > (크다), < (작다), >= (이상), <= (이하)'},
+                    {type:'code', content:'age = 10\nif age >= 13:\n    print("중학생")\nelif age >= 7:\n    print("초등학생")\nelse:\n    print("미취학")'},
+                    {type:'tip', content:'elif는 "else if"의 줄임말이에요. 여러 조건을 차례로 확인할 때 써요!'}
+                ],
+                exampleCode: 'score = 85\n\nif score >= 90:\n    print("A등급 - 훌륭해요!")\nelif score >= 80:\n    print("B등급 - 잘했어요!")\nelif score >= 70:\n    print("C등급 - 괜찮아요!")\nelse:\n    print("분발하세요!")\n\n# 짝수/홀수 판별\nnumber = 7\nif number % 2 == 0:\n    print(str(number) + "은(는) 짝수")\nelse:\n    print(str(number) + "은(는) 홀수")',
+                practice: {
+                    prompt: 'temperature가 30 이상이면 "더워요!", 아니면 "시원해요!"를 출력하세요.',
+                    starterCode: '# 온도에 따라 다른 메시지를 출력해보세요\ntemperature = 35\n\n',
+                    validate: function(t) { return t.indexOf('더워요!') !== -1 || t.indexOf('시원해요!') !== -1; },
+                    successMsg: '완벽해요! 조건문으로 판단하는 법을 배웠습니다!',
+                    hintMsg: 'if temperature >= 30:\n    print("더워요!")\nelse:\n    print("시원해요!")'
+                },
+                usesDrone: false
+            },
+            {
+                title: '함수(def) - 나만의 명령 만들기',
+                phase: 'python',
+                explanation: [
+                    {type:'text', content:'함수는 여러 명령을 하나로 묶어서 이름을 붙인 것이에요.'},
+                    {type:'code', content:'def greet(name):\n    print("안녕, " + name + "!")\n\ngreet("드론")\ngreet("파이썬")'},
+                    {type:'text', content:'def로 함수를 만들고, 함수이름()으로 실행합니다. 괄호 안에 값을 넘길 수 있어요.'},
+                    {type:'code', content:'def add(a, b):\n    return a + b\n\nprint(add(3, 5))  # 8'},
+                    {type:'tip', content:'return은 함수의 결과를 돌려줘요. print는 화면에 보여주기만 합니다.'}
+                ],
+                exampleCode: '# 인사 함수\ndef greet(name):\n    print("안녕, " + name + "!")\n\ngreet("드론 조종사")\ngreet("파이썬")\n\n# 계산 함수\ndef multiply(a, b):\n    return a * b\n\nresult = multiply(4, 5)\nprint("4 x 5 = " + str(result))\n\n# 별 그리기 함수\ndef draw_stars(count):\n    print("*" * count)\n\nfor i in range(1, 6):\n    draw_stars(i)',
+                practice: {
+                    prompt: '두 수 중 큰 수를 돌려주는 함수 bigger(a, b)를 만들어 실행해보세요.',
+                    starterCode: '# 두 수 중 큰 수를 돌려주는 함수\ndef bigger(a, b):\n    if a >= b:\n        return a\n    else:\n        return b\n\nprint(bigger(3, 7))\nprint(bigger(10, 5))',
+                    validate: function(t) { return t.indexOf('7') !== -1 && t.indexOf('10') !== -1; },
+                    successMsg: '대단해요! 파이썬 기초를 모두 배웠습니다! 이제 드론 코딩을 시작해볼까요?',
+                    hintMsg: '코드가 완성되어 있어요. 실행해보고 값을 바꿔서 실험해보세요!'
+                },
+                usesDrone: false
+            },
+            // --- 2단계: 파이썬 + 드론 (레슨 8-12) ---
+            {
+                title: '드론 기본 - 이륙과 착륙',
+                phase: 'drone',
+                explanation: [
+                    {type:'text', content:'이제 배운 파이썬으로 드론을 조종해볼 거예요! drone. 으로 시작하는 명령어를 사용합니다.'},
+                    {type:'code', content:'drone.takeoff()    # 이륙\ndrone.hover(2)      # 2초 호버링\ndrone.land()        # 착륙'},
+                    {type:'text', content:'모든 드론 프로그램은 takeoff()로 시작하고 land()로 끝나요.'},
+                    {type:'tip', content:'오른쪽 3D 화면에서 드론이 움직이는 걸 확인해보세요!'}
+                ],
+                exampleCode: '# 드론 기본 비행\ndrone.takeoff()\nprint("이륙 완료!")\n\ndrone.hover(2)\nprint("호버링 중...")\n\ndrone.land()\nprint("착륙 완료!")',
+                practice: {
+                    prompt: '드론을 이륙시키고, 3초 호버링한 후 착륙시켜보세요.',
+                    starterCode: '# 드론을 이륙 -> 3초 호버링 -> 착륙 시켜보세요\n\n',
+                    validate: function(t) { return t.indexOf('실행 완료') !== -1; },
+                    successMsg: '첫 드론 비행 성공! 이제 드론을 움직여볼까요?',
+                    hintMsg: 'drone.takeoff()\ndrone.hover(3)\ndrone.land()'
+                },
+                usesDrone: true
+            },
+            {
+                title: '드론 이동 - 전진과 회전',
+                phase: 'drone',
+                explanation: [
+                    {type:'text', content:'드론을 앞뒤좌우로 움직이고 회전할 수 있어요.'},
+                    {type:'code', content:'drone.move_forward(5)   # 앞으로 5m\ndrone.move_backward(3)  # 뒤로 3m\ndrone.move_left(2)      # 왼쪽 2m\ndrone.move_right(2)     # 오른쪽 2m'},
+                    {type:'text', content:'회전 명령으로 드론의 방향을 바꿀 수 있어요.'},
+                    {type:'code', content:'drone.turn_right(90)   # 오른쪽 90도 회전\ndrone.turn_left(45)    # 왼쪽 45도 회전'},
+                    {type:'tip', content:'괄호 안의 숫자가 이동 거리(미터) 또는 회전 각도(도)예요!'}
+                ],
+                exampleCode: '# 드론 이동 연습\ndrone.takeoff()\n\ndrone.move_forward(5)\nprint("앞으로 5m!")\n\ndrone.turn_right(90)\nprint("오른쪽 90도 회전!")\n\ndrone.move_forward(3)\nprint("앞으로 3m!")\n\ndrone.land()\nprint("비행 완료!")',
+                practice: {
+                    prompt: '드론을 이륙 후 앞으로 3m, 왼쪽으로 2m 이동한 후 착륙하세요.',
+                    starterCode: '# 드론: 이륙 -> 앞으로 3m -> 왼쪽 2m -> 착륙\ndrone.takeoff()\n\n\ndrone.land()',
+                    validate: function(t) { return t.indexOf('실행 완료') !== -1; },
+                    successMsg: '잘했어요! 드론 이동을 마스터했습니다!',
+                    hintMsg: 'drone.move_forward(3)\ndrone.move_left(2)\n를 이륙과 착륙 사이에 넣어보세요.'
+                },
+                usesDrone: true
+            },
+            {
+                title: '반복문 + 드론 - 사각형 비행',
+                phase: 'drone',
+                explanation: [
+                    {type:'text', content:'파이썬 for문으로 드론 명령을 반복할 수 있어요!'},
+                    {type:'code', content:'for i in range(4):\n    drone.move_forward(5)\n    drone.turn_right(90)'},
+                    {type:'text', content:'"앞으로 5m + 오른쪽 90도"를 4번 반복하면 사각형이 완성돼요!'},
+                    {type:'tip', content:'삼각형: range(3) + turn_right(120)\n오각형: range(5) + turn_right(72)'}
+                ],
+                exampleCode: '# 사각형 비행\ndrone.takeoff()\n\nfor i in range(4):\n    drone.move_forward(5)\n    drone.turn_right(90)\n    print(str(i + 1) + "번째 변 완료!")\n\nprint("사각형 완성!")\ndrone.land()',
+                practice: {
+                    prompt: 'for문으로 드론이 삼각형을 그리게 해보세요. (3번 반복, 120도 회전)',
+                    starterCode: '# 삼각형 비행: 3번 반복, 각 변 4m, 120도 회전\ndrone.takeoff()\n\nfor i in range(3):\n    drone.move_forward(4)\n    drone.turn_right(120)\n\nprint("삼각형 완성!")\ndrone.land()',
+                    validate: function(t) { return t.indexOf('삼각형 완성!') !== -1; },
+                    successMsg: '멋져요! 반복문으로 도형을 그릴 수 있게 되었습니다!',
+                    hintMsg: '코드가 완성되어 있어요. 실행 후 range와 각도를 바꿔 다른 도형도 만들어보세요!'
+                },
+                usesDrone: true
+            },
+            {
+                title: '함수 + 드론 - 나만의 비행 패턴',
+                phase: 'drone',
+                explanation: [
+                    {type:'text', content:'파이썬 함수(def)로 비행 패턴을 만들면 한 줄로 복잡한 비행을 실행할 수 있어요!'},
+                    {type:'code', content:'def square(size):\n    for i in range(4):\n        drone.move_forward(size)\n        drone.turn_right(90)\n\nsquare(5)  # 5m 사각형\nsquare(3)  # 3m 사각형'},
+                    {type:'text', content:'매개변수로 크기를 바꿀 수 있어서 재사용이 가능해요!'},
+                    {type:'tip', content:'함수를 정의(def)하는 것과 호출하는 것은 달라요! def는 설계도, 호출은 실제 실행!'}
+                ],
+                exampleCode: '# 다각형 비행 함수\ndef fly_polygon(sides, size):\n    angle = 360 / sides\n    for i in range(sides):\n        drone.move_forward(size)\n        drone.turn_right(angle)\n    print(str(sides) + "각형 완성!")\n\ndrone.takeoff()\nfly_polygon(3, 4)\ndrone.hover(1)\nfly_polygon(4, 3)\ndrone.land()',
+                practice: {
+                    prompt: '정사각형 함수 square(size)를 만들고, 크기 3과 5로 두 번 실행해보세요.',
+                    starterCode: '# 정사각형 비행 함수\ndef square(size):\n    for i in range(4):\n        drone.move_forward(size)\n        drone.turn_right(90)\n\ndrone.takeoff()\n\nsquare(3)\nprint("작은 사각형 완성!")\n\nsquare(5)\nprint("큰 사각형 완성!")\n\ndrone.land()',
+                    validate: function(t) { return t.indexOf('작은 사각형') !== -1 && t.indexOf('큰 사각형') !== -1; },
+                    successMsg: '훌륭해요! 함수로 재사용 가능한 비행 패턴을 만들었습니다!',
+                    hintMsg: '코드가 완성되어 있어요. 실행 후 size 값을 바꿔보세요!'
+                },
+                usesDrone: true
+            },
+            {
+                title: '조건문 + 드론 - 센서 활용 비행',
+                phase: 'drone',
+                explanation: [
+                    {type:'text', content:'파이썬 if문과 드론 센서를 결합하면, 상황에 따라 다르게 비행할 수 있어요!'},
+                    {type:'code', content:'height = drone.get_altitude()\nif height > 5:\n    print("높이 5m 초과!")\n    drone.move_forward(3)'},
+                    {type:'text', content:'사용 가능한 센서 명령:'},
+                    {type:'code', content:'drone.get_altitude()       # 현재 높이\ndrone.get_position_x()     # X 좌표\ndrone.get_position_z()     # Z 좌표\ndrone.get_distance_to(x,z) # 목표까지 거리'},
+                    {type:'tip', content:'센서 값은 실시간으로 바뀌어요! 비행 중에 확인하면 현재 상태를 알 수 있습니다.'}
+                ],
+                exampleCode: '# 센서 활용 비행\ndrone.takeoff()\n\nfor i in range(3):\n    drone.move_up(2)\n    height = drone.get_altitude()\n    print("현재 높이: " + str(height) + "m")\n\n    if height > 5:\n        print("높이 5m 초과! 앞으로!")\n        drone.move_forward(3)\n    else:\n        print("아직 5m 이하. 계속 상승!")\n\nprint("최종 높이: " + str(drone.get_altitude()) + "m")\ndrone.land()',
+                practice: {
+                    prompt: '드론을 이륙 후 앞으로 5m 이동하고, 출발점 거리가 3m 이상이면 "멀리 왔다!"를 출력하세요.',
+                    starterCode: '# 센서로 거리를 확인해보세요\ndrone.takeoff()\ndrone.move_forward(5)\n\ndist = drone.get_distance_to(0, 0)\nprint("출발점까지 거리: " + str(dist) + "m")\n\nif dist >= 3:\n    print("멀리 왔다!")\nelse:\n    print("아직 가까워요")\n\ndrone.land()',
+                    validate: function(t) { return t.indexOf('멀리 왔다!') !== -1 || t.indexOf('가까워요') !== -1; },
+                    successMsg: '축하합니다! 모든 레슨을 완료했어요! 이제 자유롭게 드론 코딩을 즐겨보세요!',
+                    hintMsg: '코드가 완성되어 있어요. 실행 후 move_forward 거리를 바꿔서 결과가 달라지는지 확인해보세요!'
+                },
+                usesDrone: true
+            }
+        ];
+
+        // ====== 상태 ======
+        var currentLesson = 0;
+        var completedLessons = [];
+        var inPracticeMode = false;
+        var tutorialActive = false;
+
+        function loadProgress() {
+            try {
+                var d = JSON.parse(localStorage.getItem(auth.getKey(TUT_KEY)) || '{}');
+                currentLesson = d.currentLesson || 0;
+                completedLessons = d.completedLessons || [];
+            } catch(e) { currentLesson = 0; completedLessons = []; }
+        }
+        function saveProgress() {
+            localStorage.setItem(auth.getKey(TUT_KEY), JSON.stringify({
+                currentLesson: currentLesson,
+                completedLessons: completedLessons
+            }));
+        }
+
+        // ====== 모드 전환 ======
+        function enterTutorialMode() {
+            tutorialActive = true;
+            document.getElementById('tutorial-panel').classList.add('active');
+            var demoBtns = document.querySelectorAll('.demo-btn');
+            for (var i = 0; i < demoBtns.length; i++) demoBtns[i].style.display = 'none';
+            document.getElementById('btn-tutorial').style.boxShadow = '0 0 0 2px #fff';
+            loadProgress();
+            renderLesson(currentLesson);
+        }
+        function exitTutorialMode() {
+            tutorialActive = false;
+            document.getElementById('tutorial-panel').classList.remove('active');
+            var demoBtns = document.querySelectorAll('.demo-btn');
+            for (var i = 0; i < demoBtns.length; i++) demoBtns[i].style.display = '';
+            document.getElementById('btn-tutorial').style.boxShadow = '';
+            hideResult();
+            inPracticeMode = false;
+        }
+
+        // ====== 렌더링 ======
+        function escHtml(s) {
+            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+        function renderLesson(idx) {
+            if (idx < 0) idx = 0;
+            if (idx >= LESSONS.length) idx = LESSONS.length - 1;
+            currentLesson = idx;
+            saveProgress();
+            inPracticeMode = false;
+            var lesson = LESSONS[idx];
+
+            document.getElementById('tut-nav-title').textContent = '레슨 ' + (idx + 1) + '/' + LESSONS.length;
+
+            // 진행 도트
+            var dotsEl = document.getElementById('tut-dots');
+            dotsEl.innerHTML = '';
+            for (var i = 0; i < LESSONS.length; i++) {
+                var dot = document.createElement('span');
+                dot.className = 'nav-dot';
+                if (completedLessons.indexOf(i) !== -1) dot.classList.add('done');
+                if (i === idx) dot.classList.add('current');
+                dotsEl.appendChild(dot);
+            }
+
+            // 진행 바
+            var pct = (completedLessons.length / LESSONS.length * 100);
+            document.getElementById('tutorial-progress-fill').style.width = pct + '%';
+
+            // 콘텐츠
+            var html = '';
+            html += '<div class="lesson-phase ' + lesson.phase + '">' +
+                (lesson.phase === 'python' ? '1단계: 파이썬 기초' : '2단계: 파이썬 + 드론') + '</div>';
+            html += '<div class="lesson-title">' + escHtml(lesson.title) + '</div>';
+            for (var j = 0; j < lesson.explanation.length; j++) {
+                var b = lesson.explanation[j];
+                if (b.type === 'text') html += '<div class="lesson-text">' + escHtml(b.content) + '</div>';
+                else if (b.type === 'code') html += '<div class="lesson-code">' + escHtml(b.content) + '</div>';
+                else if (b.type === 'tip') html += '<div class="lesson-tip">' + escHtml(b.content) + '</div>';
+            }
+            document.getElementById('tutorial-content').innerHTML = html;
+            document.getElementById('tutorial-content').scrollTop = 0;
+
+            // 버튼 초기화
+            document.getElementById('tut-check').style.display = 'none';
+            document.getElementById('tut-hint').style.display = 'none';
+            hideResult();
+
+            document.getElementById('tut-prev').disabled = (idx === 0);
+            document.getElementById('tut-next').disabled = (idx === LESSONS.length - 1);
+        }
+
+        function updateDots() {
+            var dots = document.getElementById('tut-dots').querySelectorAll('.nav-dot');
+            for (var i = 0; i < dots.length; i++) {
+                dots[i].className = 'nav-dot';
+                if (completedLessons.indexOf(i) !== -1) dots[i].classList.add('done');
+                if (i === currentLesson) dots[i].classList.add('current');
+            }
+            document.getElementById('tutorial-progress-fill').style.width =
+                (completedLessons.length / LESSONS.length * 100) + '%';
+        }
+
+        // ====== 결과 표시 ======
+        function showResult(msg, type) {
+            var el = document.getElementById('tutorial-result');
+            el.textContent = msg;
+            el.style.display = 'block';
+            el.style.fontWeight = 'bold';
+            if (type === 'success') { el.style.background = '#1a3a1a'; el.style.color = '#3fb950'; }
+            else if (type === 'fail') { el.style.background = '#3a1a1a'; el.style.color = '#f85149'; }
+            else { el.style.background = '#1a2a3a'; el.style.color = '#88ccff'; el.style.fontWeight = 'normal'; }
+        }
+        function hideResult() {
+            document.getElementById('tutorial-result').style.display = 'none';
+        }
+
+        // ====== 액션 ======
+        function loadExample() {
+            var lesson = LESSONS[currentLesson];
+            document.getElementById('code-editor').value = lesson.exampleCode;
+            inPracticeMode = false;
+            document.getElementById('tut-check').style.display = 'none';
+            document.getElementById('tut-hint').style.display = 'none';
+            hideResult();
+            document.getElementById('btn-run').click();
+        }
+
+        function loadPractice() {
+            var lesson = LESSONS[currentLesson];
+            if (!lesson.practice) return;
+            document.getElementById('code-editor').value = lesson.practice.starterCode;
+            inPracticeMode = true;
+            document.getElementById('tut-check').style.display = '';
+            document.getElementById('tut-hint').style.display = '';
+            hideResult();
+            var output = document.getElementById('console-output');
+            output.innerHTML = '';
+            var line = document.createElement('div');
+            line.className = 'console-info';
+            line.textContent = '[연습문제] ' + lesson.practice.prompt;
+            output.appendChild(line);
+        }
+
+        function checkAnswer() {
+            var lesson = LESSONS[currentLesson];
+            if (!lesson.practice) return;
+            var btnText = document.getElementById('btn-run').textContent;
+            if (btnText.indexOf('중') !== -1) return;
+            hideResult();
+            document.getElementById('btn-run').click();
+
+            var attempts = 0;
+            var checker = setInterval(function() {
+                attempts++;
+                var bt = document.getElementById('btn-run').textContent;
+                if ((bt.indexOf('실행') !== -1 && bt.indexOf('중') === -1) || attempts > 150) {
+                    clearInterval(checker);
+                    setTimeout(function() {
+                        var consoleText = document.getElementById('console-output').textContent || '';
+                        if (lesson.practice.validate(consoleText)) {
+                            showResult(lesson.practice.successMsg, 'success');
+                            if (completedLessons.indexOf(currentLesson) === -1) {
+                                completedLessons.push(currentLesson);
+                                saveProgress();
+                                updateDots();
+                            }
+                        } else {
+                            showResult('아직 정답이 아니에요. 코드를 수정하고 다시 도전해보세요!', 'fail');
+                        }
+                    }, 500);
+                }
+            }, 200);
+        }
+
+        function showHintMsg() {
+            var lesson = LESSONS[currentLesson];
+            if (!lesson.practice) return;
+            showResult(lesson.practice.hintMsg, 'hint');
+        }
+
+        // ====== 이벤트 바인딩 ======
+        document.getElementById('btn-tutorial').addEventListener('click', function() {
+            if (tutorialActive) exitTutorialMode();
+            else enterTutorialMode();
+        });
+        document.getElementById('tut-close').addEventListener('click', exitTutorialMode);
+        document.getElementById('tut-prev').addEventListener('click', function() { renderLesson(currentLesson - 1); });
+        document.getElementById('tut-next').addEventListener('click', function() { renderLesson(currentLesson + 1); });
+        document.getElementById('tut-example').addEventListener('click', loadExample);
+        document.getElementById('tut-practice').addEventListener('click', loadPractice);
+        document.getElementById('tut-check').addEventListener('click', checkAnswer);
+        document.getElementById('tut-hint').addEventListener('click', showHintMsg);
+
+        // 다른 모드로 전환 시 튜토리얼 해제
+        document.getElementById('btn-missions').addEventListener('click', function() {
+            if (tutorialActive) exitTutorialMode();
+        });
+        document.getElementById('btn-sandbox').addEventListener('click', function() {
+            if (tutorialActive) exitTutorialMode();
+        });
     })();
     </script>
 </body>
