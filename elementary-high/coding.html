@@ -856,7 +856,7 @@ drone.land()
             cameraSystem.update(dt);
 
             // 미니맵 업데이트
-            if (codingMinimap) codingMinimap.update(state.position, state.rotation);
+            if (codingMinimap) codingMinimap.update(state);
 
             // 미션 업데이트
             if (window._codingMissionTick) window._codingMissionTick(dt, state);
