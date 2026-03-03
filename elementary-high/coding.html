@@ -1209,13 +1209,17 @@ drone.land()
                 title: '변수 - 값 저장하기',
                 phase: 'python',
                 explanation: [
-                    {type:'text', content:'변수는 값을 저장하는 상자와 같아요. 이름을 지어주고 = 으로 값을 넣을 수 있습니다.'},
-                    {type:'code', content:'name = "코딩드론"\nprint(name)'},
-                    {type:'text', content:'나중에 변수 이름만 쓰면 저장된 값이 나옵니다.'},
-                    {type:'code', content:'age = 10\nprint("나이: " + str(age) + "살")'},
-                    {type:'tip', content:'숫자와 글자를 함께 출력하려면 str()로 숫자를 글자로 바꿔주세요!'}
+                    {type:'text', content:'변수는 값을 저장하는 상자와 같아요. 이름을 지어주고 = 으로 값을 넣습니다.'},
+                    {type:'code', content:'name = "코딩드론"\nprint(name)   # 코딩드론'},
+                    {type:'text', content:'변수에는 숫자도 넣을 수 있어요:'},
+                    {type:'code', content:'age = 10\nheight = 3.5\npilot = "강경태"\n\n# 변수 이름만 쓰면 저장된 값이 나와요\nprint(age)      # 10\nprint(height)   # 3.5\nprint(pilot)    # 강경태'},
+                    {type:'text', content:'숫자와 글자를 함께 출력하려면? → str()이 필요해요!'},
+                    {type:'code', content:'age = 10\n# print("나이: " + age)  ← 오류 발생! 숫자+글자 불가\nprint("나이: " + str(age) + "살")  # OK!\n\n# str() = 숫자를 글자(문자열)로 변환\n# str(10) → "10" (숫자 10이 글자 "10"으로!)'},
+                    {type:'text', content:'변수 이름 규칙:'},
+                    {type:'code', content:'# OK: 영문, 숫자, 밑줄(_)\nmy_name = "드론"\nage2 = 12\n\n# 안됨! 숫자로 시작하거나 띄어쓰기\n# 2age = 12    ← 오류!\n# my name = 12 ← 오류!'},
+                    {type:'tip', content:'str()은 "글자로 바꿔줘!"라는 뜻이에요. 숫자와 글자를 + 로 붙이려면 반드시 str()이 필요합니다!'}
                 ],
-                exampleCode: 'name = "코딩드론"\nage = 10\n\nprint("이름: " + name)\nprint("나이: " + str(age) + "살")\n\n# 변수 값을 바꿀 수도 있어요\nage = 11\nprint("내년 나이: " + str(age) + "살")',
+                exampleCode: '# 변수에 다양한 값 저장하기\nname = "코딩드론"\nage = 10\nheight = 3.5\n\n# str()로 숫자를 글자로 변환해서 출력\nprint("이름: " + name)\nprint("나이: " + str(age) + "살")\nprint("높이: " + str(height) + "m")\n\n# 변수 값 바꾸기\nage = 11\nprint("내년: " + str(age) + "살")\n\n# 변수끼리 계산도 가능!\ntotal = age + 5\nprint(str(age) + " + 5 = " + str(total))',
                 practice: {
                     prompt: '변수 animal에 좋아하는 동물 이름을 저장하고 print()로 출력해보세요.',
                     starterCode: '# 변수 animal에 좋아하는 동물을 저장하세요\nanimal = ""\n\nprint(animal)',
@@ -1229,13 +1233,17 @@ drone.land()
                 title: '자료형 - 숫자와 문자열',
                 phase: 'python',
                 explanation: [
-                    {type:'text', content:'파이썬에는 여러 종류의 값이 있어요:'},
-                    {type:'code', content:'정수(int): 1, 2, 100, -5\n소수(float): 3.14, 0.5\n문자열(str): "안녕", "드론"'},
-                    {type:'text', content:'type()으로 값의 종류를 확인할 수 있어요.'},
-                    {type:'code', content:'print(type(10))     # <class \'int\'>\nprint(type(3.14))   # <class \'float\'>\nprint(type("드론"))  # <class \'str\'>'},
-                    {type:'tip', content:'숫자끼리는 계산할 수 있지만, 문자열과 숫자는 바로 더할 수 없어요!'}
+                    {type:'text', content:'파이썬 값에는 3가지 종류(자료형)가 있어요:'},
+                    {type:'code', content:'# 정수(int) - 소수점 없는 숫자\n10, -5, 0, 100\n\n# 소수(float) - 소수점 있는 숫자\n3.14, 0.5, -2.7\n\n# 문자열(str) - 따옴표로 감싼 글자\n"안녕", "드론", "123"'},
+                    {type:'text', content:'type()으로 자료형을 확인해보세요:'},
+                    {type:'code', content:'print(type(10))      # <class \'int\'>\nprint(type(3.14))    # <class \'float\'>\nprint(type("드론"))   # <class \'str\'>\nprint(type("123"))   # <class \'str\'> ← 따옴표 있으면 글자!'},
+                    {type:'text', content:'자료형 변환 함수 — 아주 중요!'},
+                    {type:'code', content:'# str() : 뭐든 → 글자로 변환\nstr(10)    # "10"  (숫자 → 글자)\nstr(3.14)  # "3.14"\n\n# int() : 글자/소수 → 정수로 변환\nint("5")   # 5   (글자 → 숫자)\nint(3.7)   # 3   (소수점 버림!)\n\n# float() : 글자/정수 → 소수로 변환\nfloat("3.14")  # 3.14\nfloat(5)       # 5.0'},
+                    {type:'text', content:'왜 변환이 필요할까? — 자료형이 다르면 오류!'},
+                    {type:'code', content:'age = 10\n# "나이: " + age  → 오류! (글자 + 숫자 불가)\n"나이: " + str(age)  # OK! "나이: 10"\n\n# "5" + "3" = "53"  (글자 연결!)\n# int("5") + int("3") = 8  (숫자 계산!)'},
+                    {type:'tip', content:'핵심 정리:\n• str() = "글자로 바꿔!" → 출력할 때 필수\n• int() = "정수로 바꿔!" → 계산할 때 필요\n• float() = "소수로 바꿔!" → 정밀 계산\n• "5" + "3" = "53" (연결) vs 5 + 3 = 8 (계산)'}
                 ],
-                exampleCode: '# 정수 (int) - 소수점 없는 숫자\ncount = 5\nprint("개수: " + str(count))\n\n# 소수 (float) - 소수점 있는 숫자\nheight = 3.5\nprint("높이: " + str(height) + "m")\n\n# 문자열 (str) - 글자\nname = "파이썬"\nprint("언어: " + name)\n\n# 타입 확인\nprint(type(count))\nprint(type(height))\nprint(type(name))',
+                exampleCode: '# 자료형 확인하기\nprint(type(10))       # int\nprint(type(3.14))     # float\nprint(type("드론"))    # str\n\n# 자료형 변환 실험!\nprint("--- str() ---")\nprint("숫자 10 → 글자: " + str(10))\n\nprint("--- int() ---")\nprint(int("5") + int("3"))   # 8 (계산!)\nprint("5" + "3")             # 53 (연결!)\n\nprint("--- float() ---")\nprint(float("3.14") * 2)     # 6.28\n\n# 실수 주의!\nprint(int(3.7))   # 3 (소수점 버림!)\nprint(round(3.7))  # 4 (반올림!)',
                 practice: {
                     prompt: '정수, 소수, 문자열 변수를 각각 만들고 출력해보세요.',
                     starterCode: '# 정수 변수\nspeed = 5\n\n# 소수 변수 (소수점 있는 숫자를 넣어보세요)\ndistance = \n\n# 문자열 변수 (따옴표로 감싼 글자를 넣어보세요)\npilot = \n\nprint("속도: " + str(speed))\nprint("거리: " + str(distance))\nprint("조종사: " + pilot)',
@@ -1250,12 +1258,16 @@ drone.land()
                 phase: 'python',
                 explanation: [
                     {type:'text', content:'파이썬은 계산기처럼 사용할 수 있어요!'},
-                    {type:'code', content:'+ 더하기    - 빼기\n* 곱하기    / 나누기\n% 나머지    ** 거듭제곱'},
-                    {type:'text', content:'계산 결과를 변수에 저장할 수도 있어요.'},
-                    {type:'code', content:'a = 10\nb = 3\nprint(a + b)   # 13\nprint(a * b)   # 30'},
-                    {type:'tip', content:'문자열도 +로 연결하고 *로 반복할 수 있어요! "Go! " * 3 = "Go! Go! Go! "'}
+                    {type:'code', content:'+  더하기     10 + 3  = 13\n-  빼기       10 - 3  = 7\n*  곱하기     10 * 3  = 30\n/  나누기     10 / 3  = 3.333...\n// 몫         10 // 3 = 3\n%  나머지     10 % 3  = 1\n** 거듭제곱   2 ** 3  = 8'},
+                    {type:'text', content:'계산 결과를 변수에 저장하고 출력:'},
+                    {type:'code', content:'a = 10\nb = 3\nresult = a + b\nprint("결과: " + str(result))   # 결과: 13\n\n# 주의: str()로 감싸야 글자와 합칠 수 있어요!\n# print("결과: " + result)  ← 오류!'},
+                    {type:'text', content:'문자열(str)의 연산 — 숫자와 다르게 동작해요!'},
+                    {type:'code', content:'# + 는 글자를 이어붙이기 (연결)\n"드론" + " " + "출발!" → "드론 출발!"\n\n# * 는 글자를 반복하기\n"Go! " * 3 → "Go! Go! Go! "\n\n# 주의: 글자 + 숫자는 오류!\n# "점수: " + 100   ← 오류!\n"점수: " + str(100)  # OK!'},
+                    {type:'text', content:'비교 연산자 — if문에서 쓰는 것들:'},
+                    {type:'code', content:'==  같다       5 == 5   → True\n!=  다르다     5 != 3   → True\n>   크다       5 > 3    → True\n<   작다       5 < 3    → False\n>=  이상       5 >= 5   → True\n<=  이하       3 <= 5   → True'},
+                    {type:'tip', content:'핵심 정리:\n• 숫자 + 숫자 = 계산 (5 + 3 = 8)\n• 글자 + 글자 = 연결 ("5" + "3" = "53")\n• 글자 + 숫자 = 오류! → str()로 변환 필요\n• = 는 저장, == 는 비교 (헷갈리지 마세요!)'}
                 ],
-                exampleCode: 'a = 10\nb = 3\n\nprint("더하기: " + str(a + b))\nprint("빼기: " + str(a - b))\nprint("곱하기: " + str(a * b))\nprint("나누기: " + str(a / b))\nprint("나머지: " + str(a % b))\n\n# 문자열 연산\nprint("드론" + " " + "출발!")\nprint("Go! " * 3)',
+                exampleCode: 'a = 10\nb = 3\n\n# 숫자 연산\nprint("더하기: " + str(a + b))    # 13\nprint("빼기: " + str(a - b))      # 7\nprint("곱하기: " + str(a * b))    # 30\nprint("나누기: " + str(a / b))    # 3.333\nprint("몫: " + str(a // b))       # 3\nprint("나머지: " + str(a % b))    # 1\nprint("거듭제곱: " + str(2 ** 3))  # 8\n\nprint("---")\n\n# 문자열 연산\nprint("드론" + " " + "출발!")  # 연결\nprint("Go! " * 3)              # 반복\n\nprint("---")\n\n# 비교 연산\nprint(10 > 5)    # True\nprint(10 == 10)  # True\nprint(10 != 5)   # True',
                 practice: {
                     prompt: 'width=4, height=3인 사각형의 둘레와 넓이를 계산해서 출력해보세요.',
                     starterCode: '# 사각형의 둘레와 넓이를 계산해보세요\nwidth = 4\nheight = 3\n\n# 둘레 = (가로 + 세로) * 2\nperimeter = \nprint("둘레: " + str(perimeter))\n\n# 넓이 = 가로 * 세로\narea = \nprint("넓이: " + str(area))',
@@ -1270,10 +1282,14 @@ drone.land()
                 phase: 'python',
                 explanation: [
                     {type:'text', content:'같은 일을 여러 번 반복할 때 for문을 사용해요.'},
-                    {type:'code', content:'for i in range(5):\n    print(i)'},
-                    {type:'text', content:'range(5)는 0,1,2,3,4 다섯 개의 숫자를 만들어요.\nfor문 안의 코드는 반드시 들여쓰기(스페이스 4칸)를 해야 합니다!'},
-                    {type:'code', content:'for i in range(1, 6):\n    print(str(i) + "번!")'},
-                    {type:'tip', content:'range(시작, 끝)에서 끝 숫자는 포함되지 않아요! range(1,6)은 1~5입니다.'}
+                    {type:'code', content:'for i in range(5):\n    print(i)\n# 출력: 0, 1, 2, 3, 4'},
+                    {type:'text', content:'range()의 3가지 사용법:'},
+                    {type:'code', content:'range(5)       # 0,1,2,3,4 (0부터 시작!)\nrange(1, 6)    # 1,2,3,4,5 (끝 숫자 미포함!)\nrange(0, 10, 2) # 0,2,4,6,8 (2씩 건너뛰기)'},
+                    {type:'text', content:'들여쓰기가 아주 중요해요! (스페이스 4칸)'},
+                    {type:'code', content:'for i in range(3):\n    print("안쪽!")  # ← 들여쓰기: 반복됨\nprint("바깥!")      # ← 들여쓰기 없음: 1번만 실행'},
+                    {type:'text', content:'for문 안에서 계산도 할 수 있어요:'},
+                    {type:'code', content:'total = 0\nfor i in range(1, 6):\n    total = total + i\n    print(str(i) + "번째: 합계 = " + str(total))\n# 최종 합계: 15'},
+                    {type:'tip', content:'핵심:\n• range(5) = 0~4 (5개)\n• for문 안의 코드는 반드시 들여쓰기!\n• 들여쓰기 안 한 코드는 반복 안 됨'}
                 ],
                 exampleCode: '# 0부터 4까지 출력\nfor i in range(5):\n    print("숫자: " + str(i))\n\nprint("---")\n\n# 1부터 5까지 출력\nfor i in range(1, 6):\n    print(str(i) + "번 반복!")\n\nprint("---")\n\n# 구구단 3단\nfor i in range(1, 10):\n    print("3 x " + str(i) + " = " + str(3 * i))',
                 practice: {
@@ -1289,11 +1305,15 @@ drone.land()
                 title: 'if/else 조건문 - 판단하기',
                 phase: 'python',
                 explanation: [
-                    {type:'text', content:'조건에 따라 다른 행동을 할 수 있어요.'},
-                    {type:'code', content:'score = 85\nif score >= 80:\n    print("합격!")\nelse:\n    print("다시 도전!")'},
-                    {type:'text', content:'비교: == (같다), != (다르다), > (크다), < (작다), >= (이상), <= (이하)'},
-                    {type:'code', content:'age = 10\nif age >= 13:\n    print("중학생")\nelif age >= 7:\n    print("초등학생")\nelse:\n    print("미취학")'},
-                    {type:'tip', content:'elif는 "else if"의 줄임말이에요. 여러 조건을 차례로 확인할 때 써요!'}
+                    {type:'text', content:'조건에 따라 다른 행동을 하는 것이 if문이에요.'},
+                    {type:'code', content:'score = 85\nif score >= 80:\n    print("합격!")    # 조건이 True면 실행\nelse:\n    print("다시 도전!") # 조건이 False면 실행'},
+                    {type:'text', content:'True와 False — 조건의 결과:'},
+                    {type:'code', content:'# 비교 연산의 결과는 True 또는 False\nprint(10 > 5)    # True  (참)\nprint(10 < 5)    # False (거짓)\nprint(10 == 10)  # True\nprint("드론" == "드론")  # True (글자도 비교 가능!)'},
+                    {type:'text', content:'elif로 여러 조건을 차례로 확인:'},
+                    {type:'code', content:'height = 5\nif height >= 10:\n    print("매우 높음!")\nelif height >= 5:\n    print("적당한 높이")  # ← 이게 실행됨\nelif height >= 2:\n    print("낮은 편")\nelse:\n    print("거의 땅")'},
+                    {type:'text', content:'and, or, not — 조건을 조합할 수 있어요:'},
+                    {type:'code', content:'age = 10\nscore = 90\n\n# and: 둘 다 True여야 True\nif age >= 7 and score >= 80:\n    print("합격!")\n\n# or: 하나만 True여도 True\nif age < 7 or score < 50:\n    print("재시험")\n\n# not: True ↔ False 뒤집기\nif not (score < 60):\n    print("통과!")'},
+                    {type:'tip', content:'핵심:\n• if 조건: → True면 실행\n• elif: 다른 조건 추가 (원하는 만큼)\n• else: 모든 조건이 False일 때\n• and(그리고), or(또는), not(아닌) 조합 가능'}
                 ],
                 exampleCode: 'score = 85\n\nif score >= 90:\n    print("A등급 - 훌륭해요!")\nelif score >= 80:\n    print("B등급 - 잘했어요!")\nelif score >= 70:\n    print("C등급 - 괜찮아요!")\nelse:\n    print("분발하세요!")\n\n# 짝수/홀수 판별\nnumber = 7\nif number % 2 == 0:\n    print(str(number) + "은(는) 짝수")\nelse:\n    print(str(number) + "은(는) 홀수")',
                 practice: {
@@ -1310,10 +1330,14 @@ drone.land()
                 phase: 'python',
                 explanation: [
                     {type:'text', content:'함수는 여러 명령을 하나로 묶어서 이름을 붙인 것이에요.'},
-                    {type:'code', content:'def greet(name):\n    print("안녕, " + name + "!")\n\ngreet("드론")\ngreet("파이썬")'},
-                    {type:'text', content:'def로 함수를 만들고, 함수이름()으로 실행합니다. 괄호 안에 값을 넘길 수 있어요.'},
-                    {type:'code', content:'def add(a, b):\n    return a + b\n\nprint(add(3, 5))  # 8'},
-                    {type:'tip', content:'return은 함수의 결과를 돌려줘요. print는 화면에 보여주기만 합니다.'}
+                    {type:'code', content:'# 함수 만들기 (정의)\ndef greet(name):\n    print("안녕, " + name + "!")\n\n# 함수 사용하기 (호출)\ngreet("드론")     # 안녕, 드론!\ngreet("파이썬")   # 안녕, 파이썬!'},
+                    {type:'text', content:'매개변수 = 함수에 넣어주는 값, return = 결과를 돌려주기:'},
+                    {type:'code', content:'#     매개변수 2개\n#     ↓    ↓\ndef add(a, b):\n    result = a + b\n    return result   # ← 결과를 돌려줌\n\n# return된 값을 변수에 저장\nanswer = add(3, 5)\nprint(answer)   # 8'},
+                    {type:'text', content:'print vs return 차이 — 아주 중요!'},
+                    {type:'code', content:'def with_print(x):\n    print(x * 2)     # 화면에 보여주기만!\n    # 돌려주는 값 없음\n\ndef with_return(x):\n    return x * 2     # 값을 돌려줌!\n\nwith_print(5)         # 화면에 10 출력\na = with_return(5)    # a에 10 저장\nprint(a + 1)          # 11 (계산 가능!)'},
+                    {type:'text', content:'함수 안에 if문, for문도 넣을 수 있어요:'},
+                    {type:'code', content:'def check_pass(score):\n    if score >= 80:\n        return "합격!"\n    else:\n        return "불합격"\n\nprint(check_pass(90))   # 합격!\nprint(check_pass(50))   # 불합격'},
+                    {type:'tip', content:'핵심:\n• def 함수이름(매개변수): → 함수 만들기\n• 함수이름(값) → 함수 사용하기\n• return = 값을 돌려줌 (저장/계산 가능)\n• print = 화면에 보여주기만 (저장 불가)'}
                 ],
                 exampleCode: '# 인사 함수\ndef greet(name):\n    print("안녕, " + name + "!")\n\ngreet("드론 조종사")\ngreet("파이썬")\n\n# 계산 함수\ndef multiply(a, b):\n    return a * b\n\nresult = multiply(4, 5)\nprint("4 x 5 = " + str(result))\n\n# 별 그리기 함수\ndef draw_stars(count):\n    print("*" * count)\n\nfor i in range(1, 6):\n    draw_stars(i)',
                 practice: {
