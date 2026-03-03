@@ -602,6 +602,26 @@ drone.land()
             return Sk.builtin.none.none$;
         }
 
+        // 센서 읽기를 command chain에 큐잉 (이전 명령 완료 후 실시간 값 반환)
+        // Skulpt suspension을 사용하여 Python 실행을 일시정지하고,
+        // 큐의 이전 명령들이 모두 완료된 뒤 physics 상태를 읽어 반환
+        function queueSensorRead(readFn) {
+            var susp = new Sk.misceval.Suspension();
+            var result;
+            susp.resume = function () { return result; };
+            susp.data = {
+                type: "Sk.promise",
+                promise: new Promise(function (resolve) {
+                    _commandChain = _commandChain.then(function () {
+                        if (_commandChainCancelled) return;
+                        result = readFn();
+                        resolve();
+                    });
+                })
+            };
+            return susp;
+        }
+
         // Skulpt drone 모듈 생성
         function createDroneModule() {
             return function () {
@@ -672,26 +692,37 @@ drone.land()
                     return Sk.builtin.none.none$;
                 });
 
-                // === 센서 (동기, 반환값 있음) ===
+                // === 센서 (command chain에 큐잉, 이전 명령 완료 후 실시간 값 반환) ===
                 mod.get_altitude = new Sk.builtin.func(function () {
-                    return new Sk.builtin.float_(droneAPI.getAltitude());
+                    return queueSensorRead(function () {
+                        return new Sk.builtin.float_(droneAPI.getAltitude());
+                    });
                 });
                 mod.get_speed = new Sk.builtin.func(function () {
-                    return new Sk.builtin.float_(droneAPI.getSpeed());
+                    return queueSensorRead(function () {
+                        return new Sk.builtin.float_(droneAPI.getSpeed());
+                    });
                 });
                 mod.get_battery = new Sk.builtin.func(function () {
-                    return new Sk.builtin.int_(droneAPI.getBattery());
+                    return queueSensorRead(function () {
+                        return new Sk.builtin.int_(droneAPI.getBattery());
+                    });
                 });
                 mod.get_position_x = new Sk.builtin.func(function () {
-                    return new Sk.builtin.float_(droneAPI.getPositionX());
+                    return queueSensorRead(function () {
+                        return new Sk.builtin.float_(droneAPI.getPositionX());
+                    });
                 });
                 mod.get_position_z = new Sk.builtin.func(function () {
-                    return new Sk.builtin.float_(droneAPI.getPositionZ());
+                    return queueSensorRead(function () {
+                        return new Sk.builtin.float_(droneAPI.getPositionZ());
+                    });
                 });
                 mod.get_distance_to = new Sk.builtin.func(function (x, z) {
-                    return new Sk.builtin.float_(droneAPI.getDistanceTo(
-                        Sk.ffi.remapToJs(x), Sk.ffi.remapToJs(z)
-                    ));
+                    var jx = Sk.ffi.remapToJs(x), jz = Sk.ffi.remapToJs(z);
+                    return queueSensorRead(function () {
+                        return new Sk.builtin.float_(droneAPI.getDistanceTo(jx, jz));
+                    });
                 });
 
                 return mod;
