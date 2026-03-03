@@ -202,6 +202,33 @@
             padding: 6px 10px; margin: 6px 0; border-radius: 0 6px 6px 0;
             color: #88ccff; font-size: 12px;
         }
+        .cpp-toggle {
+            padding: 6px 14px; border-radius: 6px; font-size: 12px;
+            border: 1px solid #5555aa; background: #1a1a3a; color: #aaaaff;
+            cursor: pointer; font-family: inherit; transition: all 0.2s;
+        }
+        .cpp-toggle:hover { background: #2a2a4a; }
+        .cpp-toggle.active { background: #3a3a6a; border-color: #7777cc; }
+        .cpp-section {
+            margin-top: 15px; padding: 12px; border-radius: 8px;
+            background: #12121f; border: 1px solid #333366;
+        }
+        .cpp-section-title {
+            font-size: 13px; font-weight: bold; color: #aaaaff;
+            margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+        }
+        .cpp-code {
+            background: #0a0a18; color: #b0b0e0; padding: 10px; border-radius: 6px;
+            font-family: 'Courier New', monospace; font-size: 13px;
+            white-space: pre-wrap; line-height: 1.5; margin: 6px 0;
+            border: 1px solid #222244;
+        }
+        .cpp-text { color: #8888bb; margin: 6px 0; font-size: 13px; }
+        .cpp-tip {
+            background: #1a1a30; border-left: 3px solid #6666aa;
+            padding: 8px 10px; margin: 6px 0; color: #9999cc;
+            font-size: 12px; border-radius: 0 6px 6px 0;
+        }
         #tutorial-actions {
             display: flex; gap: 8px; padding: 8px 12px;
             background: #161b22; border-top: 1px solid #30363d;
@@ -279,6 +306,7 @@
                     <button class="tut-btn practice" id="tut-practice">&#x270F;&#xFE0F; 연습문제</button>
                     <button class="tut-btn check" id="tut-check" style="display:none">&#x2705; 정답 확인</button>
                     <button class="tut-btn hint-btn" id="tut-hint" style="display:none">&#x1F4A1; 힌트</button>
+                    <button id="tut-cpp" class="cpp-toggle">C++ 비교</button>
                 </div>
             </div>
             <textarea id="code-editor" spellcheck="false"># 드론 텍스트 코딩
@@ -1203,7 +1231,12 @@ drone.land()
                     successMsg: '잘했어요! print() 사용법을 배웠습니다!',
                     hintMsg: 'print("드론 출발!") 이라고 입력해보세요.'
                 },
-                usesDrone: false
+                usesDrone: false,
+                cppContent: [
+                    {type:'text', content:'C++에서는 cout으로 화면에 출력해요. 실제 드론 펌웨어(ArduPilot)도 C++로 만들어졌어요!'},
+                    {type:'code', content:'#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "안녕하세요!" << endl;\n    cout << "나는 드론 조종사입니다!" << endl;\n    return 0;\n}'},
+                    {type:'tip', content:'Python: print("안녕!")  →  C++: cout << "안녕!" << endl;\n\nC++은 #include, int main() 같은 준비 코드가 더 필요하지만,\n컴퓨터가 더 빠르게 실행할 수 있어서 드론에 사용돼요!'}
+                ]
             },
             {
                 title: '변수 - 값 저장하기',
@@ -1227,7 +1260,12 @@ drone.land()
                     successMsg: '훌륭해요! 변수 사용법을 배웠습니다!',
                     hintMsg: 'animal = "고양이" 처럼 따옴표 안에 동물 이름을 넣어보세요.'
                 },
-                usesDrone: false
+                usesDrone: false,
+                cppContent: [
+                    {type:'text', content:'C++에서는 변수를 만들 때 타입(종류)을 꼭 써야 해요!'},
+                    {type:'code', content:'string name = "코딩드론";  // 글자 → string\nint age = 10;              // 정수 → int\ndouble height = 3.5;       // 소수 → double\n\ncout << name << endl;\ncout << age << endl;\ncout << height << endl;'},
+                    {type:'tip', content:'Python: name = "드론"  (타입 안 써도 OK)\nC++: string name = "드론";  (타입 필수! + 세미콜론;)\n\nPython이 "편한 옷"이면 C++은 "교복" — 규칙이 있지만 깔끔해요!'}
+                ]
             },
             {
                 title: '자료형 - 숫자와 문자열',
@@ -1251,7 +1289,12 @@ drone.land()
                     successMsg: '완벽해요! 자료형의 차이를 이해했습니다!',
                     hintMsg: 'distance = 3.5 처럼 소수를, pilot = "나" 처럼 문자열을 넣어보세요.'
                 },
-                usesDrone: false
+                usesDrone: false,
+                cppContent: [
+                    {type:'text', content:'C++의 기본 자료형 4가지: int, double, string, bool'},
+                    {type:'code', content:'int a = 10;           // 정수 (Python: int)\ndouble b = 3.14;      // 소수 (Python: float)\nstring c = "드론";     // 문자열 (Python: str)\nbool d = true;        // 참/거짓 (Python: True → C++: true 소문자!)'},
+                    {type:'tip', content:'Python → C++ 자료형 대응:\n• int → int (같음!)\n• float → double\n• str → string\n• True/False → true/false (소문자 주의!)'}
+                ]
             },
             {
                 title: '연산 - 계산하기',
@@ -1275,7 +1318,12 @@ drone.land()
                     successMsg: '정확해요! 둘레 14, 넓이 12를 잘 계산했습니다!',
                     hintMsg: 'perimeter = (width + height) * 2\narea = width * height'
                 },
-                usesDrone: false
+                usesDrone: false,
+                cppContent: [
+                    {type:'text', content:'C++ 연산자는 Python과 거의 같아요. 단, 정수 나눗셈에 주의!'},
+                    {type:'code', content:'int a = 10, b = 3;\ncout << a + b << endl;   // 13 (덧셈)\ncout << a - b << endl;   // 7  (뺄셈)\ncout << a * b << endl;   // 30 (곱셈)\ncout << a / b << endl;   // 3  ⚠️ 정수끼리 나누면 소수점 버림!\ncout << a % b << endl;   // 1  (나머지)'},
+                    {type:'tip', content:'⚠️ 가장 큰 차이점!\nPython: 10 / 3 = 3.333...  (소수점 유지)\nC++: 10 / 3 = 3  (소수점 버림!)\n\nC++에서 소수 결과를 얻으려면:\n(double)10 / 3 = 3.333...'}
+                ]
             },
             {
                 title: 'for 반복문 - 반복하기',
@@ -1299,7 +1347,12 @@ drone.land()
                     successMsg: '잘했어요! for 반복문을 배웠습니다!',
                     hintMsg: '코드가 완성되어 있어요. 실행해보고, 숫자를 바꿔서 실험해보세요!'
                 },
-                usesDrone: false
+                usesDrone: false,
+                cppContent: [
+                    {type:'text', content:'C++ for문은 구조가 달라요. 중괄호 {}로 반복할 코드를 감싸요!'},
+                    {type:'code', content:'// Python: for i in range(5):\n// C++:\nfor (int i = 0; i < 5; i++) {\n    cout << i << endl;\n}\n// 결과: 0, 1, 2, 3, 4\n\n// 1부터 5까지 합계\nint total = 0;\nfor (int i = 1; i <= 5; i++) {\n    total = total + i;\n}\ncout << total << endl;  // 15'},
+                    {type:'tip', content:'Python: for i in range(5):  + 들여쓰기\nC++: for (int i = 0; i < 5; i++) { }  + 중괄호\n\nfor (시작; 조건; 증가) ← 이 3가지를 세미콜론으로 구분!\ni++ 는 i = i + 1 의 줄임말이에요'}
+                ]
             },
             {
                 title: 'if/else 조건문 - 판단하기',
@@ -1323,7 +1376,12 @@ drone.land()
                     successMsg: '완벽해요! 조건문으로 판단하는 법을 배웠습니다!',
                     hintMsg: 'if temperature >= 30:\n    print("더워요!")\nelse:\n    print("시원해요!")'
                 },
-                usesDrone: false
+                usesDrone: false,
+                cppContent: [
+                    {type:'text', content:'C++ if문은 조건을 괄호()로 감싸고, 중괄호{}로 코드를 묶어요!'},
+                    {type:'code', content:'int score = 85;\nif (score >= 90) {\n    cout << "A등급!" << endl;\n} else if (score >= 80) {\n    cout << "B등급!" << endl;\n} else {\n    cout << "분발!" << endl;\n}\n\n// 논리 연산자\n// Python: and, or, not\n// C++: &&, ||, !\nif (score >= 80 && score < 90) {\n    cout << "B등급 범위!" << endl;\n}'},
+                    {type:'tip', content:'Python → C++ 차이:\n• if score >= 80:  →  if (score >= 80) { }\n• elif  →  else if\n• and → &&,  or → ||,  not → !\n• 콜론(:) + 들여쓰기 → 괄호( ) + 중괄호{ }'}
+                ]
             },
             {
                 title: '함수(def) - 나만의 명령 만들기',
@@ -1347,7 +1405,12 @@ drone.land()
                     successMsg: '대단해요! 파이썬 기초를 모두 배웠습니다! 이제 드론 코딩을 시작해볼까요?',
                     hintMsg: '코드가 완성되어 있어요. 실행해보고 값을 바꿔서 실험해보세요!'
                 },
-                usesDrone: false
+                usesDrone: false,
+                cppContent: [
+                    {type:'text', content:'C++ 함수는 반환형(돌려주는 값의 타입)을 앞에 꼭 써야 해요!'},
+                    {type:'code', content:'// 출력만 하는 함수: void\nvoid greet(string name) {\n    cout << "안녕, " << name << "!" << endl;\n}\n\n// 값을 돌려주는 함수: int\nint add(int a, int b) {\n    return a + b;\n}\n\nint main() {\n    greet("드론");\n    int result = add(3, 5);\n    cout << result << endl;  // 8\n    return 0;\n}'},
+                    {type:'tip', content:'Python: def add(a, b):  →  C++: int add(int a, int b) { }\n\n• Python은 타입 안 써도 OK\n• C++은 매개변수와 반환값의 타입을 다 써야 해요\n• void = 돌려줄 것 없음, int = 정수 반환'}
+                ]
             },
             // --- 2단계: 파이썬 + 드론 (레슨 8-12) ---
             {
@@ -1373,7 +1436,12 @@ drone.land()
                     successMsg: '첫 드론 비행 성공! 이제 드론을 움직여볼까요?',
                     hintMsg: 'drone.takeoff()\ndrone.hover(3)\ndrone.land()'
                 },
-                usesDrone: true
+                usesDrone: true,
+                cppContent: [
+                    {type:'text', content:'C++에서도 드론 명령은 거의 같아요! 객체 선언만 추가됩니다.'},
+                    {type:'code', content:'Drone drone;           // 드론 객체 생성\ndrone.takeoff();        // 이륙\ndrone.hover(2);         // 2초 호버링\ndrone.land();           // 착륙\n\n// 나만의 비행 함수\nvoid my_flight(Drone& drone, int hover_time) {\n    drone.takeoff();\n    drone.hover(hover_time);\n    drone.land();\n}'},
+                    {type:'tip', content:'드론 명령은 Python과 거의 동일!\nPython: drone.takeoff()\nC++: drone.takeoff();  ← 세미콜론만 추가\n\n차이: C++은 Drone drone; 으로 객체를 먼저 선언해야 해요'}
+                ]
             },
             {
                 title: '드론 이동 - 전진과 회전',
@@ -1399,7 +1467,12 @@ drone.land()
                     successMsg: '잘했어요! 드론 이동을 마스터했습니다!',
                     hintMsg: 'drone.move_forward(3)\ndrone.move_left(2)\n를 이륙과 착륙 사이에 넣어보세요.'
                 },
-                usesDrone: true
+                usesDrone: true,
+                cppContent: [
+                    {type:'text', content:'이동/회전 명령도 Python과 완전히 같아요. 세미콜론만 추가!'},
+                    {type:'code', content:'drone.move_forward(5);    // 앞으로 5m\ndrone.move_backward(3);   // 뒤로 3m\ndrone.move_left(2);       // 왼쪽 2m\ndrone.move_right(2);      // 오른쪽 2m\ndrone.turn_right(90);     // 오른쪽 90도 회전\ndrone.turn_left(45);      // 왼쪽 45도 회전\n\n// 거리 계산 함수\ndouble get_distance(double x, double z) {\n    return sqrt(x * x + z * z);\n}'},
+                    {type:'tip', content:'드론 이동 명령은 두 언어가 100% 동일!\n세미콜론(;)만 붙이면 C++ 코드 완성!'}
+                ]
             },
             {
                 title: '반복문 + 드론 - 사각형 비행',
@@ -1418,7 +1491,12 @@ drone.land()
                     successMsg: '멋져요! 반복문으로 도형을 그릴 수 있게 되었습니다!',
                     hintMsg: '코드가 완성되어 있어요. 실행 후 range와 각도를 바꿔 다른 도형도 만들어보세요!'
                 },
-                usesDrone: true
+                usesDrone: true,
+                cppContent: [
+                    {type:'text', content:'for문으로 도형 비행! Python과 C++을 나란히 비교해보세요.'},
+                    {type:'code', content:'// 사각형 비행\ndrone.takeoff();\nfor (int i = 0; i < 4; i++) {\n    drone.move_forward(5);\n    drone.turn_right(90);\n}\ndrone.land();\n\n// 삼각형 비행\nfor (int i = 0; i < 3; i++) {\n    drone.move_forward(4);\n    drone.turn_right(120);\n}'},
+                    {type:'tip', content:'Python: for i in range(4):  + 들여쓰기\nC++: for (int i = 0; i < 4; i++) { }  + 중괄호\n\n결과는 완전히 같아요! 둘 다 사각형을 그려요.'}
+                ]
             },
             {
                 title: '함수 + 드론 - 나만의 비행 패턴',
@@ -1437,7 +1515,12 @@ drone.land()
                     successMsg: '훌륭해요! 함수로 재사용 가능한 비행 패턴을 만들었습니다!',
                     hintMsg: '코드가 완성되어 있어요. 실행 후 size 값을 바꿔보세요!'
                 },
-                usesDrone: true
+                usesDrone: true,
+                cppContent: [
+                    {type:'text', content:'C++ 함수로 다각형 비행 패턴을 만들어보세요!'},
+                    {type:'code', content:'void fly_polygon(Drone& drone, int sides, double size) {\n    double angle = 360.0 / sides;\n    for (int i = 0; i < sides; i++) {\n        drone.move_forward(size);\n        drone.turn_right(angle);\n    }\n}\n\nint main() {\n    Drone drone;\n    drone.takeoff();\n    fly_polygon(drone, 3, 4);   // 삼각형\n    fly_polygon(drone, 5, 3);   // 오각형\n    drone.land();\n    return 0;\n}'},
+                    {type:'tip', content:'Python: def fly_polygon(sides, size):\nC++: void fly_polygon(Drone& drone, int sides, double size) { }\n\n매개변수마다 타입을 써야 하지만, 논리는 완전히 같아요!'}
+                ]
             },
             {
                 title: '조건문 + 드론 - 센서 활용 비행',
@@ -1457,7 +1540,12 @@ drone.land()
                     successMsg: '축하합니다! 모든 레슨을 완료했어요! 이제 자유롭게 드론 코딩을 즐겨보세요!',
                     hintMsg: '코드가 완성되어 있어요. 실행 후 move_forward 거리를 바꿔서 결과가 달라지는지 확인해보세요!'
                 },
-                usesDrone: true
+                usesDrone: true,
+                cppContent: [
+                    {type:'text', content:'C++ 센서 코드로 자율 판단 비행을 구현해보세요!'},
+                    {type:'code', content:'drone.takeoff();\n\ndouble height = drone.get_altitude();\nif (height > 5.0) {\n    cout << "높이 5m 이상!" << endl;\n    drone.move_forward(3);\n} else {\n    cout << "아직 5m 미만" << endl;\n}\n\ndouble dist = drone.get_distance_to(10.0, 10.0);\nif (dist > 3.0) {\n    cout << "목표까지 " << dist << "m" << endl;\n}\n\ndrone.land();'},
+                    {type:'tip', content:'센서 함수도 Python과 동일!\n• drone.get_altitude()  → 현재 고도\n• drone.get_distance_to(x, z)  → 목표까지 거리\n\nif문 구조만 C++ 스타일(괄호+중괄호)로 바꾸면 돼요!'}
+                ]
             }
         ];
 
@@ -1542,6 +1630,21 @@ drone.land()
                 else if (b.type === 'tip') html += '<div class="lesson-tip">' + escHtml(b.content) + '</div>';
             }
             document.getElementById('tutorial-content').innerHTML = html;
+
+            // C++ 비교 콘텐츠 추가
+            if (lesson.cppContent && document.getElementById('tut-cpp').classList.contains('active')) {
+                var cppHtml = '<div class="cpp-section">';
+                cppHtml += '<div class="cpp-section-title">C++ 로 보면?</div>';
+                for (var k = 0; k < lesson.cppContent.length; k++) {
+                    var c = lesson.cppContent[k];
+                    if (c.type === 'text') cppHtml += '<div class="cpp-text">' + escHtml(c.content) + '</div>';
+                    else if (c.type === 'code') cppHtml += '<div class="cpp-code">' + escHtml(c.content) + '</div>';
+                    else if (c.type === 'tip') cppHtml += '<div class="cpp-tip">' + escHtml(c.content) + '</div>';
+                }
+                cppHtml += '</div>';
+                document.getElementById('tutorial-content').innerHTML += cppHtml;
+            }
+
             document.getElementById('tutorial-content').scrollTop = 0;
 
             // 버튼 초기화
@@ -1654,6 +1757,10 @@ drone.land()
         document.getElementById('tut-practice').addEventListener('click', loadPractice);
         document.getElementById('tut-check').addEventListener('click', checkAnswer);
         document.getElementById('tut-hint').addEventListener('click', showHintMsg);
+        document.getElementById('tut-cpp').addEventListener('click', function() {
+            this.classList.toggle('active');
+            renderLesson(currentLesson);
+        });
 
         // 다른 모드로 전환 시 튜토리얼 해제
         document.getElementById('btn-missions').addEventListener('click', function() {
