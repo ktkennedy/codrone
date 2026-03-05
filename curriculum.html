@@ -637,13 +637,13 @@
         })();
 
         // PPT 파일 존재 여부 확인 후 버튼 생성
-        const BASE_URL = 'https://ktkennedy.github.io/codrone/materials/PPT';
+        const BASE_URL = 'https://ktkennedy.github.io/codrone/materials/PPT/';
         const VIEWER_URL = 'https://view.officeapps.live.com/op/embed.aspx?src=';
 
         document.querySelectorAll('.week-item').forEach(item => {
             const week = parseInt(item.dataset.week);
             const weekStr = String(week).padStart(2, '0');
-            const fileName = `week${weekStr}.pptx`;
+            const fileName = `week${weekStr}_presentation.pptx`;
             const fileUrl = BASE_URL + fileName;
             const actionsDiv = item.querySelector('.week-actions');
 
