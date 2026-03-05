@@ -647,7 +647,7 @@
             const fileUrl = BASE_URL + fileName;
             const actionsDiv = item.querySelector('.week-actions');
 
-            fetch(fileUrl, { method: 'HEAD' })
+            fetch(fileUrl, { method: 'HEAD', cache: 'no-store' })
                 .then(res => {
                     if (res.ok) {
                         actionsDiv.innerHTML = `
