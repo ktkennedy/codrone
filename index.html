@@ -473,10 +473,127 @@
             color: #88ccff;
         }
         .dash-overall strong { color: #4a9eff; }
+
+        /* ===== 그룹(반) 시스템 ===== */
+        .group-section {
+            margin-bottom: 16px;
+        }
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .group-header.group-34 {
+            background: rgba(68,255,170,0.1);
+            border: 1px solid rgba(68,255,170,0.25);
+            color: #44ffaa;
+        }
+        .group-header.group-56 {
+            background: rgba(74,158,255,0.1);
+            border: 1px solid rgba(74,158,255,0.25);
+            color: #4a9eff;
+        }
+        .group-header.group-none {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #88aacc;
+        }
+        .group-header .group-count {
+            font-size: 11px;
+            font-weight: normal;
+            opacity: 0.7;
+        }
+
+        /* Firebase 설정 */
+        .firebase-section {
+            margin-bottom: 14px;
+            padding: 12px;
+            background: rgba(74,158,255,0.06);
+            border: 1px solid rgba(74,158,255,0.2);
+            border-radius: 10px;
+        }
+        .firebase-section label {
+            font-size: 12px;
+            color: #88ccff;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .firebase-status {
+            font-size: 11px;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .firebase-status .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .firebase-status .dot.online { background: #44ff88; }
+        .firebase-status .dot.offline { background: #ff6666; }
+
+        /* 그룹 관리 */
+        .group-assign-row {
+            display: flex; gap: 8px; margin-bottom: 10px;
+            align-items: center;
+        }
+        .group-assign-row select {
+            padding: 8px 12px; border-radius: 8px;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; font-size: 13px; font-family: inherit;
+            cursor: pointer;
+        }
+        .group-assign-row select option {
+            background: #1a2a4a; color: #fff;
+        }
+
+        /* 대시보드 그룹 배지 */
+        .group-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .group-badge.g34 {
+            background: rgba(68,255,170,0.15);
+            color: #44ffaa;
+        }
+        .group-badge.g56 {
+            background: rgba(74,158,255,0.15);
+            color: #4a9eff;
+        }
+        .group-badge.gnone {
+            background: rgba(255,255,255,0.08);
+            color: #667788;
+        }
+
+        /* 동기화 상태 배너 */
+        .sync-banner {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            padding: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            z-index: 300;
+            transform: translateY(-100%);
+            transition: transform 0.3s;
+        }
+        .sync-banner.show { transform: translateY(0); }
+        .sync-banner.success { background: rgba(68,255,170,0.9); color: #0a1628; }
+        .sync-banner.error { background: rgba(255,100,100,0.9); color: #fff; }
     </style>
 </head>
 <body>
     <div class="stars" id="stars"></div>
+    <div class="sync-banner" id="sync-banner"></div>
 
     <!-- ===== 로그인 화면 ===== -->
     <div id="login-screen" class="screen">
@@ -499,6 +616,22 @@
                     <button class="teacher-action-btn add" id="teacher-login-btn">확인</button>
                 </div>
                 <div id="teacher-controls" style="display:none;">
+                    <div class="firebase-section">
+                        <label>☁️ 클라우드 동기화 (Firebase)</label>
+                        <div class="teacher-input-row">
+                            <input type="text" id="firebase-url-input" placeholder="Firebase 데이터베이스 URL 입력" />
+                            <button class="teacher-action-btn add" id="btn-firebase-connect">연결</button>
+                            <button class="teacher-action-btn remove" id="btn-firebase-disconnect" style="display:none;">해제</button>
+                        </div>
+                        <div class="firebase-status" id="firebase-status">
+                            <span class="dot offline"></span>
+                            <span>연결 안됨 — 이 컴퓨터만 사용 중</span>
+                        </div>
+                        <div style="margin-top:8px;">
+                            <button class="teacher-action-btn add" id="btn-firebase-push" style="display:none;font-size:11px;padding:5px 12px;">↑ 현재 데이터 업로드</button>
+                            <button class="teacher-action-btn rename" id="btn-firebase-pull" style="display:none;font-size:11px;padding:5px 12px;">↓ 서버 데이터 가져오기</button>
+                        </div>
+                    </div>
                     <div class="teacher-input-row">
                         <input type="text" id="new-student-name" placeholder="추가할 학생 이름" />
                         <button class="teacher-action-btn add" id="btn-add-student">추가</button>
@@ -516,6 +649,19 @@
                         <input type="text" id="pin-reset-name" placeholder="PIN 초기화할 학생 이름" />
                         <button class="teacher-action-btn remove" id="btn-reset-pin">PIN 초기화</button>
                     </div>
+                    <div class="group-assign-row">
+                        <input type="text" id="group-student-name" placeholder="학생 이름" style="flex:1;" />
+                        <select id="group-select">
+                            <option value="3-4학년">3-4학년</option>
+                            <option value="5-6학년">5-6학년</option>
+                            <option value="미지정">미지정</option>
+                        </select>
+                        <button class="teacher-action-btn rename" id="btn-set-group">반 지정</button>
+                    </div>
+                    <div class="group-assign-row">
+                        <button class="teacher-action-btn add" id="btn-group-all-34" style="font-size:11px;padding:5px 12px;">전체 → 3-4학년</button>
+                        <button class="teacher-action-btn add" id="btn-group-all-56" style="font-size:11px;padding:5px 12px;">전체 → 5-6학년</button>
+                    </div>
                     <div id="teacher-msg"></div>
 
                     <!-- 학생 진도 대시보드 -->
@@ -528,6 +674,7 @@
                             <thead>
                                 <tr>
                                     <th>이름</th>
+                                    <th>반</th>
                                     <th>PIN</th>
                                     <th>비행미션</th>
                                     <th>블록코딩</th>
@@ -628,6 +775,7 @@
     </div>
 
     <script src="shared/student-auth.js"></script>
+    <script src="shared/firebase-sync.js"></script>
     <script>
         // 별 배경
         var starsContainer = document.getElementById('stars');
@@ -649,17 +797,41 @@
         // 학생 그리드 렌더링
         function renderStudentGrid() {
             var grid = document.getElementById('student-grid');
-            var students = auth.getStudents();
+            var allStudents = auth.getAllStudents();
             grid.innerHTML = '';
-            students.forEach(function (name) {
-                var card = document.createElement('button');
-                card.className = 'student-card';
-                var lockIcon = auth.hasPin(name) ? ' 🔒' : ' ✨';
-                card.textContent = name + lockIcon;
-                card.addEventListener('click', function () {
-                    openPinModal(name);
+
+            var groups = [
+                { key: '3-4학년', label: '🟢 3-4학년', cssClass: 'group-34' },
+                { key: '5-6학년', label: '🔵 5-6학년', cssClass: 'group-56' },
+                { key: '미지정', label: '⬜ 미지정', cssClass: 'group-none' }
+            ];
+
+            groups.forEach(function(g) {
+                var students = allStudents.filter(function(s) { return s.group === g.key; });
+                if (students.length === 0) return;
+
+                var section = document.createElement('div');
+                section.className = 'group-section';
+
+                var header = document.createElement('div');
+                header.className = 'group-header ' + g.cssClass;
+                header.innerHTML = g.label + ' <span class="group-count">(' + students.length + '명)</span>';
+                section.appendChild(header);
+
+                var subGrid = document.createElement('div');
+                subGrid.className = 'student-grid';
+                students.forEach(function(obj) {
+                    var card = document.createElement('button');
+                    card.className = 'student-card';
+                    var lockIcon = auth.hasPin(obj.name) ? ' 🔒' : ' ✨';
+                    card.textContent = obj.name + lockIcon;
+                    card.addEventListener('click', function() {
+                        openPinModal(obj.name);
+                    });
+                    subGrid.appendChild(card);
                 });
-                grid.appendChild(card);
+                section.appendChild(subGrid);
+                grid.appendChild(section);
             });
         }
 
@@ -780,15 +952,16 @@
             dashboard.style.display = 'block';
 
             var tbody = document.getElementById('dash-tbody');
-            var students = auth.getStudents();
-            var allPins = auth.getAllStudentPins();
             tbody.innerHTML = '';
 
             var totalAll = 0, completedAll = 0;
 
-            students.forEach(function (name, idx) {
-                var pinObj = allPins[idx] || {};
-                var pin = pinObj.pin;
+            var allStudentObjs = auth.getAllStudents();
+            allStudentObjs.forEach(function (studentObj, idx) {
+                var name = studentObj.name;
+                var pin = studentObj.pin;
+                var group = studentObj.group || '미지정';
+                var groupBadgeClass = group === '3-4학년' ? 'g34' : (group === '5-6학년' ? 'g56' : 'gnone');
 
                 // 각 영역 진도 읽기
                 var flight = getProgress(name, 'drone-high-progress', 15);
@@ -801,6 +974,7 @@
                 var tr = document.createElement('tr');
                 tr.innerHTML =
                     '<td style="font-weight:bold;color:#cce4ff;">' + name + '</td>' +
+                    '<td><span class="group-badge ' + groupBadgeClass + '">' + group + '</span></td>' +
                     '<td>' + (pin ? '<span class="dash-pin">' + pin + '</span>' : '<span class="dash-pin-none">미설정</span>') + '</td>' +
                     '<td>' + progressBarHTML(flight) + '</td>' +
                     '<td>' + progressBarHTML(block) + '</td>' +
@@ -815,7 +989,7 @@
             // 전체 통계
             var overallPct = totalAll > 0 ? Math.round(completedAll / totalAll * 100) : 0;
             document.getElementById('dash-overall').innerHTML =
-                '<span>전체 학생 ' + students.length + '명</span>' +
+                '<span>전체 학생 ' + allStudentObjs.length + '명</span>' +
                 '<span>평균 진도율: <strong>' + overallPct + '%</strong></span>';
 
             // 대시보드 버튼 이벤트
@@ -885,6 +1059,173 @@
         }
 
         document.getElementById('dash-refresh-btn').addEventListener('click', renderDashboard);
+
+        // ===== 그룹 관리 =====
+        document.getElementById('btn-set-group').addEventListener('click', function() {
+            var name = document.getElementById('group-student-name').value.trim();
+            var group = document.getElementById('group-select').value;
+            if (!name) { showTeacherMsg('이름을 입력하세요', '#ff8888'); return; }
+            if (auth.setGroup(name, group)) {
+                document.getElementById('group-student-name').value = '';
+                renderStudentGrid();
+                renderDashboard();
+                showTeacherMsg(name + ' → ' + group + ' 배정됨', '#44ff88');
+                syncPushIfConfigured();
+            } else {
+                showTeacherMsg('학생을 찾을 수 없습니다', '#ff8888');
+            }
+        });
+
+        document.getElementById('btn-group-all-34').addEventListener('click', function() {
+            var objs = auth.getAllStudents();
+            objs.forEach(function(o) { o.group = '3-4학년'; });
+            auth.setAllStudents(objs);
+            renderStudentGrid();
+            renderDashboard();
+            showTeacherMsg('전체 학생을 3-4학년으로 배정', '#44ff88');
+            syncPushIfConfigured();
+        });
+
+        document.getElementById('btn-group-all-56').addEventListener('click', function() {
+            var objs = auth.getAllStudents();
+            objs.forEach(function(o) { o.group = '5-6학년'; });
+            auth.setAllStudents(objs);
+            renderStudentGrid();
+            renderDashboard();
+            showTeacherMsg('전체 학생을 5-6학년으로 배정', '#44ff88');
+            syncPushIfConfigured();
+        });
+
+        // ===== Firebase 동기화 =====
+        var fbSync = window.DroneSim.FirebaseSync;
+
+        function updateFirebaseStatus() {
+            var statusEl = document.getElementById('firebase-status');
+            var connectBtn = document.getElementById('btn-firebase-connect');
+            var disconnectBtn = document.getElementById('btn-firebase-disconnect');
+            var pushBtn = document.getElementById('btn-firebase-push');
+            var pullBtn = document.getElementById('btn-firebase-pull');
+            var urlInput = document.getElementById('firebase-url-input');
+
+            if (fbSync.isConfigured()) {
+                var url = fbSync.getUrl();
+                statusEl.innerHTML = '<span class="dot online"></span><span>연결됨 — 실시간 동기화 활성</span>';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = '';
+                pushBtn.style.display = '';
+                pullBtn.style.display = '';
+                urlInput.value = url;
+                urlInput.disabled = true;
+            } else {
+                statusEl.innerHTML = '<span class="dot offline"></span><span>연결 안됨 — 이 컴퓨터만 사용 중</span>';
+                connectBtn.style.display = '';
+                disconnectBtn.style.display = 'none';
+                pushBtn.style.display = 'none';
+                pullBtn.style.display = 'none';
+                urlInput.value = '';
+                urlInput.disabled = false;
+            }
+        }
+
+        function showSyncBanner(msg, type) {
+            var banner = document.getElementById('sync-banner');
+            banner.textContent = msg;
+            banner.className = 'sync-banner ' + type + ' show';
+            setTimeout(function() {
+                banner.classList.remove('show');
+            }, 3000);
+        }
+
+        function syncPushIfConfigured() {
+            if (!fbSync.isConfigured()) return;
+            var students = auth.getAllStudents();
+            fbSync.push(students).then(function() {
+                // silent success
+            }).catch(function(err) {
+                showSyncBanner('동기화 실패: ' + err.message, 'error');
+            });
+        }
+
+        // Firebase connect button
+        document.getElementById('btn-firebase-connect').addEventListener('click', function() {
+            var url = document.getElementById('firebase-url-input').value.trim();
+            if (!url) { showTeacherMsg('Firebase URL을 입력하세요', '#ff8888'); return; }
+            fbSync.configure(url);
+            updateFirebaseStatus();
+            // Initial push: upload current data to Firebase
+            var students = auth.getAllStudents();
+            fbSync.push(students).then(function() {
+                showSyncBanner('Firebase 연결 완료! 데이터 업로드됨', 'success');
+                showTeacherMsg('Firebase 연결 성공', '#44ff88');
+            }).catch(function(err) {
+                showSyncBanner('연결 실패: URL을 확인하세요', 'error');
+                showTeacherMsg('연결 실패: ' + err.message, '#ff6666');
+                fbSync.disconnect();
+                updateFirebaseStatus();
+            });
+        });
+
+        document.getElementById('btn-firebase-disconnect').addEventListener('click', function() {
+            if (confirm('클라우드 동기화를 해제하시겠습니까?')) {
+                fbSync.disconnect();
+                updateFirebaseStatus();
+                showTeacherMsg('Firebase 연결 해제됨', '#ffcc44');
+            }
+        });
+
+        document.getElementById('btn-firebase-push').addEventListener('click', function() {
+            var students = auth.getAllStudents();
+            fbSync.push(students).then(function() {
+                showSyncBanner('현재 데이터를 서버에 업로드했습니다', 'success');
+            }).catch(function(err) {
+                showSyncBanner('업로드 실패', 'error');
+            });
+        });
+
+        document.getElementById('btn-firebase-pull').addEventListener('click', function() {
+            fbSync.pull().then(function(students) {
+                if (students && students.length > 0) {
+                    auth.setAllStudents(students);
+                    renderStudentGrid();
+                    if (teacherUnlocked) renderDashboard();
+                    showSyncBanner('서버 데이터를 가져왔습니다 (' + students.length + '명)', 'success');
+                } else {
+                    showSyncBanner('서버에 데이터가 없습니다', 'error');
+                }
+            }).catch(function(err) {
+                showSyncBanner('가져오기 실패', 'error');
+            });
+        });
+
+        // Listen for remote changes
+        fbSync.onChange(function(students) {
+            if (students && students.length > 0) {
+                auth.setAllStudents(students);
+                renderStudentGrid();
+                if (teacherUnlocked) renderDashboard();
+                showSyncBanner('다른 컴퓨터에서 데이터가 업데이트됨', 'success');
+            }
+        });
+
+        // Auto-push when teacher makes local changes
+        auth.onDataChange(function(students) {
+            syncPushIfConfigured();
+        });
+
+        // Initialize Firebase status display
+        updateFirebaseStatus();
+
+        // If Firebase is configured, pull latest data on page load
+        if (fbSync.isConfigured()) {
+            fbSync.pull().then(function(students) {
+                if (students && students.length > 0) {
+                    auth.setAllStudents(students);
+                    renderStudentGrid();
+                }
+            }).catch(function() {
+                // Silently fall back to local data
+            });
+        }
 
         // ===== PIN 모달 =====
         var pinModalOverlay = document.getElementById('pin-modal-overlay');

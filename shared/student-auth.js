@@ -14,11 +14,27 @@ window.DroneSim.StudentAuth = (function () {
         '학생16', '학생17', '학생18', '학생19', '학생20'
     ];
 
-    // 내부 저장 형식: [{name: '학생01', pin: null}, ...]
+    var GROUPS = ['3-4학년', '5-6학년', '미지정'];
+
+    // 변경 알림 리스너 목록
+    var changeListeners = [];
+
+    function onDataChange(callback) {
+        changeListeners.push(callback);
+    }
+
+    function notifyChange() {
+        var objs = getStudentObjects();
+        changeListeners.forEach(function (cb) {
+            try { cb(objs); } catch (e) { console.warn('StudentAuth listener error:', e); }
+        });
+    }
+
+    // 내부 저장 형식: [{name: '학생01', pin: null, group: '미지정'}, ...]
     function getStudentObjects() {
         var stored = localStorage.getItem(STORAGE_KEY);
         if (!stored) {
-            var defaultObjs = DEFAULT_STUDENTS.map(function (n) { return { name: n, pin: null }; });
+            var defaultObjs = DEFAULT_STUDENTS.map(function (n) { return { name: n, pin: null, group: '미지정' }; });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultObjs));
             return defaultObjs;
         }
@@ -26,13 +42,24 @@ window.DroneSim.StudentAuth = (function () {
             var parsed = JSON.parse(stored);
             // 구버전 호환: 문자열 배열이면 객체 배열로 마이그레이션
             if (parsed.length > 0 && typeof parsed[0] === 'string') {
-                var migrated = parsed.map(function (n) { return { name: n, pin: null }; });
+                var migrated = parsed.map(function (n) { return { name: n, pin: null, group: '미지정' }; });
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
                 return migrated;
             }
+            // group 필드 마이그레이션: group 없는 객체에 기본값 추가
+            var needsSave = false;
+            for (var i = 0; i < parsed.length; i++) {
+                if (!parsed[i].hasOwnProperty('group')) {
+                    parsed[i].group = '미지정';
+                    needsSave = true;
+                }
+            }
+            if (needsSave) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            }
             return parsed;
         } catch (e) {
-            return DEFAULT_STUDENTS.map(function (n) { return { name: n, pin: null }; });
+            return DEFAULT_STUDENTS.map(function (n) { return { name: n, pin: null, group: '미지정' }; });
         }
     }
 
@@ -78,8 +105,9 @@ window.DroneSim.StudentAuth = (function () {
         var objs = getStudentObjects();
         var names = objs.map(function (o) { return o.name; });
         if (names.indexOf(name) !== -1) return false;
-        objs.push({ name: name, pin: null });
+        objs.push({ name: name, pin: null, group: '미지정' });
         saveStudentObjects(objs);
+        notifyChange();
         return true;
     }
 
@@ -92,6 +120,7 @@ window.DroneSim.StudentAuth = (function () {
         if (idx === -1) return false;
         objs.splice(idx, 1);
         saveStudentObjects(objs);
+        notifyChange();
         return true;
     }
 
@@ -125,6 +154,7 @@ window.DroneSim.StudentAuth = (function () {
             localStorage.removeItem(k);
         });
 
+        notifyChange();
         return true;
     }
 
@@ -137,6 +167,7 @@ window.DroneSim.StudentAuth = (function () {
             if (objs[i].name === studentName) {
                 objs[i].pin = String(pin);
                 saveStudentObjects(objs);
+                notifyChange();
                 return true;
             }
         }
@@ -188,10 +219,45 @@ window.DroneSim.StudentAuth = (function () {
             if (objs[i].name === studentName) {
                 objs[i].pin = null;
                 saveStudentObjects(objs);
+                notifyChange();
                 return true;
             }
         }
         return false;
+    }
+
+    // ===== 그룹 관련 함수 =====
+
+    // 학생 그룹 설정
+    function setGroup(studentName, group) {
+        var objs = getStudentObjects();
+        for (var i = 0; i < objs.length; i++) {
+            if (objs[i].name === studentName) {
+                objs[i].group = group;
+                saveStudentObjects(objs);
+                notifyChange();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 그룹으로 학생 필터링 (returns array of {name, pin, group})
+    function getStudentsByGroup(group) {
+        return getStudentObjects().filter(function (obj) {
+            return obj.group === group;
+        });
+    }
+
+    // 전체 학생 객체 반환 (복사본)
+    function getAllStudents() {
+        return JSON.parse(JSON.stringify(getStudentObjects()));
+    }
+
+    // 외부 소스(Firebase 동기화)에서 학생 목록 일괄 교체
+    // notifyChange() 호출하지 않음 (무한 루프 방지)
+    function setAllStudents(studentObjects) {
+        saveStudentObjects(studentObjects);
     }
 
     return {
@@ -210,6 +276,12 @@ window.DroneSim.StudentAuth = (function () {
         getStudentPin: getStudentPin,
         getAllStudentPins: getAllStudentPins,
         resetPin: resetPin,
-        DEFAULT_STUDENTS: DEFAULT_STUDENTS
+        DEFAULT_STUDENTS: DEFAULT_STUDENTS,
+        setGroup: setGroup,
+        getStudentsByGroup: getStudentsByGroup,
+        getAllStudents: getAllStudents,
+        setAllStudents: setAllStudents,
+        onDataChange: onDataChange,
+        GROUPS: GROUPS
     };
 })();
