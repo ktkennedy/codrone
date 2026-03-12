@@ -8,7 +8,7 @@ window.DroneSim = window.DroneSim || {};
 window.DroneSim.StudentsConfig = [
     {
         id: 'A',
-        name: 'A반',
+        name: '3-4학년',
         students: [
             '학생01', '학생02', '학생03', '학생04', '학생05',
             '학생06', '학생07', '학생08', '학생09', '학생10',
@@ -19,7 +19,7 @@ window.DroneSim.StudentsConfig = [
     },
     {
         id: 'B',
-        name: 'B반',
+        name: '5-6학년',
         students: [
             '학생22', '학생23', '학생24', '학생25', '학생26',
             '학생27', '학생28', '학생29', '학생30', '학생31',
