@@ -1088,6 +1088,51 @@
         } else {
             renderStudentGrid();
         }
+
+        // 캐시 방지: students-config.js 최신 버전을 fetch하여 재동기화
+        fetch('shared/students-config.js?v=' + Date.now(), { cache: 'no-store' })
+            .then(function(r) { return r.text(); })
+            .then(function(code) {
+                try {
+                    eval(code);
+                    // config가 업데이트되었으면 재동기화
+                    if (window.DroneSim.StudentsConfig) {
+                        var config = window.DroneSim.StudentsConfig;
+                        var allStudents = auth.getAllStudents();
+                        var configNames = [];
+                        config.forEach(function(cls) {
+                            cls.students.forEach(function(n) { configNames.push(n); });
+                        });
+                        // 이름 목록이 다르면 재동기화 필요
+                        var currentNames = allStudents.map(function(s) { return s.name; });
+                        var needsSync = configNames.length !== currentNames.length;
+                        if (!needsSync) {
+                            for (var i = 0; i < configNames.length; i++) {
+                                if (currentNames.indexOf(configNames[i]) === -1) {
+                                    needsSync = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (needsSync) {
+                            // 새 config로 학생 목록 재구성 (PIN 유지)
+                            var newObjs = [];
+                            config.forEach(function(cls) {
+                                cls.students.forEach(function(name) {
+                                    var existing = null;
+                                    for (var j = 0; j < allStudents.length; j++) {
+                                        if (allStudents[j].name === name) { existing = allStudents[j]; break; }
+                                    }
+                                    newObjs.push(existing ? { name: name, pin: existing.pin, group: cls.id } : { name: name, pin: null, group: cls.id });
+                                });
+                            });
+                            auth.setAllStudents(newObjs);
+                            renderStudentGrid();
+                            if (teacherUnlocked) renderDashboard();
+                        }
+                    }
+                } catch(e) { /* 무시 */ }
+            }).catch(function() { /* 오프라인이면 무시 */ });
     </script>
 </body>
 </html>
