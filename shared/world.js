@@ -135,10 +135,15 @@ class World {
             { x: 10, z: -25, w: 5, h: 4, d: 3, color: 0x88aacc },
         ];
 
+        // 머티리얼 캐시 — 같은 색상은 머티리얼 재사용
+        const matCache = {};
+
         buildingData.forEach(b => {
             const geo = new THREE.BoxGeometry(b.w, b.h, b.d);
-            const mat = new THREE.MeshPhongMaterial({ color: b.color });
-            const mesh = new THREE.Mesh(geo, mat);
+            if (!matCache[b.color]) {
+                matCache[b.color] = new THREE.MeshPhongMaterial({ color: b.color });
+            }
+            const mesh = new THREE.Mesh(geo, matCache[b.color]);
             mesh.position.set(b.x, b.h / 2, b.z);
 
             // Mark as obstacle for sensor system
@@ -154,17 +159,22 @@ class World {
     }
 
     _addWindows(building, data) {
-        const windowMat = new THREE.MeshBasicMaterial({
-            color: 0xffffcc,
-            transparent: true,
-            opacity: 0.6
-        });
+        // 공유 지오메트리/머티리얼 — 모든 창문이 동일한 인스턴스를 사용 (draw call 최소화)
+        if (!World._sharedWindowGeo) {
+            World._sharedWindowGeo = new THREE.PlaneGeometry(0.6, 0.8);
+            World._sharedWindowMat = new THREE.MeshBasicMaterial({
+                color: 0xffffcc,
+                transparent: true,
+                opacity: 0.6
+            });
+        }
+        const winGeo = World._sharedWindowGeo;
+        const windowMat = World._sharedWindowMat;
 
         const floors = Math.floor(data.h / 2);
         for (let f = 0; f < floors; f++) {
             const y = f * 2 + 1 - data.h / 2;
             for (let side = 0; side < 4; side++) {
-                const winGeo = new THREE.PlaneGeometry(0.6, 0.8);
                 const win = new THREE.Mesh(winGeo, windowMat);
 
                 switch (side) {
@@ -208,23 +218,32 @@ class World {
     }
 
     _createTree() {
+        // 공유 지오메트리/머티리얼 캐시 — 모든 나무가 같은 인스턴스를 재사용
+        if (!World._treeGeoCache) {
+            World._treeGeoCache = {
+                trunk: new THREE.CylinderGeometry(0.15, 0.2, 2, 6),
+                trunkMat: new THREE.MeshPhongMaterial({ color: 0x8B4513 }),
+                leafGeos: [],
+                leafMats: []
+            };
+            const leafColors = [0x228B22, 0x2d8f2d, 0x1a7a1a];
+            for (let i = 0; i < 3; i++) {
+                World._treeGeoCache.leafGeos.push(new THREE.ConeGeometry(1.5 - i * 0.35, 1.5 - i * 0.2, 8));
+                World._treeGeoCache.leafMats.push(new THREE.MeshPhongMaterial({ color: leafColors[i] }));
+            }
+        }
+        const cache = World._treeGeoCache;
+
         const group = new THREE.Group();
 
         // 줄기
-        const trunkGeo = new THREE.CylinderGeometry(0.15, 0.2, 2, 6);
-        const trunkMat = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
-        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        const trunk = new THREE.Mesh(cache.trunk, cache.trunkMat);
         trunk.position.y = 1;
         group.add(trunk);
 
         // 나뭇잎 (3단 원뿔)
-        const leafColors = [0x228B22, 0x2d8f2d, 0x1a7a1a];
         for (let i = 0; i < 3; i++) {
-            const radius = 1.5 - i * 0.35;
-            const height = 1.5 - i * 0.2;
-            const leafGeo = new THREE.ConeGeometry(radius, height, 8);
-            const leafMat = new THREE.MeshPhongMaterial({ color: leafColors[i] });
-            const leaf = new THREE.Mesh(leafGeo, leafMat);
+            const leaf = new THREE.Mesh(cache.leafGeos[i], cache.leafMats[i]);
             leaf.position.y = 2.2 + i * 1.0;
             group.add(leaf);
         }

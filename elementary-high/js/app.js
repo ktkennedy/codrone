@@ -25,10 +25,11 @@
     var PhysicsTuningPanel = DS.PhysicsTuningPanel;
     var AudioManager = DS.AudioManager;
     var OnboardingTutorial = DS.OnboardingTutorial;
+    var TouchControls = DS.TouchControls;
 
     var scene, renderer, camera;
     var physics, droneModel, world, cameraSystem;
-    var hud, messageDisplay, minimap, controls, pathOverlay;
+    var hud, messageDisplay, minimap, controls, touchControls, pathOverlay;
     var missionManager, missionUI;
     var autopilot;
     var windPanel;
@@ -142,6 +143,19 @@
         controls.onTakeoff = function () {
             if (audioManager) audioManager.playTakeoff();
         };
+
+        // 모바일 터치 조작 (터치 디바이스에서만 활성화)
+        if (TouchControls) {
+            touchControls = new TouchControls(physics);
+            touchControls.onCameraSwitch = function () {
+                cameraSystem.nextMode();
+                if (hud) hud.setCameraMode(cameraSystem.getModeName());
+                if (messageDisplay) messageDisplay.show('카메라: ' + cameraSystem.getModeName(), 'info', 1000);
+            };
+            touchControls.onTakeoff = function () {
+                if (audioManager) audioManager.playTakeoff();
+            };
+        }
 
         // 바람 시스템
         if (WindSettingsPanel && WindPresets) {
@@ -416,6 +430,15 @@
 
         if (isStarted && controls && physics) {
             var input = controls.getInput();
+
+            // 터치 입력과 키보드 입력을 합산 (둘 다 사용할 수 있도록)
+            if (touchControls) {
+                var touchInput = touchControls.getInput();
+                input.throttle = Math.max(-1, Math.min(1, input.throttle + touchInput.throttle));
+                input.pitch = Math.max(-1, Math.min(1, input.pitch + touchInput.pitch));
+                input.roll = Math.max(-1, Math.min(1, input.roll + touchInput.roll));
+                input.yaw = Math.max(-1, Math.min(1, input.yaw + touchInput.yaw));
+            }
 
             var state = physics.update(dt, input);
             if (droneModel) {

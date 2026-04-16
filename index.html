@@ -565,6 +565,11 @@
                         <input type="text" id="pin-reset-name" placeholder="PIN 초기화할 학생 이름" />
                         <button class="teacher-action-btn remove" id="btn-reset-pin">PIN 초기화</button>
                     </div>
+                    <div class="teacher-input-row">
+                        <input type="password" id="new-teacher-pw" placeholder="새 교사 비밀번호" style="flex:1;" />
+                        <input type="password" id="confirm-teacher-pw" placeholder="비밀번호 확인" style="flex:1;" />
+                        <button class="teacher-action-btn rename" id="btn-change-teacher-pw">비밀번호 변경</button>
+                    </div>
                     <div id="teacher-msg"></div>
 
                     <!-- 학생 진도 대시보드 -->
@@ -781,17 +786,33 @@
             }
         });
 
+        // 교사 비밀번호 — SHA-256 해시 비교 (소스에 평문 노출 방지)
+        var DEFAULT_TEACHER_HASH = '8665018a3e18db32e95aade699ebb10c73c40f4d6ad8a3f8e9e42c035e4a8e8b';
+        function hashPassword(pw) {
+            var encoder = new TextEncoder();
+            return crypto.subtle.digest('SHA-256', encoder.encode(pw)).then(function(buf) {
+                return Array.from(new Uint8Array(buf)).map(function(b) {
+                    return b.toString(16).padStart(2, '0');
+                }).join('');
+            });
+        }
+        function getTeacherHash() {
+            return localStorage.getItem('drone-teacher-hash') || DEFAULT_TEACHER_HASH;
+        }
+
         document.getElementById('teacher-login-btn').addEventListener('click', function () {
             var pw = document.getElementById('teacher-password').value;
-            if (pw === 'teacher') {
-                teacherUnlocked = true;
-                document.getElementById('teacher-controls').style.display = 'block';
-                document.getElementById('teacher-password').closest('.teacher-input-row').style.display = 'none';
-                showTeacherMsg('교사 모드 활성화됨', '#44ff88');
-                renderDashboard();
-            } else {
-                showTeacherMsg('비밀번호가 틀렸습니다', '#ff6666');
-            }
+            hashPassword(pw).then(function(hash) {
+                if (hash === getTeacherHash()) {
+                    teacherUnlocked = true;
+                    document.getElementById('teacher-controls').style.display = 'block';
+                    document.getElementById('teacher-password').closest('.teacher-input-row').style.display = 'none';
+                    showTeacherMsg('교사 모드 활성화됨', '#44ff88');
+                    renderDashboard();
+                } else {
+                    showTeacherMsg('비밀번호가 틀렸습니다', '#ff6666');
+                }
+            });
         });
 
         document.getElementById('teacher-password').addEventListener('keydown', function (e) {
@@ -855,6 +876,19 @@
             } else {
                 showTeacherMsg('학생을 찾을 수 없습니다', '#ff8888');
             }
+        });
+
+        document.getElementById('btn-change-teacher-pw').addEventListener('click', function () {
+            var newPw = document.getElementById('new-teacher-pw').value;
+            var confirmPw = document.getElementById('confirm-teacher-pw').value;
+            if (!newPw || newPw.length < 4) { showTeacherMsg('비밀번호는 4자 이상이어야 합니다', '#ff8888'); return; }
+            if (newPw !== confirmPw) { showTeacherMsg('비밀번호가 일치하지 않습니다', '#ff8888'); return; }
+            hashPassword(newPw).then(function(hash) {
+                localStorage.setItem('drone-teacher-hash', hash);
+                document.getElementById('new-teacher-pw').value = '';
+                document.getElementById('confirm-teacher-pw').value = '';
+                showTeacherMsg('교사 비밀번호가 변경되었습니다', '#44ff88');
+            });
         });
 
         // ===== 교사 대시보드 =====
@@ -1089,50 +1123,52 @@
             renderStudentGrid();
         }
 
-        // 캐시 방지: students-config.js 최신 버전을 fetch하여 재동기화
-        fetch('shared/students-config.js?v=' + Date.now(), { cache: 'no-store' })
-            .then(function(r) { return r.text(); })
-            .then(function(code) {
-                try {
-                    eval(code);
-                    // config가 업데이트되었으면 재동기화
-                    if (window.DroneSim.StudentsConfig) {
-                        var config = window.DroneSim.StudentsConfig;
-                        var allStudents = auth.getAllStudents();
-                        var configNames = [];
-                        config.forEach(function(cls) {
-                            cls.students.forEach(function(n) { configNames.push(n); });
-                        });
-                        // 이름 목록이 다르면 재동기화 필요
-                        var currentNames = allStudents.map(function(s) { return s.name; });
-                        var needsSync = configNames.length !== currentNames.length;
-                        if (!needsSync) {
-                            for (var i = 0; i < configNames.length; i++) {
-                                if (currentNames.indexOf(configNames[i]) === -1) {
-                                    needsSync = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (needsSync) {
-                            // 새 config로 학생 목록 재구성 (PIN 유지)
-                            var newObjs = [];
-                            config.forEach(function(cls) {
-                                cls.students.forEach(function(name) {
-                                    var existing = null;
-                                    for (var j = 0; j < allStudents.length; j++) {
-                                        if (allStudents[j].name === name) { existing = allStudents[j]; break; }
-                                    }
-                                    newObjs.push(existing ? { name: name, pin: existing.pin, group: cls.id } : { name: name, pin: null, group: cls.id });
-                                });
-                            });
-                            auth.setAllStudents(newObjs);
-                            renderStudentGrid();
-                            if (teacherUnlocked) renderDashboard();
-                        }
+        // 캐시 방지: students-config.js 최신 버전을 동적 script 태그로 재로드하여 동기화
+        // (보안: eval() 대신 script 태그 사용)
+        function syncStudentsFromConfig() {
+            var config = window.DroneSim.StudentsConfig;
+            if (!config || !config.length) return;
+            var allStudents = auth.getAllStudents();
+            var configNames = [];
+            config.forEach(function(cls) {
+                cls.students.forEach(function(n) { configNames.push(n); });
+            });
+            var currentNames = allStudents.map(function(s) { return s.name; });
+            var needsSync = configNames.length !== currentNames.length;
+            if (!needsSync) {
+                for (var i = 0; i < configNames.length; i++) {
+                    if (currentNames.indexOf(configNames[i]) === -1) {
+                        needsSync = true;
+                        break;
                     }
-                } catch(e) { /* 무시 */ }
-            }).catch(function() { /* 오프라인이면 무시 */ });
+                }
+            }
+            if (needsSync) {
+                var newObjs = [];
+                config.forEach(function(cls) {
+                    cls.students.forEach(function(name) {
+                        var existing = null;
+                        for (var j = 0; j < allStudents.length; j++) {
+                            if (allStudents[j].name === name) { existing = allStudents[j]; break; }
+                        }
+                        newObjs.push(existing ? { name: name, pin: existing.pin, group: cls.id } : { name: name, pin: null, group: cls.id });
+                    });
+                });
+                auth.setAllStudents(newObjs);
+                renderStudentGrid();
+                if (teacherUnlocked) renderDashboard();
+            }
+        }
+        (function() {
+            try {
+                var script = document.createElement('script');
+                script.src = 'shared/students-config.js?v=' + Date.now();
+                script.onload = function() {
+                    try { syncStudentsFromConfig(); } catch(e) { /* 무시 */ }
+                };
+                document.head.appendChild(script);
+            } catch(e) { /* 오프라인이면 무시 */ }
+        })();
     </script>
 </body>
 </html>
