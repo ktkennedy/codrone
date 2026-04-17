@@ -1243,7 +1243,7 @@ drone.land()
 
         // ====== 12개 레슨 데이터 ======
         var LESSONS = [
-            // --- 1단계: 파이썬 기초 (레슨 1-7) ---
+            // --- 1단계: 파이썬 기초 (레슨 1-8) ---
             {
                 title: 'print() - 화면에 출력하기',
                 phase: 'python',
@@ -1386,6 +1386,38 @@ drone.land()
                 ]
             },
             {
+                title: 'for 반복문 심화 - 중첩과 패턴',
+                phase: 'python',
+                explanation: [
+                    {type:'text', content:'for문 안에 또 for문을 넣을 수 있어요! 이것을 중첩 반복문이라고 해요.'},
+                    {type:'code', content:'for i in range(3):\n    for j in range(4):\n        print("*", end="")\n    print()  # 줄바꿈\n# 출력:\n# ****\n# ****\n# ****'},
+                    {type:'text', content:'바깥 for문은 "줄"을 만들고, 안쪽 for문은 "한 줄 안의 글자"를 만들어요.'},
+                    {type:'text', content:'print(end="")를 쓰면 줄바꿈 없이 옆으로 출력해요:'},
+                    {type:'code', content:'# end="" → 줄바꿈 안 함 (옆으로 출력)\nprint("A", end="")\nprint("B", end="")\nprint("C")\n# 출력: ABC'},
+                    {type:'text', content:'별 피라미드 만들기:'},
+                    {type:'code', content:'for i in range(1, 6):\n    print("*" * i)\n# 출력:\n# *\n# **\n# ***\n# ****\n# *****'},
+                    {type:'text', content:'별 다이아몬드 만들기 (윗부분 + 아랫부분):'},
+                    {type:'code', content:'n = 5\n# 윗부분\nfor i in range(1, n + 1):\n    print(" " * (n - i) + "*" * (2 * i - 1))\n# 아랫부분\nfor i in range(n - 1, 0, -1):\n    print(" " * (n - i) + "*" * (2 * i - 1))'},
+                    {type:'text', content:'구구단 출력도 중첩 for문으로!'},
+                    {type:'code', content:'for dan in range(2, 10):\n    print("--- " + str(dan) + "단 ---")\n    for i in range(1, 10):\n        print(str(dan) + " x " + str(i) + " = " + str(dan * i))'},
+                    {type:'tip', content:'핵심:\n• for 안에 for = 중첩 반복문\n• 바깥 for = 줄 수, 안쪽 for = 한 줄의 내용\n• print(end="") = 줄바꿈 없이 출력\n• range(5, 0, -1) = 5,4,3,2,1 (거꾸로!)'}
+                ],
+                exampleCode: '# 별 피라미드\nprint("=== 피라미드 ===")\nfor i in range(1, 6):\n    print("*" * i)\n\nprint()\n\n# 별 다이아몬드\nprint("=== 다이아몬드 ===")\nn = 5\nfor i in range(1, n + 1):\n    print(" " * (n - i) + "*" * (2 * i - 1))\nfor i in range(n - 1, 0, -1):\n    print(" " * (n - i) + "*" * (2 * i - 1))\n\nprint()\n\n# 구구단 3단\nprint("=== 3단 ===")\nfor i in range(1, 10):\n    print("3 x " + str(i) + " = " + str(3 * i))',
+                practice: {
+                    prompt: '중첩 for문으로 별 역피라미드를 만들어보세요. (5줄 → 1줄)',
+                    starterCode: '# 역피라미드: 별이 5개 → 1개로 줄어드는 모양\n# *****\n# ****\n# ***\n# **\n# *\n\nfor i in range(5, 0, -1):\n    print("*" * i)',
+                    validate: function(t) { return t.indexOf('*****') !== -1 && t.indexOf('*\n') !== -1; },
+                    successMsg: '멋져요! 중첩 반복문과 패턴 출력을 마스터했습니다!',
+                    hintMsg: 'range(5, 0, -1)은 5,4,3,2,1 순서예요. "*" * i 로 별을 i개 출력해보세요.'
+                },
+                usesDrone: false,
+                cppContent: [
+                    {type:'text', content:'C++ 중첩 for문도 같은 원리! 중괄호 {}가 겹쳐요.'},
+                    {type:'code', content:'// 별 피라미드\nfor (int i = 1; i <= 5; i++) {\n    for (int j = 0; j < i; j++) {\n        cout << "*";\n    }\n    cout << endl;\n}\n\n// 구구단 3단\nfor (int i = 1; i <= 9; i++) {\n    cout << "3 x " << i << " = " << 3 * i << endl;\n}'},
+                    {type:'tip', content:'Python: print("*", end="")  →  C++: cout << "*";\nPython: print()  →  C++: cout << endl;\n\n중첩 for문 구조는 동일해요! 괄호와 중괄호만 다릅니다.'}
+                ]
+            },
+            {
                 title: 'if/else 조건문 - 판단하기',
                 phase: 'python',
                 explanation: [
@@ -1443,7 +1475,7 @@ drone.land()
                     {type:'tip', content:'Python: def add(a, b):  →  C++: int add(int a, int b) { }\n\n• Python은 타입 안 써도 OK\n• C++은 매개변수와 반환값의 타입을 다 써야 해요\n• void = 돌려줄 것 없음, int = 정수 반환'}
                 ]
             },
-            // --- 2단계: 파이썬 + 드론 (레슨 8-12) ---
+            // --- 2단계: 파이썬 + 드론 (레슨 9-13) ---
             {
                 title: '드론 기본 - 이륙과 착륙',
                 phase: 'drone',
